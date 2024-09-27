@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../classes/profile_manager.dart';
+import '../configs/colours.dart';
+import 'character_view.dart';
 
 class ProfileHomeScreen extends StatefulWidget {
   const ProfileHomeScreen({super.key});
@@ -18,52 +20,163 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
   }
 
   Future<void> _initializeProfiles() async {
-    await profileManager.loadFolderPath();
+    await profileManager.initialize();
     setState(() {});
   }
 
-  Future<void> _promptFolderSelection() async {
-    await profileManager.promptFolderSelection();
-    setState(() {});
+  Future<void> _addNewProfile() async {
+    TextEditingController controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Neuer Charakter'),
+          content: TextField(
+            controller: controller,
+            decoration:
+                const InputDecoration(hintText: 'Charakternamen eingeben'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            TextButton(
+              onPressed: () async {
+                String profileName = controller.text;
+                if (profileName.isNotEmpty) {
+                  await profileManager.createProfile(profileName);
+                  setState(() {});
+                }
+                Navigator.of(context).pop();
+              },
+              child: const Text('Erstellen'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _dumpDatabase(String profileName) async {
+    await profileManager.dumpDatabase(profileName);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        actions: profileManager.hasFolderPath()
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.folder_open),
-                  onPressed: _promptFolderSelection,
-                ),
-              ]
-            : null,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _addNewProfile,
+          ),
+        ],
       ),
       body: Column(
         children: [
-          if (!profileManager.hasFolderPath())
-            Center(
-              child: ElevatedButton(
-                onPressed: _promptFolderSelection,
-                child: const Text('Profilordner auswählen'),
-              ),
-            )
-          else
-            Expanded(
-              child: profileManager.getProfiles().isEmpty
-                  ? const Center(child: Text('No profiles found in the folder'))
-                  : ListView.builder(
-                      itemCount: profileManager.getProfiles().length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(profileManager.getProfiles()[index]),
-                          onTap: () {
-                          },
-                        );
-                      },
+          Expanded(
+            child: profileManager.hasProfiles()
+                ? ListView.builder(
+                    itemCount: profileManager.getProfiles().length,
+                    itemBuilder: (context, index) {
+                      final profileName = profileManager.getProfiles()[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 6.0),
+                        child: Material(
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(12),
+                          shadowColor: Colors.black.withOpacity(0.5),
+                          child: Container(
+                            padding: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardColor,
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: ListTile(
+                              title: Text(
+                                profileName,
+                                style: const TextStyle(
+                                    color: AppColors.textColorLight),
+                              ),
+                              onTap: () async {
+                                await profileManager.selectProfile(profileName);
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CharacterView(
+                                        currentDb: profileManager.currentDb,
+                                        profileManager : profileManager),
+                                  ),
+                                );
+                              },
+                              trailing: PopupMenuButton<String>(
+                                onSelected: (value) async {
+                                  if (value == 'delete') {
+                                    bool confirmDelete = await showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title:
+                                              const Text('Charakter löschen'),
+                                          content: Text(
+                                              'Willst du wirklich den Charakter $profileName löschen?'),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              child: const Text('Nein'),
+                                              onPressed: () {
+                                                Navigator.of(context)
+                                                    .pop(false);
+                                              },
+                                            ),
+                                            TextButton(
+                                              child: const Text('Ja'),
+                                              onPressed: () {
+                                                Navigator.of(context).pop(true);
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                    if (confirmDelete == true) {
+                                      await profileManager
+                                          .deleteProfile(profileName);
+                                      setState(() {});
+                                    }
+                                  } else if (value == 'dump') {
+                                    await _dumpDatabase(profileName);
+                                  }
+                                },
+                                itemBuilder: (BuildContext context) {
+                                  return [
+                                    const PopupMenuItem<String>(
+                                      value: 'dump',
+                                      child: Text('Exportieren'),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'delete',
+                                      child: Text('Charakter löschen'),
+                                    ),
+                                  ];
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : const Center(
+                    child: Text(
+                      'Keine Charaktere vorhanden',
+                      style: TextStyle(
+                          fontSize: 20, color: AppColors.textColorLight),
                     ),
-            ),
+                  ),
+          ),
         ],
       ),
     );
