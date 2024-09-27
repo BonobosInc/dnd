@@ -1,8 +1,10 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:file_picker/file_picker.dart';
+import '../configs/defines.dart';
 
 class ProfileManager {
   List<String> profiles = [];
@@ -27,6 +29,134 @@ class ProfileManager {
     }
   }
 
+  void initializeDatabase(Database db, String profileName) {
+    var initialInfo = [
+      {'info': Defines.infoName, 'text': profileName},
+      {'info': Defines.infoRace, 'text': ""},
+      {'info': Defines.infoClass, 'text': ""},
+      {'info': Defines.infoOrigin, 'text': ""},
+      {'info': Defines.infoBackground, 'text': ""},
+    ];
+
+    for (var info in initialInfo) {
+      db.insert('info', info);
+    }
+
+    const initialSave = [
+      {'save': Defines.saveStr, 'bonus': false},
+      {'save': Defines.saveDex, 'bonus': false},
+      {'save': Defines.saveCon, 'bonus': false},
+      {'save': Defines.saveInt, 'bonus': false},
+      {'save': Defines.saveWis, 'bonus': false},
+      {'save': Defines.saveCha, 'bonus': false},
+    ];
+
+    for (var info in initialSave) {
+      db.insert('savingthrow', info);
+    }
+
+    const initialSkills = [
+      {
+        'skill': Defines.skillAcrobatics,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillAnimalHandling,
+        'proficiency': false,
+        'expertise': false
+      },
+      {'skill': Defines.skillArcana, 'proficiency': false, 'expertise': false},
+      {
+        'skill': Defines.skillAthletics,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillDeception,
+        'proficiency': false,
+        'expertise': false
+      },
+      {'skill': Defines.skillHistory, 'proficiency': false, 'expertise': false},
+      {'skill': Defines.skillInsight, 'proficiency': false, 'expertise': false},
+      {
+        'skill': Defines.skillIntimidation,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillInvestigation,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillMedicine,
+        'proficiency': false,
+        'expertise': false
+      },
+      {'skill': Defines.skillNature, 'proficiency': false, 'expertise': false},
+      {
+        'skill': Defines.skillPerception,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillPerformance,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillPersuasion,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillReligion,
+        'proficiency': false,
+        'expertise': false
+      },
+      {
+        'skill': Defines.skillSleightOfHand,
+        'proficiency': false,
+        'expertise': false
+      },
+      {'skill': Defines.skillStealth, 'proficiency': false, 'expertise': false},
+      {
+        'skill': Defines.skillSurvival,
+        'proficiency': false,
+        'expertise': false
+      },
+    ];
+
+    for (var info in initialSkills) {
+      db.insert('skills', info);
+    }
+
+    const initialStats = [
+      {'stat': Defines.statArmor, 'value': 10},
+      {'stat': Defines.statLevel, 'value': 1},
+      {'stat': Defines.statXP, 'value': 0},
+      {'stat': Defines.statInspiration, 'value': 1},
+      {'stat': Defines.statProficiencyBonus, 'value': 1},
+      {'stat': Defines.statInitiative, 'value': 1},
+      {'stat': Defines.statMovement, 'value': 1},
+      {'stat': Defines.statMaxHP, 'value': 1},
+      {'stat': Defines.statCurrentHP, 'value': 1},
+      {'stat': Defines.statTempHP, 'value': 1},
+      {'stat': Defines.statHitDice, 'value': 1},
+      {'stat': Defines.statSTR, 'value': 0},
+      {'stat': Defines.statDEX, 'value': 0},
+      {'stat': Defines.statCON, 'value': 0},
+      {'stat': Defines.statINT, 'value': 0},
+      {'stat': Defines.statWIS, 'value': 0},
+      {'stat': Defines.statCHA, 'value': 0},
+    ];
+
+    for (var stat in initialStats) {
+      db.insert('stats', stat);
+    }
+  }
+
   Future<void> createProfile(String profileName) async {
     final databasesPath = await getDatabasesPath();
     final profileDbPath = join(databasesPath, '$profileName.db');
@@ -42,31 +172,15 @@ class ProfileManager {
       db.execute(
           'CREATE TABLE stats (id INTEGER PRIMARY KEY, stat TEXT, value INTEGER)');
       db.execute(
+          'CREATE TABLE savingthrow (id INTEGER PRIMARY KEY, save TEXT, bonus BOOLEAN)');
+      db.execute(
+          'CREATE TABLE skills (id INTEGER PRIMARY KEY, skill TEXT, proficiency BOOLEAN, expertise BOOLEAN)');
+      db.execute(
           'CREATE TABLE bag (id INTEGER PRIMARY KEY, item TEXT, amount INTEGER)');
       db.execute(
           'CREATE TABLE spells (id INTEGER PRIMARY KEY, spellname TEXT, status TEXT, level INTEGER, description TEXT)');
 
-      var initialInfo = [
-        {'info': 'name', 'text': profileName},
-        {'info': 'race', 'text': "Human"},
-        {'info': 'class', 'text': "Barbarian"},
-      ];
-      for (var info in initialInfo) {
-        db.insert('info', info);
-      }
-
-      const initialStats = [
-        {'stat': 'Level', 'value': 1},
-        {'stat': 'STR', 'value': 0},
-        {'stat': 'DEX', 'value': 0},
-        {'stat': 'CON', 'value': 0},
-        {'stat': 'INT', 'value': 0},
-        {'stat': 'WIS', 'value': 0},
-        {'stat': 'CHA', 'value': 0},
-      ];
-      for (var stat in initialStats) {
-        db.insert('stats', stat);
-      }
+      initializeDatabase(db, profileName);
     });
 
     profiles.add(profileName);
@@ -121,9 +235,9 @@ class ProfileManager {
     String classType = 'Unknown Class';
 
     for (var row in infoData) {
-      if (row['info'] == 'race') {
+      if (row['info'] == Defines.infoRace) {
         race = row['text'];
-      } else if (row['info'] == 'class') {
+      } else if (row['info'] == Defines.infoClass) {
         classType = row['text'];
       }
     }
@@ -157,19 +271,46 @@ class ProfileManager {
     return 'Charakter Name: $profileName\nInfo:\n └── Rasse: $race\n └── Klasse: $classType\nStats:\n$profileStats\nBag:\n$bagItems\nSpells:\n$spellString';
   }
 
-
-
   Future<void> updateStats({
-    String? stat,
+    required String stat,
     int? value,
   }) async {
-    if (currentDb == null || stat == null || value == null) return;
+    if (currentDb == null || value == null) return;
 
     await currentDb!.update(
       'stats',
       {'value': value},
       where: 'stat = ?',
       whereArgs: [stat],
+    );
+  }
+
+  Future<void> updateSavingThrows({
+    required String savethrow,
+    Bool? bonus,
+  }) async {
+    if (currentDb == null || bonus == null) return;
+
+    await currentDb!.update(
+      'savingthrow',
+      {'bonus': bonus},
+      where: 'save = ?',
+      whereArgs: [savethrow],
+    );
+  }
+
+  Future<void> updateSkills({
+    required String skill,
+    Bool? proficiency,
+    Bool? expertise,
+  }) async {
+    if (currentDb == null || proficiency == null || expertise == null) return;
+
+    await currentDb!.update(
+      'skills',
+      {'proficiency': proficiency, 'expertise': expertise},
+      where: 'skill = ?',
+      whereArgs: [skill],
     );
   }
 
@@ -194,38 +335,18 @@ class ProfileManager {
   }
 
   Future<void> updateProfileInfo({
-  String? race,
-  String? classType,
-}) async {
-  if (currentDb == null) return;
+    required String info,
+    required String text,
+  }) async {
+    if (currentDb == null) return;
 
-  final Map<String, dynamic> updates = {};
-
-  if (race != null) updates['text'] = race;
-
-  if (classType != null) {
-    if (updates.isNotEmpty) {
-      await currentDb!.update(
-        'info',
-        updates,
-        where: 'info = ?',
-        whereArgs: ['race'],
-      );
-    }
-
-    updates['text'] = classType;
-  }
-
-  if (classType != null) {
     await currentDb!.update(
       'info',
-      updates,
+      {'text': text},
       where: 'info = ?',
-      whereArgs: ['class'],
+      whereArgs: [info],
     );
   }
-}
-
 
   Future<void> updateSpell({
     required String spellName,
@@ -251,34 +372,39 @@ class ProfileManager {
     }
   }
 
-  Future<Map<int, Map<String, dynamic>>?> getStats() async {
+  Future<int?> getStatValue(String statName) async {
     if (currentDb == null) return null;
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'stats',
-      where: 'stat IN (?, ?, ?, ?, ?, ?, ?)',
-      whereArgs: ['Level', 'STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'],
+      where: 'stat = ?',
+      whereArgs: [statName],
     );
 
-    return result.isNotEmpty ? result.asMap() : null;
+    if (result.isNotEmpty) {
+      return result.first['value'] as int?;
+    }
+
+    return null;
   }
 
-  Future<Map<String, String>?> getProfileInfo() async {
-  if (currentDb == null) return null;
+  Future<Map<String, String>?> getProfileInfo(List<String> infoKeys) async {
+    if (currentDb == null) return null;
 
-  final List<Map<String, dynamic>> result = await currentDb!.query(
-    'info',
-    where: 'info IN (?, ?)',
-    whereArgs: ['race', 'class'],
-  );
-  final Map<String, String> profileInfo = {};
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'info',
+      where: 'info IN (${infoKeys.map((_) => '?').join(',')})',
+      whereArgs: infoKeys,
+    );
 
-  for (var row in result) {
-    profileInfo[row['info']] = row['text'];
+    final Map<String, String> profileInfo = {};
+
+    for (var row in result) {
+      profileInfo[row['info']] = row['text'];
+    }
+
+    return profileInfo.isNotEmpty ? profileInfo : null;
   }
-
-  return profileInfo.isNotEmpty ? profileInfo : null;
-}
 
   Future<List<Map<String, dynamic>>> getAllBagItems() async {
     if (currentDb == null) return [];
@@ -324,8 +450,8 @@ class ProfileManager {
     if (currentDb != null) {
       await currentDb!.close();
       if (kDebugMode) {
-      print('Closing profile database');
-    }
+        print('Closing profile database');
+      }
     }
   }
 }
