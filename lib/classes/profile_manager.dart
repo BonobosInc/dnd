@@ -8,39 +8,26 @@ class ProfileManager {
   List<String> profiles = [];
   String? selectedProfile;
   Database? currentDb;
-  Database? profilesDb;
 
   Future<void> initialize() async {
-    await _initProfilesDb();
     await loadProfiles();
   }
 
-  Future<void> _initProfilesDb() async {
-    final databasesPath = await getDatabasesPath();
-    final path = join(databasesPath, 'profiles.db');
-
-    if (kDebugMode) {
-      print('Initializing profiles database at: $path');
-    }
-
-    profilesDb = await openDatabase(path, version: 1, onCreate: (db, version) {
-      db.execute('CREATE TABLE profiles (id INTEGER PRIMARY KEY, name TEXT)');
-    });
-  }
-
   Future<void> loadProfiles() async {
-    if (profilesDb == null) return;
+    final databasesPath = await getDatabasesPath();
+    final profilesDir = Directory(databasesPath);
 
-    final List<Map<String, dynamic>> profileList =
-        await profilesDb!.query('profiles');
-    profiles = profileList.map((row) => row['name'] as String).toList();
+    if (await profilesDir.exists()) {
+      final dbFiles = profilesDir
+          .listSync()
+          .where((file) => file.path.endsWith('.db'))
+          .toList();
+      profiles =
+          dbFiles.map((file) => basenameWithoutExtension(file.path)).toList();
+    }
   }
 
   Future<void> createProfile(String profileName) async {
-    if (profilesDb == null) return;
-
-    await profilesDb!.insert('profiles', {'name': profileName});
-
     final databasesPath = await getDatabasesPath();
     final profileDbPath = join(databasesPath, '$profileName.db');
 
@@ -98,11 +85,6 @@ class ProfileManager {
   }
 
   Future<void> deleteProfile(String profileName) async {
-    if (profilesDb == null) return;
-
-    await profilesDb!
-        .delete('profiles', where: 'name = ?', whereArgs: [profileName]);
-
     await closeProfile();
 
     final databasesPath = await getDatabasesPath();
@@ -148,12 +130,16 @@ class ProfileManager {
 
     List<Map<String, dynamic>> statsData = await profileDb.query('stats');
     String profileStats = statsData.isNotEmpty
-        ? statsData.map((row) => '${row['stat']}:\n └── ${row['value']}').join('\n')
+        ? statsData
+            .map((row) => '${row['stat']}:\n └── ${row['value']}')
+            .join('\n')
         : 'No stats available';
 
     List<Map<String, dynamic>> bagData = await profileDb.query('bag');
     String bagItems = bagData.isNotEmpty
-        ? bagData.map((row) => ' └── ${row['item']}\n     └── ${row['amount']}').join('\n')
+        ? bagData
+            .map((row) => ' └── ${row['item']}\n     └── ${row['amount']}')
+            .join('\n')
         : 'No items in the bag';
 
     List<Map<String, dynamic>> spellsData = await profileDb.query('spells');
@@ -259,7 +245,7 @@ class ProfileManager {
       await currentDb!.update(
         'spells',
         updates,
-        where: 'spell = ?',
+        where: 'spellname = ?',
         whereArgs: [spellName],
       );
     }
@@ -307,7 +293,7 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
-      columns: ['spell', 'level'],
+      columns: ['spellname', 'level'],
     );
 
     return result;
@@ -319,7 +305,7 @@ class ProfileManager {
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
       columns: ['description'],
-      where: 'spell = ?',
+      where: 'spellname = ?',
       whereArgs: [spellName],
     );
 
