@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Defines {
   // Info Defines
   static const String infoName = "name";

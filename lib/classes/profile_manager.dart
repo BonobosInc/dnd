@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
@@ -43,12 +42,12 @@ class ProfileManager {
     }
 
     const initialSave = [
-      {'save': Defines.saveStr, 'bonus': false},
-      {'save': Defines.saveDex, 'bonus': false},
-      {'save': Defines.saveCon, 'bonus': false},
-      {'save': Defines.saveInt, 'bonus': false},
-      {'save': Defines.saveWis, 'bonus': false},
-      {'save': Defines.saveCha, 'bonus': false},
+      {'save': Defines.saveStr, 'bonus': 0},
+      {'save': Defines.saveDex, 'bonus': 0},
+      {'save': Defines.saveCon, 'bonus': 0},
+      {'save': Defines.saveInt, 'bonus': 0},
+      {'save': Defines.saveWis, 'bonus': 0},
+      {'save': Defines.saveCha, 'bonus': 0},
     ];
 
     for (var info in initialSave) {
@@ -56,76 +55,24 @@ class ProfileManager {
     }
 
     const initialSkills = [
-      {
-        'skill': Defines.skillAcrobatics,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillAnimalHandling,
-        'proficiency': false,
-        'expertise': false
-      },
-      {'skill': Defines.skillArcana, 'proficiency': false, 'expertise': false},
-      {
-        'skill': Defines.skillAthletics,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillDeception,
-        'proficiency': false,
-        'expertise': false
-      },
-      {'skill': Defines.skillHistory, 'proficiency': false, 'expertise': false},
-      {'skill': Defines.skillInsight, 'proficiency': false, 'expertise': false},
-      {
-        'skill': Defines.skillIntimidation,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillInvestigation,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillMedicine,
-        'proficiency': false,
-        'expertise': false
-      },
-      {'skill': Defines.skillNature, 'proficiency': false, 'expertise': false},
-      {
-        'skill': Defines.skillPerception,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillPerformance,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillPersuasion,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillReligion,
-        'proficiency': false,
-        'expertise': false
-      },
-      {
-        'skill': Defines.skillSleightOfHand,
-        'proficiency': false,
-        'expertise': false
-      },
-      {'skill': Defines.skillStealth, 'proficiency': false, 'expertise': false},
-      {
-        'skill': Defines.skillSurvival,
-        'proficiency': false,
-        'expertise': false
-      },
+      {'skill': Defines.skillAcrobatics, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillAnimalHandling, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillArcana, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillAthletics, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillDeception, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillHistory, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillInsight, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillIntimidation, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillInvestigation, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillMedicine, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillNature, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillPerception, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillPerformance, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillPersuasion, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillReligion, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillSleightOfHand, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillStealth, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillSurvival, 'proficiency': 0, 'expertise': 0},
     ];
 
     for (var info in initialSkills) {
@@ -165,20 +112,20 @@ class ProfileManager {
       print('Creating profile database at: $profileDbPath');
     }
 
+    // the Integer for savingthrow and skills are used as substitutes for booleans as sqlite doesnt have booleans
     currentDb =
         await openDatabase(profileDbPath, version: 1, onCreate: (db, version) {
+      db.execute('CREATE TABLE info (info TEXT PRIMARY KEY, text TEXT)');
+      db.execute('CREATE TABLE stats (stat TEXT PRIMARY KEY, value INTEGER)');
       db.execute(
-          'CREATE TABLE info (id INTEGER PRIMARY KEY, info TEXT, text TEXT)');
+          'CREATE TABLE savingthrow (save TEXT PRIMARY KEY, bonus INTEGER)');
       db.execute(
-          'CREATE TABLE stats (id INTEGER PRIMARY KEY, stat TEXT, value INTEGER)');
+          'CREATE TABLE skills (skill TEXT PRIMARY KEY, proficiency INTEGER, expertise INTEGER)');
+      db.execute('CREATE TABLE bag (item TEXT PRIMARY KEY, amount INTEGER)');
       db.execute(
-          'CREATE TABLE savingthrow (id INTEGER PRIMARY KEY, save TEXT, bonus BOOLEAN)');
+          'CREATE TABLE spells (spellname TEXT PRIMARY KEY, status TEXT, level INTEGER, description TEXT)');
       db.execute(
-          'CREATE TABLE skills (id INTEGER PRIMARY KEY, skill TEXT, proficiency BOOLEAN, expertise BOOLEAN)');
-      db.execute(
-          'CREATE TABLE bag (id INTEGER PRIMARY KEY, item TEXT, amount INTEGER)');
-      db.execute(
-          'CREATE TABLE spells (id INTEGER PRIMARY KEY, spellname TEXT, status TEXT, level INTEGER, description TEXT)');
+          'CREATE TABLE weapons (weapon TEXT PRIMARY KEY, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT)');
 
       initializeDatabase(db, profileName);
     });
@@ -277,38 +224,81 @@ class ProfileManager {
   }) async {
     if (currentDb == null || value == null) return;
 
-    await currentDb!.update(
+    final List<Map<String, dynamic>> existingStatList = await currentDb!.query(
       'stats',
-      {'value': value},
       where: 'stat = ?',
       whereArgs: [stat],
     );
+
+    Map<String, dynamic>? existingStat;
+    if (existingStatList.isNotEmpty) {
+      existingStat = existingStatList.first;
+    }
+
+    if (existingStat?['value'] != value) {
+      await currentDb!.update(
+        'stats',
+        {'value': value},
+        where: 'stat = ?',
+        whereArgs: [stat],
+      );
+    }
   }
 
   Future<void> updateSavingThrows({
     required String savethrow,
-    Bool? bonus,
+    int? bonus,
   }) async {
     if (currentDb == null || bonus == null) return;
 
-    await currentDb!.update(
+    final List<Map<String, dynamic>> existingSaveList = await currentDb!.query(
       'savingthrow',
-      {'bonus': bonus},
       where: 'save = ?',
       whereArgs: [savethrow],
     );
+
+    Map<String, dynamic>? existingSave;
+    if (existingSaveList.isNotEmpty) {
+      existingSave = existingSaveList.first;
+    }
+
+    if (existingSave?['bonus'] != bonus) {
+      await currentDb!.update(
+        'savingthrow',
+        {'bonus': bonus},
+        where: 'save = ?',
+        whereArgs: [savethrow],
+      );
+    }
   }
 
   Future<void> updateSkills({
     required String skill,
-    Bool? proficiency,
-    Bool? expertise,
+    int? proficiency,
+    int? expertise,
   }) async {
-    if (currentDb == null || proficiency == null || expertise == null) return;
+    if (currentDb == null) return;
+
+    // Query the existing skill
+    final List<Map<String, dynamic>> existingSkillList = await currentDb!.query(
+      'skills',
+      where: 'skill = ?',
+      whereArgs: [skill],
+    );
+
+    Map<String, dynamic>? existingSkill;
+    if (existingSkillList.isNotEmpty) {
+      existingSkill = existingSkillList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'proficiency': proficiency ?? existingSkill?['proficiency'],
+      'expertise': expertise ?? existingSkill?['expertise'],
+    };
 
     await currentDb!.update(
       'skills',
-      {'proficiency': proficiency, 'expertise': expertise},
+      updates,
       where: 'skill = ?',
       whereArgs: [skill],
     );
@@ -320,9 +310,20 @@ class ProfileManager {
   }) async {
     if (currentDb == null) return;
 
-    final Map<String, dynamic> updates = {};
+    final List<Map<String, dynamic>> existingItemList = await currentDb!.query(
+      'bag',
+      where: 'item = ?',
+      whereArgs: [itemName],
+    );
 
-    if (amount != null) updates['amount'] = amount;
+    Map<String, dynamic>? existingItem;
+    if (existingItemList.isNotEmpty) {
+      existingItem = existingItemList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'amount': amount ?? existingItem?['amount'],
+    };
 
     if (updates.isNotEmpty) {
       await currentDb!.update(
@@ -336,16 +337,75 @@ class ProfileManager {
 
   Future<void> updateProfileInfo({
     required String info,
-    required String text,
+    String? text,
   }) async {
     if (currentDb == null) return;
 
-    await currentDb!.update(
+    final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
       'info',
-      {'text': text},
       where: 'info = ?',
       whereArgs: [info],
     );
+
+    Map<String, dynamic>? existingInfo;
+    if (existingInfoList.isNotEmpty) {
+      existingInfo = existingInfoList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'text': text ?? existingInfo?['text'],
+    };
+
+    await currentDb!.update(
+      'info',
+      updates,
+      where: 'info = ?',
+      whereArgs: [info],
+    );
+  }
+
+  Future<void> updateWeapons({
+    required String weapon,
+    String? attribute,
+    String? reach,
+    String? bonus,
+    String? damage,
+    String? damagetype,
+    String? description,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingWeaponList =
+        await currentDb!.query(
+      'weapons',
+      where: 'weapon = ?',
+      whereArgs: [weapon],
+    );
+
+    Map<String, dynamic>? existingWeapon;
+    if (existingWeaponList.isNotEmpty) {
+      existingWeapon = existingWeaponList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'weapon': weapon,
+      'attribute': attribute ?? existingWeapon?['attribute'],
+      'reach': reach ?? existingWeapon?['reach'],
+      'bonus': bonus ?? existingWeapon?['bonus'],
+      'damage': damage ?? existingWeapon?['damage'],
+      'damagetype': damagetype ?? existingWeapon?['damagetype'],
+      'description': description ?? existingWeapon?['description'],
+    };
+
+    await currentDb!.insert(
+      'weapons',
+      updates,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (kDebugMode) {
+      print("Upserted: $updates");
+    }
   }
 
   Future<void> updateSpell({
@@ -356,20 +416,29 @@ class ProfileManager {
   }) async {
     if (currentDb == null) return;
 
-    final Map<String, dynamic> updates = {};
+    final List<Map<String, dynamic>> existingSpellList = await currentDb!.query(
+      'spells',
+      where: 'spellname = ?',
+      whereArgs: [spellName],
+    );
 
-    if (status != null) updates['status'] = status;
-    if (level != null) updates['level'] = level;
-    if (description != null) updates['description'] = description;
-
-    if (updates.isNotEmpty) {
-      await currentDb!.update(
-        'spells',
-        updates,
-        where: 'spellname = ?',
-        whereArgs: [spellName],
-      );
+    Map<String, dynamic>? existingSpell;
+    if (existingSpellList.isNotEmpty) {
+      existingSpell = existingSpellList.first;
     }
+
+    final Map<String, dynamic> updates = {
+      'status': status ?? existingSpell?['status'],
+      'level': level ?? existingSpell?['level'],
+      'description': description ?? existingSpell?['description'],
+    };
+
+    await currentDb!.update(
+      'spells',
+      updates,
+      where: 'spellname = ?',
+      whereArgs: [spellName],
+    );
   }
 
   Future<int?> getStatValue(String statName) async {
@@ -404,6 +473,14 @@ class ProfileManager {
     }
 
     return profileInfo.isNotEmpty ? profileInfo : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getWeapons() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query('weapons');
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getAllBagItems() async {
