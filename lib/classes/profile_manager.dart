@@ -35,6 +35,24 @@ class ProfileManager {
       {'info': Defines.infoClass, 'text': ""},
       {'info': Defines.infoOrigin, 'text': ""},
       {'info': Defines.infoBackground, 'text': ""},
+      {'info': Defines.infoPersonalityTraits, 'text': ""},
+      {'info': Defines.infoIdeals, 'text': ""},
+      {'info': Defines.infoBonds, 'text': ""},
+      {'info': Defines.infoFlaws, 'text': ""},
+      {'info': Defines.infoAge, 'text': ""},
+      {'info': Defines.infoGod, 'text': ""},
+      {'info': Defines.infoSize, 'text': ""},
+      {'info': Defines.infoHeight, 'text': ""},
+      {'info': Defines.infoWeight, 'text': ""},
+      {'info': Defines.infoSex, 'text': ""},
+      {'info': Defines.infoAlignment, 'text': ""},
+      {'info': Defines.infoEyeColour, 'text': ""},
+      {'info': Defines.infoHairColour, 'text': ""},
+      {'info': Defines.infoSkinColour, 'text': ""},
+      {'info': Defines.infoAppearance, 'text': ""},
+      {'info': Defines.infoTraits, 'text': ""},
+      {'info': Defines.infoSpellcastingClass, 'text': ""},
+      {'info': Defines.infoSpellcastingAbility, 'text': ""},
     ];
 
     for (var info in initialInfo) {
@@ -73,6 +91,7 @@ class ProfileManager {
       {'skill': Defines.skillSleightOfHand, 'proficiency': 0, 'expertise': 0},
       {'skill': Defines.skillStealth, 'proficiency': 0, 'expertise': 0},
       {'skill': Defines.skillSurvival, 'proficiency': 0, 'expertise': 0},
+      {'skill': Defines.skillJackofAllTrades, 'proficiency': 0},
     ];
 
     for (var info in initialSkills) {
@@ -97,10 +116,45 @@ class ProfileManager {
       {'stat': Defines.statINT, 'value': 0},
       {'stat': Defines.statWIS, 'value': 0},
       {'stat': Defines.statCHA, 'value': 0},
+      {'stat': Defines.statSpellSaveDC, 'value': 0},
+      {'stat': Defines.statSpellAttackBonus, 'value': 0},
     ];
 
     for (var stat in initialStats) {
       db.insert('stats', stat);
+    }
+
+    const initialProfs = [
+      {'proficiency': Defines.profLightArmor, 'prof': ""},
+      {'proficiency': Defines.profMediumArmor, 'prof': ""},
+      {'proficiency': Defines.profHeavyArmor, 'prof': ""},
+      {'proficiency': Defines.profShield, 'prof': ""},
+      {'proficiency': Defines.profSimpleWeapon, 'prof': ""},
+      {'proficiency': Defines.profMartialWeapon, 'prof': ""},
+      {'proficiency': Defines.profOtherWeapon, 'prof': ""},
+      {'proficiency': Defines.profWeaponList, 'prof': ""},
+      {'proficiency': Defines.profLanguages, 'prof': ""},
+      {'proficiency': Defines.profTools, 'prof': ""},
+    ];
+
+    for (var prof in initialProfs) {
+      db.insert('proficiencies', prof);
+    }
+
+    const initialSpellSlots = [
+      {'spellslot': Defines.slotOne, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotTwo, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotThree, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotFour, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotFive, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotSix, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotSeven, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotEight, 'total': 0, 'spent': 0},
+      {'spellslot': Defines.slotNine, 'total': 0, 'spent': 0},
+    ];
+
+    for (var slot in initialSpellSlots) {
+      db.insert('spellslots', slot);
     }
   }
 
@@ -126,7 +180,10 @@ class ProfileManager {
           'CREATE TABLE spells (spellname TEXT PRIMARY KEY, status TEXT, level INTEGER, description TEXT)');
       db.execute(
           'CREATE TABLE weapons (weapon TEXT PRIMARY KEY, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT)');
-
+      db.execute(
+          'CREATE TABLE proficiencies (proficiency TEXT PRIMARY KEY, prof TEXT)');
+      db.execute(
+          'CREATE TABLE spellslots (spellslot TEXT PRIMARY KEY, total INTEGER, spent INTEGER)');
       initializeDatabase(db, profileName);
     });
 
@@ -177,7 +234,6 @@ class ProfileManager {
 
   Future<String> getProfileData(Database profileDb, String profileName) async {
     List<Map<String, dynamic>> infoData = await profileDb.query('info');
-
     String race = 'Unknown Race';
     String classType = 'Unknown Class';
 
@@ -204,18 +260,101 @@ class ProfileManager {
         : 'No items in the bag';
 
     List<Map<String, dynamic>> spellsData = await profileDb.query('spells');
-    String spellString = '';
-    for (var spell in spellsData) {
-      String spellName = spell['spellname'];
-      String status = spell['status'];
-      String level = spell['level'].toString();
-      String description = spell['description'];
+    String spellString = spellsData.isNotEmpty
+        ? spellsData.map((spell) {
+            String spellName = spell['spellname'];
+            String status = spell['status'];
+            String level = spell['level'].toString();
+            String description = spell['description'];
+            return ' └── $spellName\n     └── Status: $status\n     └── Level: $level\n     └── Description: $description';
+          }).join('\n')
+        : 'No spells available';
 
-      spellString +=
-          ' └── $spellName\n     └── Status: $status\n     └── Level: $level\n     └── Description: $description\n';
-    }
+    List<Map<String, dynamic>> weaponsData = await profileDb.query('weapons');
+    String weaponsString = weaponsData.isNotEmpty
+        ? weaponsData.map((weapon) {
+            String weaponName = weapon['weapon'];
+            String attribute = weapon['attribute'];
+            String reach = weapon['reach'];
+            String bonus = weapon['bonus'];
+            String damage = weapon['damage'];
+            String damageType = weapon['damagetype'];
+            String description = weapon['description'];
+            return ' └── $weaponName\n     └── Attribute: $attribute\n     └── Reach: $reach\n     └── Bonus: $bonus\n     └── Damage: $damage\n     └── Damage Type: $damageType\n     └── Description: $description';
+          }).join('\n')
+        : 'No weapons available';
 
-    return 'Charakter Name: $profileName\nInfo:\n └── Rasse: $race\n └── Klasse: $classType\nStats:\n$profileStats\nBag:\n$bagItems\nSpells:\n$spellString';
+    List<Map<String, dynamic>> skillsData = await profileDb.query('skills');
+    String skillsString = skillsData.isNotEmpty
+        ? skillsData.map((skill) {
+            String skillName = skill['skill'];
+            String proficiency = skill['proficiency'].toString();
+            String expertise = skill['expertise'].toString();
+            return ' └── $skillName\n     └── Proficiency: $proficiency\n     └── Expertise: $expertise';
+          }).join('\n')
+        : 'No skills available';
+
+    List<Map<String, dynamic>> savingThrowsData =
+        await profileDb.query('savingthrow');
+    String savingThrowsString = savingThrowsData.isNotEmpty
+        ? savingThrowsData.map((savingThrow) {
+            String saveName = savingThrow['save'];
+            String bonus = savingThrow['bonus'].toString();
+            return ' └── $saveName\n     └── Bonus: $bonus';
+          }).join('\n')
+        : 'No saving throws available';
+
+    List<Map<String, dynamic>> proficienciesData =
+        await profileDb.query('proficiencies');
+    String proficienciesString = proficienciesData.isNotEmpty
+        ? proficienciesData.map((proficiency) {
+            String profName = proficiency['proficiency'];
+            String profValue = proficiency['prof'];
+            return ' └── $profName\n     └── Value: $profValue';
+          }).join('\n')
+        : 'No proficiencies available';
+
+    List<Map<String, dynamic>> spellSlotsData =
+        await profileDb.query('spellslots');
+    String spellSlotsString = spellSlotsData.isNotEmpty
+        ? spellSlotsData.map((slot) {
+            String slotName = slot['spellslot'];
+            String total = slot['total'].toString();
+            String spent = slot['spent'].toString();
+            return ' └── $slotName\n     └── Total: $total\n     └── Spent: $spent';
+          }).join('\n')
+        : 'No spell slots available';
+
+    return '''
+          Character Name: $profileName
+          Info:
+          └── Race: $race
+          └── Class: $classType
+
+          Stats:
+          $profileStats
+
+          Bag:
+          $bagItems
+
+          Spells:
+          $spellString
+
+          Weapons:
+          $weaponsString
+
+          Skills:
+          $skillsString
+
+          Saving Throws:
+          $savingThrowsString
+
+          Proficiencies:
+          $proficienciesString
+
+          Spell Slots:
+          $spellSlotsString
+          ''';
   }
 
   Future<void> updateStats({
@@ -364,6 +503,67 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateProficiencies({
+    required String proficiency,
+    String? text,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
+      'proficiencies',
+      where: 'proficiency = ?',
+      whereArgs: [proficiency],
+    );
+
+    Map<String, dynamic>? existingInfo;
+    if (existingInfoList.isNotEmpty) {
+      existingInfo = existingInfoList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'text': text ?? existingInfo?['text'],
+    };
+
+    await currentDb!.update(
+      'proficiencies',
+      updates,
+      where: 'proficiency = ?',
+      whereArgs: [proficiency],
+    );
+  }
+
+  Future<void> updateSpellSlots({
+    required String spellslot,
+    int? total,
+    int? spent,
+  }) async {
+    if (currentDb == null) return;
+
+    // Query the existing skill
+    final List<Map<String, dynamic>> existingSkillList = await currentDb!.query(
+      'spellslots',
+      where: 'spellslot = ?',
+      whereArgs: [spellslot],
+    );
+
+    Map<String, dynamic>? existingSkill;
+    if (existingSkillList.isNotEmpty) {
+      existingSkill = existingSkillList.first;
+    }
+
+    final Map<String, dynamic> updates = {
+      'total': total ?? existingSkill?['total'],
+      'spent': spent ?? existingSkill?['spent'],
+    };
+
+    await currentDb!.update(
+      'spellslots',
+      updates,
+      where: 'spellslot = ?',
+      whereArgs: [spellslot],
+    );
+  }
+
   Future<void> updateWeapons({
     required String weapon,
     String? attribute,
@@ -479,6 +679,32 @@ class ProfileManager {
     if (currentDb == null) return [];
 
     final List<Map<String, dynamic>> result = await currentDb!.query('weapons');
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getProficiencies() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result =
+        await currentDb!.query('proficiencies');
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getSkills() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query('skills');
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getSpellSlots() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result =
+        await currentDb!.query('spellslots');
 
     return result;
   }
