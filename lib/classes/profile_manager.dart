@@ -215,6 +215,31 @@ class ProfileManager {
     await loadProfiles();
   }
 
+  Future<void> renameProfile(String oldName, String newName) async {
+    final databasesPath = await getDatabasesPath();
+    final oldPath = join(databasesPath, '$oldName.db');
+    final newPath = join(databasesPath, '$newName.db');
+
+    if (profiles.contains(newName)) {
+      throw Exception(
+          'Ein Charakter mit dem Namen "$newName" existiert bereits.');
+    }
+
+    final File oldFile = File(oldPath);
+
+    if (await oldFile.exists()) {
+      await oldFile.rename(newPath);
+    }
+
+    profiles[profiles.indexOf(oldName)] = newName;
+
+    if (selectedProfile == oldName) {
+      selectedProfile = newName;
+    }
+
+    await loadProfiles();
+  }
+
   Future<void> dumpDatabase(String profileName) async {
     final databasesPath = await getDatabasesPath();
     final profileDbPath = join(databasesPath, '$profileName.db');
