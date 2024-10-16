@@ -28,129 +28,126 @@ class ProfileManager {
     }
   }
 
-  void initializeDatabase(Database db, String profileName) {
-    var initialInfo = [
-      {'info': Defines.infoName, 'text': profileName},
-      {'info': Defines.infoRace, 'text': ""},
-      {'info': Defines.infoClass, 'text': ""},
-      {'info': Defines.infoOrigin, 'text': ""},
-      {'info': Defines.infoBackground, 'text': ""},
-      {'info': Defines.infoPersonalityTraits, 'text': ""},
-      {'info': Defines.infoIdeals, 'text': ""},
-      {'info': Defines.infoBonds, 'text': ""},
-      {'info': Defines.infoFlaws, 'text': ""},
-      {'info': Defines.infoAge, 'text': ""},
-      {'info': Defines.infoGod, 'text': ""},
-      {'info': Defines.infoSize, 'text': ""},
-      {'info': Defines.infoHeight, 'text': ""},
-      {'info': Defines.infoWeight, 'text': ""},
-      {'info': Defines.infoSex, 'text': ""},
-      {'info': Defines.infoAlignment, 'text': ""},
-      {'info': Defines.infoEyeColour, 'text': ""},
-      {'info': Defines.infoHairColour, 'text': ""},
-      {'info': Defines.infoSkinColour, 'text': ""},
-      {'info': Defines.infoAppearance, 'text': ""},
-      {'info': Defines.infoTraits, 'text': ""},
-      {'info': Defines.infoSpellcastingClass, 'text': ""},
-      {'info': Defines.infoSpellcastingAbility, 'text': ""},
-    ];
 
-    for (var info in initialInfo) {
-      db.insert('info', info);
-    }
+  void initializeDatabase(Database db, String profileName) async {
 
-    const initialSave = [
-      {'save': Defines.saveStr, 'bonus': 0},
-      {'save': Defines.saveDex, 'bonus': 0},
-      {'save': Defines.saveCon, 'bonus': 0},
-      {'save': Defines.saveInt, 'bonus': 0},
-      {'save': Defines.saveWis, 'bonus': 0},
-      {'save': Defines.saveCha, 'bonus': 0},
-    ];
+  var initialInfo = {
+    Defines.infoName: profileName,
+    Defines.infoRace: '',
+    Defines.infoClass: '',
+    Defines.infoOrigin: '',
+    Defines.infoBackground: '',
+    Defines.infoPersonalityTraits: '',
+    Defines.infoIdeals: '',
+    Defines.infoBonds: '',
+    Defines.infoFlaws: '',
+    Defines.infoAge: '',
+    Defines.infoGod: '',
+    Defines.infoSize: '',
+    Defines.infoHeight: '',
+    Defines.infoWeight: '',
+    Defines.infoSex: '',
+    Defines.infoAlignment: '',
+    Defines.infoEyeColour: '',
+    Defines.infoHairColour: '',
+    Defines.infoSkinColour: '',
+    Defines.infoAppearance: '',
+    Defines.infoTraits: '',
+    Defines.infoSpellcastingClass: '',
+    Defines.infoSpellcastingAbility: '',
+  };
 
-    for (var info in initialSave) {
-      db.insert('savingthrow', info);
-    }
+  int insertedCharId  = await db.insert('info', initialInfo);
+    
+    var initialSave = {
+      'charId': insertedCharId,
+      Defines.saveStr: 0,
+      Defines.saveDex: 0,
+      Defines.saveCon: 0,
+      Defines.saveInt: 0,
+      Defines.saveWis: 0,
+      Defines.saveCha: 0,
+    };
 
-    const initialSkills = [
-      {'skill': Defines.skillAcrobatics, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillAnimalHandling, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillArcana, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillAthletics, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillDeception, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillHistory, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillInsight, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillIntimidation, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillInvestigation, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillMedicine, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillNature, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillPerception, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillPerformance, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillPersuasion, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillReligion, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillSleightOfHand, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillStealth, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillSurvival, 'proficiency': 0, 'expertise': 0},
-      {'skill': Defines.skillJackofAllTrades, 'proficiency': 0},
+    db.insert('savingthrow', initialSave);
+
+    var initialSkills = [
+      {'charId': insertedCharId, 'skill': Defines.skillAcrobatics, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillAnimalHandling, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillArcana, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillAthletics, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillDeception, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillHistory, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillInsight, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillIntimidation, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillInvestigation, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillMedicine, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillNature, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillPerception, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillPerformance, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillPersuasion, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillReligion, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillSleightOfHand, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillStealth, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillSurvival, 'proficiency': 0, 'expertise': 0},
+      {'charId': insertedCharId, 'skill': Defines.skillJackofAllTrades, 'proficiency': 0},
     ];
 
     for (var info in initialSkills) {
       db.insert('skills', info);
     }
 
-    const initialStats = [
-      {'stat': Defines.statArmor, 'value': 10},
-      {'stat': Defines.statLevel, 'value': 1},
-      {'stat': Defines.statXP, 'value': 0},
-      {'stat': Defines.statInspiration, 'value': 1},
-      {'stat': Defines.statProficiencyBonus, 'value': 1},
-      {'stat': Defines.statInitiative, 'value': 1},
-      {'stat': Defines.statMovement, 'value': 1},
-      {'stat': Defines.statMaxHP, 'value': 1},
-      {'stat': Defines.statCurrentHP, 'value': 1},
-      {'stat': Defines.statTempHP, 'value': 1},
-      {'stat': Defines.statHitDice, 'value': 1},
-      {'stat': Defines.statSTR, 'value': 0},
-      {'stat': Defines.statDEX, 'value': 0},
-      {'stat': Defines.statCON, 'value': 0},
-      {'stat': Defines.statINT, 'value': 0},
-      {'stat': Defines.statWIS, 'value': 0},
-      {'stat': Defines.statCHA, 'value': 0},
-      {'stat': Defines.statSpellSaveDC, 'value': 0},
-      {'stat': Defines.statSpellAttackBonus, 'value': 0},
-    ];
+    var initialStats = {
+      'charId': insertedCharId, // Assuming you have the inserted character ID here
+      Defines.statArmor: 10,
+      Defines.statLevel: 1,
+      Defines.statXP: 0,
+      Defines.statInspiration: 1,
+      Defines.statProficiencyBonus: 1,
+      Defines.statInitiative: 1,
+      Defines.statMovement: 1,
+      Defines.statMaxHP: 1,
+      Defines.statCurrentHP: 1,
+      Defines.statTempHP: 1,
+      Defines.statHitDice: 1,
+      Defines.statSTR: 0,
+      Defines.statDEX: 0,
+      Defines.statCON: 0,
+      Defines.statINT: 0,
+      Defines.statWIS: 0,
+      Defines.statCHA: 0,
+      Defines.statSpellSaveDC: 0,
+      Defines.statSpellAttackBonus: 0,
+    };
 
-    for (var stat in initialStats) {
-      db.insert('stats', stat);
-    }
+    db.insert('stats', initialStats);
+    
+    var initialProfs = {
+      'charId': insertedCharId,
+      Defines.profLightArmor: '',
+      Defines.profMediumArmor: '',
+      Defines.profHeavyArmor: '',
+      Defines.profShield: '',
+      Defines.profSimpleWeapon: '',
+      Defines.profMartialWeapon: '',
+      Defines.profOtherWeapon: '',
+      Defines.profWeaponList: '',
+      Defines.profLanguages: '',
+      Defines.profTools: '',
+    };
 
-    const initialProfs = [
-      {'proficiency': Defines.profLightArmor, 'prof': ""},
-      {'proficiency': Defines.profMediumArmor, 'prof': ""},
-      {'proficiency': Defines.profHeavyArmor, 'prof': ""},
-      {'proficiency': Defines.profShield, 'prof': ""},
-      {'proficiency': Defines.profSimpleWeapon, 'prof': ""},
-      {'proficiency': Defines.profMartialWeapon, 'prof': ""},
-      {'proficiency': Defines.profOtherWeapon, 'prof': ""},
-      {'proficiency': Defines.profWeaponList, 'prof': ""},
-      {'proficiency': Defines.profLanguages, 'prof': ""},
-      {'proficiency': Defines.profTools, 'prof': ""},
-    ];
+    db.insert('proficiencies', initialProfs);
 
-    for (var prof in initialProfs) {
-      db.insert('proficiencies', prof);
-    }
-
-    const initialSpellSlots = [
-      {'spellslot': Defines.slotOne, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotTwo, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotThree, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotFour, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotFive, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotSix, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotSeven, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotEight, 'total': 0, 'spent': 0},
-      {'spellslot': Defines.slotNine, 'total': 0, 'spent': 0},
+    var initialSpellSlots = [
+      {'charId': insertedCharId, 'spellslot': Defines.slotOne, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotTwo, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotThree, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotFour, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotFive, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotSix, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotSeven, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotEight, 'total': 0, 'spent': 0},
+      {'charId': insertedCharId, 'spellslot': Defines.slotNine, 'total': 0, 'spent': 0},
     ];
 
     for (var slot in initialSpellSlots) {
@@ -169,22 +166,100 @@ class ProfileManager {
     // the Integer for savingthrow and skills are used as substitutes for booleans as sqlite doesnt have booleans
     currentDb =
         await openDatabase(profileDbPath, version: 1, onCreate: (db, version) {
-      db.execute('CREATE TABLE info (info TEXT PRIMARY KEY, text TEXT)');
-      db.execute('CREATE TABLE stats (stat TEXT PRIMARY KEY, value INTEGER)');
-      db.execute(
-          'CREATE TABLE savingthrow (save TEXT PRIMARY KEY, bonus INTEGER)');
-      db.execute(
-          'CREATE TABLE skills (skill TEXT PRIMARY KEY, proficiency INTEGER, expertise INTEGER)');
-      db.execute('CREATE TABLE bag (item TEXT PRIMARY KEY, amount INTEGER)');
-      db.execute(
-          'CREATE TABLE spells (spellname TEXT PRIMARY KEY, status TEXT, level INTEGER, description TEXT)');
-      db.execute(
-          'CREATE TABLE weapons (weapon TEXT PRIMARY KEY, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT)');
-      db.execute(
-          'CREATE TABLE proficiencies (proficiency TEXT PRIMARY KEY, prof TEXT)');
-      db.execute(
-          'CREATE TABLE spellslots (spellslot TEXT PRIMARY KEY, total INTEGER, spent INTEGER)');
-      initializeDatabase(db, profileName);
+      //db.execute('CREATE TABLE info (info TEXT PRIMARY KEY, text TEXT)');
+    db.execute(
+      'CREATE TABLE info (charId INTEGER PRIMARY KEY AUTOINCREMENT, '
+      '${Defines.infoName} TEXT, '
+      '${Defines.infoRace} TEXT, '
+      '${Defines.infoClass} TEXT, '
+      '${Defines.infoOrigin} TEXT, '
+      '${Defines.infoBackground} TEXT, '
+      '${Defines.infoPersonalityTraits} TEXT, '
+      '${Defines.infoIdeals} TEXT, '
+      '${Defines.infoBonds} TEXT, '
+      '${Defines.infoFlaws} TEXT, '
+      '${Defines.infoAge} TEXT, '
+      '${Defines.infoGod} TEXT, '
+      '${Defines.infoSize} TEXT, '
+      '${Defines.infoHeight} TEXT, '
+      '${Defines.infoWeight} TEXT, '
+      '${Defines.infoSex} TEXT, '
+      '${Defines.infoAlignment} TEXT, '
+      '${Defines.infoEyeColour} TEXT, '
+      '${Defines.infoHairColour} TEXT, '
+      '${Defines.infoSkinColour} TEXT, '
+      '${Defines.infoAppearance} TEXT, '
+      '${Defines.infoTraits} TEXT, '
+      '${Defines.infoSpellcastingClass} TEXT, '
+      '${Defines.infoSpellcastingAbility} TEXT'
+      ')');
+    db.execute(
+      'CREATE TABLE Stats (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+      'charId INTEGER, '
+      '${Defines.statArmor} INTEGER, '
+      '${Defines.statLevel} INTEGER, '
+      '${Defines.statXP} INTEGER, '
+      '${Defines.statInspiration} INTEGER, '
+      '${Defines.statProficiencyBonus} INTEGER, '
+      '${Defines.statInitiative} INTEGER, '
+      '${Defines.statMovement} INTEGER, '
+      '${Defines.statMaxHP} INTEGER, '
+      '${Defines.statCurrentHP} INTEGER, '
+      '${Defines.statTempHP} INTEGER, '
+      '${Defines.statHitDice} INTEGER, '
+      '${Defines.statSTR} INTEGER, '
+      '${Defines.statDEX} INTEGER, '
+      '${Defines.statCON} INTEGER, '
+      '${Defines.statINT} INTEGER, '
+      '${Defines.statWIS} INTEGER, '
+      '${Defines.statCHA} INTEGER, '
+      '${Defines.statSpellSaveDC} INTEGER, '
+      '${Defines.statSpellAttackBonus} INTEGER, '
+      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+      ')');
+    db.execute(
+      'CREATE TABLE savingthrow (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+      'charId INTEGER, '
+      '${Defines.saveStr} INTEGER, '
+      '${Defines.saveDex} INTEGER, '
+      '${Defines.saveCon} INTEGER, '
+      '${Defines.saveInt} INTEGER, '
+      '${Defines.saveWis} INTEGER, '
+      '${Defines.saveCha} INTEGER, '
+      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+      ')');
+    db.execute(
+      'CREATE TABLE proficiencies (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+      'charId INTEGER, '
+      '${Defines.profLightArmor} TEXT, '
+      '${Defines.profMediumArmor} TEXT, '
+      '${Defines.profHeavyArmor} TEXT, '
+      '${Defines.profShield} TEXT, '
+      '${Defines.profSimpleWeapon} TEXT, '
+      '${Defines.profMartialWeapon} TEXT, '
+      '${Defines.profOtherWeapon} TEXT, '
+      '${Defines.profWeaponList} TEXT, '
+      '${Defines.profLanguages} TEXT, '
+      '${Defines.profTools} TEXT, '
+      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+      ')');
+    db.execute(
+      'CREATE TABLE skills (skill TEXT PRIMARY KEY, charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
+      );
+      
+    db.execute(
+      'CREATE TABLE spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
+      );
+    db.execute(
+      'CREATE TABLE bag (ID INTEGER PRIMARY KEY, item TEXT, charId INTEGER, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
+      );
+    
+    db.execute(
+      'CREATE TABLE spells (spellname TEXT PRIMARY KEY, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+      
+    db.execute(
+      'CREATE TABLE weapons (weapon TEXT PRIMARY KEY, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    initializeDatabase(db, profileName);
     });
 
     profiles.add(profileName);
