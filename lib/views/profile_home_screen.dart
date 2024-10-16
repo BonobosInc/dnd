@@ -26,52 +26,67 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
 
   Future<void> _addNewProfile() async {
     TextEditingController controller = TextEditingController();
+
     await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Neuer Charakter'),
-          content: TextField(
-            controller: controller,
-            decoration:
-                const InputDecoration(hintText: 'Charakternamen eingeben'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Abbrechen'),
-            ),
-            TextButton(
-              onPressed: () async {
-                String profileName = controller.text;
-                if (profileName.isNotEmpty) {
-                  String lowerCaseProfileName = profileName.toLowerCase();
+        bool _isCreatingProfile = false;
 
-                  bool profileExists = profileManager.profiles
-                      .map((profile) => profile.toLowerCase())
-                      .contains(lowerCaseProfileName);
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Neuer Charakter'),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(hintText: 'Charakternamen eingeben'),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Abbrechen'),
+                ),
+                TextButton(
+                  onPressed: _isCreatingProfile
+                      ? null
+                      : () async {
+                          String profileName = controller.text;
+                          if (profileName.isNotEmpty) {
+                            String lowerCaseProfileName = profileName.toLowerCase();
 
-                  if (profileExists) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Der Charakter "$profileName" existiert bereits. Bitte wähle einen anderen Namen.',
-                          style:
-                              const TextStyle(color: AppColors.textColorLight),
-                        ),
-                        backgroundColor: AppColors.warningColor,
-                      ),
-                    );
-                  } else {
-                    await profileManager.createProfile(profileName);
-                    setState(() {});
-                    Navigator.of(context).pop();
-                  }
-                }
-              },
-              child: const Text('Erstellen'),
-            ),
-          ],
+                            bool profileExists = profileManager.profiles
+                                .map((profile) => profile.name.toLowerCase())
+                                .contains(lowerCaseProfileName);
+
+                            if (profileExists) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Der Charakter "$profileName" existiert bereits. Bitte wähle einen anderen Namen.',
+                                    style: const TextStyle(color: AppColors.textColorLight),
+                                  ),
+                                  backgroundColor: AppColors.warningColor,
+                                ),
+                              );
+                            } else {
+                              setState(() {
+                                _isCreatingProfile = true;
+                              });
+
+                              await profileManager.createProfile(profileName);
+
+                              setState(() {
+                                _isCreatingProfile = false;
+                              });
+                              await _initializeProfiles();
+                              Navigator.of(context).pop();
+                            }
+                          }
+                        },
+                  child: const Text('Erstellen'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -81,7 +96,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     await profileManager.dumpDatabase(profileName);
   }
 
-  Future<void> _renameProfile(String oldName) async {
+  Future<void> _renameProfile(Character oldProfile) async {
     TextEditingController controller = TextEditingController();
     await showDialog(
       context: context,
@@ -90,8 +105,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
           title: const Text('Charakter umbenennen'),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(
-                hintText: 'Neuen Charakternamen eingeben'),
+            decoration: const InputDecoration(hintText: 'Neuen Charakternamen eingeben'),
           ),
           actions: <Widget>[
             TextButton(
@@ -104,16 +118,17 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
 
                 if (newName.isNotEmpty) {
                   try {
-                    await profileManager.renameProfile(oldName, newName);
-                    setState(() {});
+                    await profileManager.renameProfile(oldProfile.name, newName);
+                    setState(() {
+                      _initializeProfiles();
+                    });
                     Navigator.of(context).pop();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
                           'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
-                          style:
-                              const TextStyle(color: AppColors.textColorLight),
+                          style: const TextStyle(color: AppColors.textColorLight),
                         ),
                         backgroundColor: AppColors.warningColor,
                       ),
@@ -147,10 +162,9 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 ? ListView.builder(
                     itemCount: profileManager.getProfiles().length,
                     itemBuilder: (context, index) {
-                      final profileName = profileManager.getProfiles()[index];
+                      final Character profile = profileManager.getProfiles()[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0, vertical: 6.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
                         child: Material(
                           elevation: 4,
                           borderRadius: BorderRadius.circular(12),
@@ -163,12 +177,11 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                             ),
                             child: ListTile(
                               title: Text(
-                                profileName,
-                                style: const TextStyle(
-                                    color: AppColors.textColorLight),
+                                profile.name,
+                                style: const TextStyle(color: AppColors.textColorLight),
                               ),
                               onTap: () async {
-                                await profileManager.selectProfile(profileName);
+                                await profileManager.selectProfile(profile);
 
                                 Navigator.push(
                                   context,
@@ -186,16 +199,13 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                       context: context,
                                       builder: (BuildContext context) {
                                         return AlertDialog(
-                                          title:
-                                              const Text('Charakter löschen'),
-                                          content: Text(
-                                              'Willst du wirklich den Charakter $profileName löschen?'),
+                                          title: const Text('Charakter löschen'),
+                                          content: Text('Willst du wirklich den Charakter ${profile.name} löschen?'),
                                           actions: <Widget>[
                                             TextButton(
                                               child: const Text('Nein'),
                                               onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(false);
+                                                Navigator.of(context).pop(false);
                                               },
                                             ),
                                             TextButton(
@@ -209,14 +219,13 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                       },
                                     );
                                     if (confirmDelete == true) {
-                                      await profileManager
-                                          .deleteProfile(profileName);
+                                      await profileManager.deleteProfile(profile);
                                       setState(() {});
                                     }
                                   } else if (value == 'dump') {
-                                    await _dumpDatabase(profileName);
+                                    await _dumpDatabase(profile.name);
                                   } else if (value == 'rename') {
-                                    await _renameProfile(profileName);
+                                    await _renameProfile(profile);
                                   }
                                 },
                                 itemBuilder: (BuildContext context) {
@@ -245,8 +254,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 : const Center(
                     child: Text(
                       'Keine Charaktere vorhanden',
-                      style: TextStyle(
-                          fontSize: 20, color: AppColors.textColorLight),
+                      style: TextStyle(fontSize: 20, color: AppColors.textColorLight),
                     ),
                   ),
           ),

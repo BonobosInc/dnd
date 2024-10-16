@@ -1,6 +1,8 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
+import '../configs/defines.dart';
 
 class CharacterView extends StatelessWidget {
   final Database? currentDb;
@@ -16,10 +18,10 @@ class CharacterView extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
-              if (didPop) {
-                profileManager.closeProfile();
-                return;
-              }
+        if (didPop) {
+          profileManager.closeDB();
+          return;
+        }
       },
       child: Scaffold(
         appBar: AppBar(

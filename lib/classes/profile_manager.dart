@@ -5,9 +5,17 @@ import 'package:sqflite/sqflite.dart';
 import 'package:file_picker/file_picker.dart';
 import '../configs/defines.dart';
 
+class Character {
+  final int id;
+  final String name;
+
+  Character({required this.id, required this.name});
+}
+
 class ProfileManager {
-  List<String> profiles = [];
+  List<Character> profiles = [];
   String? selectedProfile;
+  int? selectedID;
   Database? currentDb;
 
   Future<void> initialize() async {
@@ -16,303 +24,471 @@ class ProfileManager {
 
   Future<void> loadProfiles() async {
     final databasesPath = await getDatabasesPath();
-    final profilesDir = Directory(databasesPath);
+    final dbPath = join(databasesPath, 'characters.db');
 
-    if (await profilesDir.exists()) {
-      final dbFiles = profilesDir
-          .listSync()
-          .where((file) => file.path.endsWith('.db'))
-          .toList();
-      profiles =
-          dbFiles.map((file) => basenameWithoutExtension(file.path)).toList();
+    final dbFile = File(dbPath);
+    if (!await dbFile.exists()) {
+      if (kDebugMode) {
+        print("Database doesn't exist yet.");
+      }
+      return;
+    }
+
+    final db = await openDatabase(dbPath);
+
+    try {
+      final List<Map<String, dynamic>> results = await db.query('info');
+
+      profiles.clear();
+
+      for (var result in results) {
+        Character character = Character(
+          id: result['charId'],
+          name: result['name'],
+        );
+
+        profiles.add(character);
+      }
+    } catch (e) {
+      print("Error querying the database: $e");
+    } finally {
+      await db.close();
     }
   }
 
-
-  void initializeDatabase(Database db, String profileName) async {
-
-  var initialInfo = {
-    Defines.infoName: profileName,
-    Defines.infoRace: '',
-    Defines.infoClass: '',
-    Defines.infoOrigin: '',
-    Defines.infoBackground: '',
-    Defines.infoPersonalityTraits: '',
-    Defines.infoIdeals: '',
-    Defines.infoBonds: '',
-    Defines.infoFlaws: '',
-    Defines.infoAge: '',
-    Defines.infoGod: '',
-    Defines.infoSize: '',
-    Defines.infoHeight: '',
-    Defines.infoWeight: '',
-    Defines.infoSex: '',
-    Defines.infoAlignment: '',
-    Defines.infoEyeColour: '',
-    Defines.infoHairColour: '',
-    Defines.infoSkinColour: '',
-    Defines.infoAppearance: '',
-    Defines.infoTraits: '',
-    Defines.infoSpellcastingClass: '',
-    Defines.infoSpellcastingAbility: '',
-  };
-
-  int insertedCharId  = await db.insert('info', initialInfo);
-    
-    var initialSave = {
-      'charId': insertedCharId,
-      Defines.saveStr: 0,
-      Defines.saveDex: 0,
-      Defines.saveCon: 0,
-      Defines.saveInt: 0,
-      Defines.saveWis: 0,
-      Defines.saveCha: 0,
+  Future<void> initializeDatabase(Database db, String profileName) async {
+    var initialInfo = {
+      Defines.infoName: profileName,
+      Defines.infoRace: '',
+      Defines.infoClass: '',
+      Defines.infoOrigin: '',
+      Defines.infoBackground: '',
+      Defines.infoPersonalityTraits: '',
+      Defines.infoIdeals: '',
+      Defines.infoBonds: '',
+      Defines.infoFlaws: '',
+      Defines.infoAge: '',
+      Defines.infoGod: '',
+      Defines.infoSize: '',
+      Defines.infoHeight: '',
+      Defines.infoWeight: '',
+      Defines.infoSex: '',
+      Defines.infoAlignment: '',
+      Defines.infoEyeColour: '',
+      Defines.infoHairColour: '',
+      Defines.infoSkinColour: '',
+      Defines.infoAppearance: '',
+      Defines.infoTraits: '',
+      Defines.infoSpellcastingClass: '',
+      Defines.infoSpellcastingAbility: '',
     };
 
-    db.insert('savingthrow', initialSave);
+    await db.transaction((txn) async {
+      int insertedCharId = await txn.insert('info', initialInfo);
 
-    var initialSkills = [
-      {'charId': insertedCharId, 'skill': Defines.skillAcrobatics, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillAnimalHandling, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillArcana, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillAthletics, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillDeception, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillHistory, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillInsight, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillIntimidation, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillInvestigation, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillMedicine, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillNature, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillPerception, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillPerformance, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillPersuasion, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillReligion, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillSleightOfHand, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillStealth, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillSurvival, 'proficiency': 0, 'expertise': 0},
-      {'charId': insertedCharId, 'skill': Defines.skillJackofAllTrades, 'proficiency': 0},
-    ];
+      var initialSave = {
+        'charId': insertedCharId,
+        Defines.saveStr: 0,
+        Defines.saveDex: 0,
+        Defines.saveCon: 0,
+        Defines.saveInt: 0,
+        Defines.saveWis: 0,
+        Defines.saveCha: 0,
+      };
+      await txn.insert('savingthrow', initialSave);
 
-    for (var info in initialSkills) {
-      db.insert('skills', info);
-    }
+      var initialSkills = [
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillAcrobatics,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillAnimalHandling,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillArcana,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillAthletics,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillDeception,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillHistory,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillInsight,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillIntimidation,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillInvestigation,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillMedicine,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillNature,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillPerception,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillPerformance,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillPersuasion,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillReligion,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillSleightOfHand,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillStealth,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillSurvival,
+          'proficiency': 0,
+          'expertise': 0
+        },
+        {
+          'charId': insertedCharId,
+          'skill': Defines.skillJackofAllTrades,
+          'proficiency': 0
+        },
+      ];
 
-    var initialStats = {
-      'charId': insertedCharId, // Assuming you have the inserted character ID here
-      Defines.statArmor: 10,
-      Defines.statLevel: 1,
-      Defines.statXP: 0,
-      Defines.statInspiration: 1,
-      Defines.statProficiencyBonus: 1,
-      Defines.statInitiative: 1,
-      Defines.statMovement: 1,
-      Defines.statMaxHP: 1,
-      Defines.statCurrentHP: 1,
-      Defines.statTempHP: 1,
-      Defines.statHitDice: 1,
-      Defines.statSTR: 0,
-      Defines.statDEX: 0,
-      Defines.statCON: 0,
-      Defines.statINT: 0,
-      Defines.statWIS: 0,
-      Defines.statCHA: 0,
-      Defines.statSpellSaveDC: 0,
-      Defines.statSpellAttackBonus: 0,
-    };
+      Batch batchSkills = txn.batch();
+      for (var skill in initialSkills) {
+        batchSkills.insert('skills', skill);
+      }
+      await batchSkills.commit(noResult: true);
 
-    db.insert('stats', initialStats);
-    
-    var initialProfs = {
-      'charId': insertedCharId,
-      Defines.profLightArmor: '',
-      Defines.profMediumArmor: '',
-      Defines.profHeavyArmor: '',
-      Defines.profShield: '',
-      Defines.profSimpleWeapon: '',
-      Defines.profMartialWeapon: '',
-      Defines.profOtherWeapon: '',
-      Defines.profWeaponList: '',
-      Defines.profLanguages: '',
-      Defines.profTools: '',
-    };
+      var initialStats = {
+        'charId': insertedCharId,
+        Defines.statArmor: 10,
+        Defines.statLevel: 1,
+        Defines.statXP: 0,
+        Defines.statInspiration: 1,
+        Defines.statProficiencyBonus: 1,
+        Defines.statInitiative: 1,
+        Defines.statMovement: 1,
+        Defines.statMaxHP: 1,
+        Defines.statCurrentHP: 1,
+        Defines.statTempHP: 1,
+        Defines.statHitDice: 1,
+        Defines.statSTR: 0,
+        Defines.statDEX: 0,
+        Defines.statCON: 0,
+        Defines.statINT: 0,
+        Defines.statWIS: 0,
+        Defines.statCHA: 0,
+        Defines.statSpellSaveDC: 0,
+        Defines.statSpellAttackBonus: 0,
+      };
+      await txn.insert('stats', initialStats);
 
-    db.insert('proficiencies', initialProfs);
+      var initialProfs = {
+        'charId': insertedCharId,
+        Defines.profLightArmor: '',
+        Defines.profMediumArmor: '',
+        Defines.profHeavyArmor: '',
+        Defines.profShield: '',
+        Defines.profSimpleWeapon: '',
+        Defines.profMartialWeapon: '',
+        Defines.profOtherWeapon: '',
+        Defines.profWeaponList: '',
+        Defines.profLanguages: '',
+        Defines.profTools: '',
+      };
+      await txn.insert('proficiencies', initialProfs);
 
-    var initialSpellSlots = [
-      {'charId': insertedCharId, 'spellslot': Defines.slotOne, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotTwo, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotThree, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotFour, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotFive, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotSix, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotSeven, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotEight, 'total': 0, 'spent': 0},
-      {'charId': insertedCharId, 'spellslot': Defines.slotNine, 'total': 0, 'spent': 0},
-    ];
+      var initialSpellSlots = [
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotOne,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotTwo,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotThree,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotFour,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotFive,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotSix,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotSeven,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotEight,
+          'total': 0,
+          'spent': 0
+        },
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotNine,
+          'total': 0,
+          'spent': 0
+        },
+      ];
 
-    for (var slot in initialSpellSlots) {
-      db.insert('spellslots', slot);
-    }
+      Batch batchSpellSlots = txn.batch();
+      for (var slot in initialSpellSlots) {
+        batchSpellSlots.insert('spellslots', slot);
+      }
+      await batchSpellSlots.commit(noResult: true);
+    });
   }
 
   Future<void> createProfile(String profileName) async {
     final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, '$profileName.db');
+    final profileDbPath = join(databasesPath, 'characters.db');
 
-    if (kDebugMode) {
-      print('Creating profile database at: $profileDbPath');
-    }
+    currentDb = await openDatabase(profileDbPath, version: 1);
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS info (charId INTEGER PRIMARY KEY AUTOINCREMENT, '
+        '${Defines.infoName} TEXT, '
+        '${Defines.infoRace} TEXT, '
+        '${Defines.infoClass} TEXT, '
+        '${Defines.infoOrigin} TEXT, '
+        '${Defines.infoBackground} TEXT, '
+        '${Defines.infoPersonalityTraits} TEXT, '
+        '${Defines.infoIdeals} TEXT, '
+        '${Defines.infoBonds} TEXT, '
+        '${Defines.infoFlaws} TEXT, '
+        '${Defines.infoAge} TEXT, '
+        '${Defines.infoGod} TEXT, '
+        '${Defines.infoSize} TEXT, '
+        '${Defines.infoHeight} TEXT, '
+        '${Defines.infoWeight} TEXT, '
+        '${Defines.infoSex} TEXT, '
+        '${Defines.infoAlignment} TEXT, '
+        '${Defines.infoEyeColour} TEXT, '
+        '${Defines.infoHairColour} TEXT, '
+        '${Defines.infoSkinColour} TEXT, '
+        '${Defines.infoAppearance} TEXT, '
+        '${Defines.infoTraits} TEXT, '
+        '${Defines.infoSpellcastingClass} TEXT, '
+        '${Defines.infoSpellcastingAbility} TEXT'
+        ')');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS Stats (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'charId INTEGER, '
+        '${Defines.statArmor} INTEGER, '
+        '${Defines.statLevel} INTEGER, '
+        '${Defines.statXP} INTEGER, '
+        '${Defines.statInspiration} INTEGER, '
+        '${Defines.statProficiencyBonus} INTEGER, '
+        '${Defines.statInitiative} INTEGER, '
+        '${Defines.statMovement} INTEGER, '
+        '${Defines.statMaxHP} INTEGER, '
+        '${Defines.statCurrentHP} INTEGER, '
+        '${Defines.statTempHP} INTEGER, '
+        '${Defines.statHitDice} INTEGER, '
+        '${Defines.statSTR} INTEGER, '
+        '${Defines.statDEX} INTEGER, '
+        '${Defines.statCON} INTEGER, '
+        '${Defines.statINT} INTEGER, '
+        '${Defines.statWIS} INTEGER, '
+        '${Defines.statCHA} INTEGER, '
+        '${Defines.statSpellSaveDC} INTEGER, '
+        '${Defines.statSpellAttackBonus} INTEGER, '
+        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+        ')');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS savingthrow (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'charId INTEGER, '
+        '${Defines.saveStr} INTEGER, '
+        '${Defines.saveDex} INTEGER, '
+        '${Defines.saveCon} INTEGER, '
+        '${Defines.saveInt} INTEGER, '
+        '${Defines.saveWis} INTEGER, '
+        '${Defines.saveCha} INTEGER, '
+        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+        ')');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS proficiencies (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'charId INTEGER, '
+        '${Defines.profLightArmor} TEXT, '
+        '${Defines.profMediumArmor} TEXT, '
+        '${Defines.profHeavyArmor} TEXT, '
+        '${Defines.profShield} TEXT, '
+        '${Defines.profSimpleWeapon} TEXT, '
+        '${Defines.profMartialWeapon} TEXT, '
+        '${Defines.profOtherWeapon} TEXT, '
+        '${Defines.profWeaponList} TEXT, '
+        '${Defines.profLanguages} TEXT, '
+        '${Defines.profTools} TEXT, '
+        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
+        ')');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS skills (ID INTEGER PRIMARY KEY AUTOINCREMENT, skill TEXT , charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY, item TEXT, charId INTEGER, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS spells (spellname TEXT PRIMARY KEY, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS weapons (weapon TEXT PRIMARY KEY, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    await initializeDatabase(currentDb!, profileName);
 
-    // the Integer for savingthrow and skills are used as substitutes for booleans as sqlite doesnt have booleans
-    currentDb =
-        await openDatabase(profileDbPath, version: 1, onCreate: (db, version) {
-      //db.execute('CREATE TABLE info (info TEXT PRIMARY KEY, text TEXT)');
-    db.execute(
-      'CREATE TABLE info (charId INTEGER PRIMARY KEY AUTOINCREMENT, '
-      '${Defines.infoName} TEXT, '
-      '${Defines.infoRace} TEXT, '
-      '${Defines.infoClass} TEXT, '
-      '${Defines.infoOrigin} TEXT, '
-      '${Defines.infoBackground} TEXT, '
-      '${Defines.infoPersonalityTraits} TEXT, '
-      '${Defines.infoIdeals} TEXT, '
-      '${Defines.infoBonds} TEXT, '
-      '${Defines.infoFlaws} TEXT, '
-      '${Defines.infoAge} TEXT, '
-      '${Defines.infoGod} TEXT, '
-      '${Defines.infoSize} TEXT, '
-      '${Defines.infoHeight} TEXT, '
-      '${Defines.infoWeight} TEXT, '
-      '${Defines.infoSex} TEXT, '
-      '${Defines.infoAlignment} TEXT, '
-      '${Defines.infoEyeColour} TEXT, '
-      '${Defines.infoHairColour} TEXT, '
-      '${Defines.infoSkinColour} TEXT, '
-      '${Defines.infoAppearance} TEXT, '
-      '${Defines.infoTraits} TEXT, '
-      '${Defines.infoSpellcastingClass} TEXT, '
-      '${Defines.infoSpellcastingAbility} TEXT'
-      ')');
-    db.execute(
-      'CREATE TABLE Stats (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-      'charId INTEGER, '
-      '${Defines.statArmor} INTEGER, '
-      '${Defines.statLevel} INTEGER, '
-      '${Defines.statXP} INTEGER, '
-      '${Defines.statInspiration} INTEGER, '
-      '${Defines.statProficiencyBonus} INTEGER, '
-      '${Defines.statInitiative} INTEGER, '
-      '${Defines.statMovement} INTEGER, '
-      '${Defines.statMaxHP} INTEGER, '
-      '${Defines.statCurrentHP} INTEGER, '
-      '${Defines.statTempHP} INTEGER, '
-      '${Defines.statHitDice} INTEGER, '
-      '${Defines.statSTR} INTEGER, '
-      '${Defines.statDEX} INTEGER, '
-      '${Defines.statCON} INTEGER, '
-      '${Defines.statINT} INTEGER, '
-      '${Defines.statWIS} INTEGER, '
-      '${Defines.statCHA} INTEGER, '
-      '${Defines.statSpellSaveDC} INTEGER, '
-      '${Defines.statSpellAttackBonus} INTEGER, '
-      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-      ')');
-    db.execute(
-      'CREATE TABLE savingthrow (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-      'charId INTEGER, '
-      '${Defines.saveStr} INTEGER, '
-      '${Defines.saveDex} INTEGER, '
-      '${Defines.saveCon} INTEGER, '
-      '${Defines.saveInt} INTEGER, '
-      '${Defines.saveWis} INTEGER, '
-      '${Defines.saveCha} INTEGER, '
-      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-      ')');
-    db.execute(
-      'CREATE TABLE proficiencies (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-      'charId INTEGER, '
-      '${Defines.profLightArmor} TEXT, '
-      '${Defines.profMediumArmor} TEXT, '
-      '${Defines.profHeavyArmor} TEXT, '
-      '${Defines.profShield} TEXT, '
-      '${Defines.profSimpleWeapon} TEXT, '
-      '${Defines.profMartialWeapon} TEXT, '
-      '${Defines.profOtherWeapon} TEXT, '
-      '${Defines.profWeaponList} TEXT, '
-      '${Defines.profLanguages} TEXT, '
-      '${Defines.profTools} TEXT, '
-      'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-      ')');
-    db.execute(
-      'CREATE TABLE skills (skill TEXT PRIMARY KEY, charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
-      );
-      
-    db.execute(
-      'CREATE TABLE spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
-      );
-    db.execute(
-      'CREATE TABLE bag (ID INTEGER PRIMARY KEY, item TEXT, charId INTEGER, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)'
-      );
-    
-    db.execute(
-      'CREATE TABLE spells (spellname TEXT PRIMARY KEY, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-      
-    db.execute(
-      'CREATE TABLE weapons (weapon TEXT PRIMARY KEY, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    initializeDatabase(db, profileName);
-    });
-
-    profiles.add(profileName);
+    await loadProfiles();
   }
 
-  Future<void> selectProfile(String profileName) async {
+  Future<void> selectProfile(Character profile) async {
     final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, '$profileName.db');
+    final profileDbPath = join(databasesPath, 'characters.db');
 
     if (kDebugMode) {
-      print('Selecting profile database at: $profileDbPath');
+      print('Selecting profile: ${profile.name}');
     }
 
     currentDb = await openDatabase(profileDbPath);
-    selectedProfile = profileName;
+    selectedProfile = profile.name;
+    selectedID = profile.id;
   }
 
-  Future<void> deleteProfile(String profileName) async {
-    await closeProfile();
+  Future<void> deleteProfile(Character profile) async {
+    selectedID = null;
+    selectedProfile = null;
 
     final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, '$profileName.db');
-    final File profileFile = File(profileDbPath);
-    if (await profileFile.exists()) {
-      await profileFile.delete();
-    }
+    final profileDbPath = join(databasesPath, 'characters.db');
+
+    currentDb = await openDatabase(profileDbPath);
+
+    int charId = profile.id;
+
+    await currentDb!.delete('info', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('Stats', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('savingthrow', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('proficiencies', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('skills', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('spellslots', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('bag', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('spells', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('weapons', where: 'charId = ?', whereArgs: [charId]);
 
     await loadProfiles();
   }
 
   Future<void> renameProfile(String oldName, String newName) async {
     final databasesPath = await getDatabasesPath();
-    final oldPath = join(databasesPath, '$oldName.db');
-    final newPath = join(databasesPath, '$newName.db');
+    final profileDbPath = join(databasesPath, 'characters.db');
 
-    if (profiles.contains(newName)) {
+    if (profiles.any((profile) => profile.name == newName)) {
       throw Exception(
           'Ein Charakter mit dem Namen "$newName" existiert bereits.');
     }
 
-    final File oldFile = File(oldPath);
+    currentDb = await openDatabase(profileDbPath);
+    final index = profiles.indexWhere((profile) => profile.name == oldName);
 
-    if (await oldFile.exists()) {
-      await oldFile.rename(newPath);
-    }
+    if (index != -1) {
+      profiles[index] = Character(id: profiles[index].id, name: newName);
+      if (selectedProfile == oldName) {
+        selectedProfile = newName;
+        selectedID = profiles[index].id;
+      }
 
-    profiles[profiles.indexOf(oldName)] = newName;
-
-    if (selectedProfile == oldName) {
-      selectedProfile = newName;
+      await currentDb!.execute(
+          'INSERT OR REPLACE INTO info (charId, ${Defines.infoName}) VALUES (?, ?)',
+          [profiles[index].id, newName]);
     }
 
     await loadProfiles();
+
+    if (kDebugMode) {
+      print('Renamed profile from $oldName to $newName');
+    }
   }
 
   Future<void> dumpDatabase(String profileName) async {
@@ -461,12 +637,12 @@ class ProfileManager {
     required String stat,
     int? value,
   }) async {
-    if (currentDb == null || value == null) return;
+    if (currentDb == null || value == null || selectedID == null) return;
 
     final List<Map<String, dynamic>> existingStatList = await currentDb!.query(
-      'stats',
-      where: 'stat = ?',
-      whereArgs: [stat],
+      'Stats',
+      where: 'charId = ? AND stat = ?',
+      whereArgs: [selectedID, stat],
     );
 
     Map<String, dynamic>? existingStat;
@@ -476,10 +652,10 @@ class ProfileManager {
 
     if (existingStat?['value'] != value) {
       await currentDb!.update(
-        'stats',
+        'Stats',
         {'value': value},
-        where: 'stat = ?',
-        whereArgs: [stat],
+        where: 'charId = ? AND stat = ?',
+        whereArgs: [selectedID, stat],
       );
     }
   }
@@ -492,8 +668,8 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingSaveList = await currentDb!.query(
       'savingthrow',
-      where: 'save = ?',
-      whereArgs: [savethrow],
+      where: 'charId = ? AND save = ?',
+      whereArgs: [selectedID, savethrow],
     );
 
     Map<String, dynamic>? existingSave;
@@ -505,8 +681,8 @@ class ProfileManager {
       await currentDb!.update(
         'savingthrow',
         {'bonus': bonus},
-        where: 'save = ?',
-        whereArgs: [savethrow],
+        where: 'charId = ? AND save = ?',
+        whereArgs: [selectedID, savethrow],
       );
     }
   }
@@ -518,11 +694,10 @@ class ProfileManager {
   }) async {
     if (currentDb == null) return;
 
-    // Query the existing skill
     final List<Map<String, dynamic>> existingSkillList = await currentDb!.query(
       'skills',
-      where: 'skill = ?',
-      whereArgs: [skill],
+      where: 'charId = ? AND skill = ?',
+      whereArgs: [selectedID, skill],
     );
 
     Map<String, dynamic>? existingSkill;
@@ -538,8 +713,8 @@ class ProfileManager {
     await currentDb!.update(
       'skills',
       updates,
-      where: 'skill = ?',
-      whereArgs: [skill],
+      where: 'charId = ? AND skill = ?',
+      whereArgs: [selectedID, skill],
     );
   }
 
@@ -551,8 +726,8 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingItemList = await currentDb!.query(
       'bag',
-      where: 'item = ?',
-      whereArgs: [itemName],
+      where: 'charId = ? AND item = ?',
+      whereArgs: [selectedID, itemName],
     );
 
     Map<String, dynamic>? existingItem;
@@ -568,8 +743,8 @@ class ProfileManager {
       await currentDb!.update(
         'bag',
         updates,
-        where: 'item = ?',
-        whereArgs: [itemName],
+        where: 'charId = ? AND item = ?',
+        whereArgs: [selectedID, itemName],
       );
     }
   }
@@ -582,8 +757,8 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
       'info',
-      where: 'info = ?',
-      whereArgs: [info],
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
 
     Map<String, dynamic>? existingInfo;
@@ -592,14 +767,14 @@ class ProfileManager {
     }
 
     final Map<String, dynamic> updates = {
-      'text': text ?? existingInfo?['text'],
+      info: text ?? existingInfo?['text'],
     };
 
     await currentDb!.update(
       'info',
       updates,
-      where: 'info = ?',
-      whereArgs: [info],
+      where: 'charId = ? AND $info',
+      whereArgs: [selectedID],
     );
   }
 
@@ -611,8 +786,8 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
       'proficiencies',
-      where: 'proficiency = ?',
-      whereArgs: [proficiency],
+      where: 'charId = ? AND proficiency = ?',
+      whereArgs: [selectedID, proficiency],
     );
 
     Map<String, dynamic>? existingInfo;
@@ -627,8 +802,8 @@ class ProfileManager {
     await currentDb!.update(
       'proficiencies',
       updates,
-      where: 'proficiency = ?',
-      whereArgs: [proficiency],
+      where: 'charId = ? AND proficiency = ?',
+      whereArgs: [selectedID, proficiency],
     );
   }
 
@@ -639,11 +814,10 @@ class ProfileManager {
   }) async {
     if (currentDb == null) return;
 
-    // Query the existing skill
     final List<Map<String, dynamic>> existingSkillList = await currentDb!.query(
       'spellslots',
-      where: 'spellslot = ?',
-      whereArgs: [spellslot],
+      where: 'charId = ? AND spellslot = ?',
+      whereArgs: [selectedID, spellslot],
     );
 
     Map<String, dynamic>? existingSkill;
@@ -659,8 +833,8 @@ class ProfileManager {
     await currentDb!.update(
       'spellslots',
       updates,
-      where: 'spellslot = ?',
-      whereArgs: [spellslot],
+      where: 'charId = ? AND spellslot = ?',
+      whereArgs: [selectedID, spellslot],
     );
   }
 
@@ -678,8 +852,8 @@ class ProfileManager {
     final List<Map<String, dynamic>> existingWeaponList =
         await currentDb!.query(
       'weapons',
-      where: 'weapon = ?',
-      whereArgs: [weapon],
+      where: 'charId = ? AND weapon = ?',
+      whereArgs: [selectedID, weapon],
     );
 
     Map<String, dynamic>? existingWeapon;
@@ -702,10 +876,6 @@ class ProfileManager {
       updates,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-
-    if (kDebugMode) {
-      print("Upserted: $updates");
-    }
   }
 
   Future<void> updateSpell({
@@ -718,8 +888,8 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingSpellList = await currentDb!.query(
       'spells',
-      where: 'spellname = ?',
-      whereArgs: [spellName],
+      where: 'charId = ? AND spellname = ?',
+      whereArgs: [selectedID, spellName],
     );
 
     Map<String, dynamic>? existingSpell;
@@ -736,8 +906,8 @@ class ProfileManager {
     await currentDb!.update(
       'spells',
       updates,
-      where: 'spellname = ?',
-      whereArgs: [spellName],
+      where: 'charId = ? AND spellname = ?',
+      whereArgs: [selectedID, spellName],
     );
   }
 
@@ -757,28 +927,26 @@ class ProfileManager {
     return null;
   }
 
-  Future<Map<String, String>?> getProfileInfo(List<String> infoKeys) async {
-    if (currentDb == null) return null;
+  Future<List<Map<String, dynamic>>> getProfileInfo() async {
+    if (currentDb == null) return [];
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'info',
-      where: 'info IN (${infoKeys.map((_) => '?').join(',')})',
-      whereArgs: infoKeys,
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
 
-    final Map<String, String> profileInfo = {};
-
-    for (var row in result) {
-      profileInfo[row['info']] = row['text'];
-    }
-
-    return profileInfo.isNotEmpty ? profileInfo : null;
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getWeapons() async {
     if (currentDb == null) return [];
 
-    final List<Map<String, dynamic>> result = await currentDb!.query('weapons');
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'weapons',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
 
     return result;
   }
@@ -786,8 +954,11 @@ class ProfileManager {
   Future<List<Map<String, dynamic>>> getProficiencies() async {
     if (currentDb == null) return [];
 
-    final List<Map<String, dynamic>> result =
-        await currentDb!.query('proficiencies');
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'proficiencies',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
 
     return result;
   }
@@ -795,7 +966,11 @@ class ProfileManager {
   Future<List<Map<String, dynamic>>> getSkills() async {
     if (currentDb == null) return [];
 
-    final List<Map<String, dynamic>> result = await currentDb!.query('skills');
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'skills',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
 
     return result;
   }
@@ -803,8 +978,11 @@ class ProfileManager {
   Future<List<Map<String, dynamic>>> getSpellSlots() async {
     if (currentDb == null) return [];
 
-    final List<Map<String, dynamic>> result =
-        await currentDb!.query('spellslots');
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'spellslots',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
 
     return result;
   }
@@ -812,7 +990,11 @@ class ProfileManager {
   Future<List<Map<String, dynamic>>> getAllBagItems() async {
     if (currentDb == null) return [];
 
-    final List<Map<String, dynamic>> result = await currentDb!.query('bag');
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'bag',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
 
     return result;
   }
@@ -823,6 +1005,8 @@ class ProfileManager {
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
       columns: ['spellname', 'level'],
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
 
     return result;
@@ -834,8 +1018,8 @@ class ProfileManager {
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
       columns: ['description'],
-      where: 'spellname = ?',
-      whereArgs: [spellName],
+      where: 'charId = ? AND spellname = ?',
+      whereArgs: [selectedID, spellName],
     );
 
     return result.isNotEmpty ? result.first['description'] as String : null;
@@ -845,11 +1029,11 @@ class ProfileManager {
     return profiles.isNotEmpty;
   }
 
-  List<String> getProfiles() {
+  List<Character> getProfiles() {
     return profiles;
   }
 
-  Future<void> closeProfile() async {
+  Future<void> closeDB() async {
     if (currentDb != null) {
       await currentDb!.close();
       if (kDebugMode) {
