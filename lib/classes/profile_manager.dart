@@ -411,9 +411,9 @@ class ProfileManager {
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY, item TEXT, charId INTEGER, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS spells (spellname TEXT PRIMARY KEY, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+        'CREATE TABLE IF NOT EXISTS spells (ID INTEGER PRIMARY KEY AUTOINCREMENT, spellname TEXT, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS weapons (weapon TEXT PRIMARY KEY, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+        'CREATE TABLE IF NOT EXISTS weapons (ID INTEGER PRIMARY KEY AUTOINCREMENT, weapon TEXT, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     await initializeDatabase(currentDb!, profileName);
 
     await loadProfiles();
@@ -634,57 +634,39 @@ class ProfileManager {
   }
 
   Future<void> updateStats({
-    required String stat,
-    int? value,
+    required String field,
+    required dynamic value,
   }) async {
-    if (currentDb == null || value == null || selectedID == null) return;
+    if (currentDb == null) return;
 
-    final List<Map<String, dynamic>> existingStatList = await currentDb!.query(
-      'Stats',
-      where: 'charId = ? AND stat = ?',
-      whereArgs: [selectedID, stat],
+    final Map<String, dynamic> updates = {
+      field: value,
+    };
+
+    await currentDb!.update(
+      'stats',
+      updates,
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
-
-    Map<String, dynamic>? existingStat;
-    if (existingStatList.isNotEmpty) {
-      existingStat = existingStatList.first;
-    }
-
-    if (existingStat?['value'] != value) {
-      await currentDb!.update(
-        'Stats',
-        {'value': value},
-        where: 'charId = ? AND stat = ?',
-        whereArgs: [selectedID, stat],
-      );
-    }
   }
 
   Future<void> updateSavingThrows({
-    required String savethrow,
-    int? bonus,
+    required String field,
+    required dynamic value,
   }) async {
-    if (currentDb == null || bonus == null) return;
+    if (currentDb == null) return;
 
-    final List<Map<String, dynamic>> existingSaveList = await currentDb!.query(
+    final Map<String, dynamic> updates = {
+      field: value,
+    };
+
+    await currentDb!.update(
       'savingthrow',
-      where: 'charId = ? AND save = ?',
-      whereArgs: [selectedID, savethrow],
+      updates,
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
-
-    Map<String, dynamic>? existingSave;
-    if (existingSaveList.isNotEmpty) {
-      existingSave = existingSaveList.first;
-    }
-
-    if (existingSave?['bonus'] != bonus) {
-      await currentDb!.update(
-        'savingthrow',
-        {'bonus': bonus},
-        where: 'charId = ? AND save = ?',
-        whereArgs: [selectedID, savethrow],
-      );
-    }
   }
 
   Future<void> updateSkills({
@@ -720,9 +702,11 @@ class ProfileManager {
 
   Future<void> updateBagItem({
     required String itemName,
-    int? amount,
+    required int? amount,
   }) async {
-    if (currentDb == null) return;
+    if (currentDb == null || amount == null) {
+      return;
+    }
 
     final List<Map<String, dynamic>> existingItemList = await currentDb!.query(
       'bag',
@@ -730,80 +714,74 @@ class ProfileManager {
       whereArgs: [selectedID, itemName],
     );
 
-    Map<String, dynamic>? existingItem;
     if (existingItemList.isNotEmpty) {
-      existingItem = existingItemList.first;
-    }
+      if (amount <= 0) {
+        await currentDb!.delete(
+          'bag',
+          where: 'charId = ? AND item = ?',
+          whereArgs: [selectedID, itemName],
+        );
+      } else {
+        final Map<String, dynamic> updates = {
+          'amount': amount,
+        };
 
-    final Map<String, dynamic> updates = {
-      'amount': amount ?? existingItem?['amount'],
-    };
+        await currentDb!.update(
+          'bag',
+          updates,
+          where: 'charId = ? AND item = ?',
+          whereArgs: [selectedID, itemName],
+        );
+      }
+    } else {
+      if (amount > 0) {
+        final Map<String, dynamic> newItem = {
+          'item': itemName,
+          'charId': selectedID,
+          'amount': amount,
+        };
 
-    if (updates.isNotEmpty) {
-      await currentDb!.update(
-        'bag',
-        updates,
-        where: 'charId = ? AND item = ?',
-        whereArgs: [selectedID, itemName],
-      );
+        await currentDb!.insert(
+          'bag',
+          newItem,
+        );
+      }
     }
   }
 
   Future<void> updateProfileInfo({
-    required String info,
-    String? text,
+    required String field,
+    required dynamic value,
   }) async {
     if (currentDb == null) return;
 
-    final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
-      'info',
-      where: 'charId = ?',
-      whereArgs: [selectedID],
-    );
-
-    Map<String, dynamic>? existingInfo;
-    if (existingInfoList.isNotEmpty) {
-      existingInfo = existingInfoList.first;
-    }
-
     final Map<String, dynamic> updates = {
-      info: text ?? existingInfo?['text'],
+      field: value,
     };
 
     await currentDb!.update(
       'info',
       updates,
-      where: 'charId = ? AND $info',
+      where: 'charId = ?',
       whereArgs: [selectedID],
     );
   }
 
   Future<void> updateProficiencies({
-    required String proficiency,
-    String? text,
+    required String field,
+    required dynamic value,
   }) async {
     if (currentDb == null) return;
 
-    final List<Map<String, dynamic>> existingInfoList = await currentDb!.query(
-      'proficiencies',
-      where: 'charId = ? AND proficiency = ?',
-      whereArgs: [selectedID, proficiency],
-    );
-
-    Map<String, dynamic>? existingInfo;
-    if (existingInfoList.isNotEmpty) {
-      existingInfo = existingInfoList.first;
-    }
-
     final Map<String, dynamic> updates = {
-      'text': text ?? existingInfo?['text'],
+      field: value,
     };
 
     await currentDb!.update(
       'proficiencies',
       updates,
-      where: 'charId = ? AND proficiency = ?',
-      whereArgs: [selectedID, proficiency],
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
   }
 
@@ -856,25 +834,46 @@ class ProfileManager {
       whereArgs: [selectedID, weapon],
     );
 
-    Map<String, dynamic>? existingWeapon;
-    if (existingWeaponList.isNotEmpty) {
-      existingWeapon = existingWeaponList.first;
-    }
-
     final Map<String, dynamic> updates = {
       'weapon': weapon,
-      'attribute': attribute ?? existingWeapon?['attribute'],
-      'reach': reach ?? existingWeapon?['reach'],
-      'bonus': bonus ?? existingWeapon?['bonus'],
-      'damage': damage ?? existingWeapon?['damage'],
-      'damagetype': damagetype ?? existingWeapon?['damagetype'],
-      'description': description ?? existingWeapon?['description'],
+      'charId': selectedID,
+      'attribute': attribute,
+      'reach': reach,
+      'bonus': bonus,
+      'damage': damage,
+      'damagetype': damagetype,
+      'description': description,
     };
 
-    await currentDb!.insert(
+    if (existingWeaponList.isNotEmpty) {
+      final Map<String, dynamic> existingWeapon = existingWeaponList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingWeapon[key];
+        }
+      });
+      await currentDb!.update(
+        'weapons',
+        updates,
+        where: 'charId = ? AND weapon = ?',
+        whereArgs: [selectedID, weapon],
+      );
+    } else {
+      await currentDb!.insert(
+        'weapons',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> removeWeapon(String weapon) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
       'weapons',
-      updates,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'charId = ? AND weapon = ?',
+      whereArgs: [selectedID, weapon],
     );
   }
 
@@ -892,23 +891,34 @@ class ProfileManager {
       whereArgs: [selectedID, spellName],
     );
 
-    Map<String, dynamic>? existingSpell;
-    if (existingSpellList.isNotEmpty) {
-      existingSpell = existingSpellList.first;
-    }
-
     final Map<String, dynamic> updates = {
-      'status': status ?? existingSpell?['status'],
-      'level': level ?? existingSpell?['level'],
-      'description': description ?? existingSpell?['description'],
+      'charId': selectedID,
+      'spellname': spellName,
+      'status': status,
+      'level': level,
+      'description': description,
     };
 
-    await currentDb!.update(
-      'spells',
-      updates,
-      where: 'charId = ? AND spellname = ?',
-      whereArgs: [selectedID, spellName],
-    );
+    if (existingSpellList.isNotEmpty) {
+      final Map<String, dynamic> existingSpell = existingSpellList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingSpell[key];
+        }
+      });
+      await currentDb!.update(
+        'spells',
+        updates,
+        where: 'charId = ? AND spellname = ?',
+        whereArgs: [selectedID, spellName],
+      );
+    } else {
+      await currentDb!.insert(
+        'spells',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<int?> getStatValue(String statName) async {
