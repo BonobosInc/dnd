@@ -1,7 +1,7 @@
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:flutter/material.dart';
-import '../configs/defines.dart';
-import '../configs/colours.dart';
+import 'package:dnd/configs/defines.dart';
+import 'package:dnd/configs/colours.dart';
 import 'spell_view.dart';
 
 class CharacterView extends StatelessWidget {
