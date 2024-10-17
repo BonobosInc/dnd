@@ -2,6 +2,7 @@ import 'package:dnd/classes/profile_manager.dart';
 import 'package:flutter/material.dart';
 import '../configs/defines.dart';
 import '../configs/colours.dart';
+import 'spell_view.dart';
 
 class CharacterView extends StatelessWidget {
   final ProfileManager profileManager;
@@ -49,11 +50,17 @@ class CharacterView extends StatelessWidget {
               children: <Widget>[
                 ListTile(
                   title: const Text(
-                    'Item 1',
+                    'Spells',
                     style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SpellManagementPage(
+                              profileManager: profileManager)),
+                    );
                   },
                 ),
                 ListTile(
