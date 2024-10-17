@@ -30,7 +30,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     await showDialog(
       context: context,
       builder: (BuildContext context) {
-        bool _isCreatingProfile = false;
+        bool isCreatingProfile = false;
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
@@ -46,7 +46,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                   child: const Text('Abbrechen'),
                 ),
                 TextButton(
-                  onPressed: _isCreatingProfile
+                  onPressed: isCreatingProfile
                       ? null
                       : () async {
                           String profileName = controller.text;
@@ -69,16 +69,16 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                               );
                             } else {
                               setState(() {
-                                _isCreatingProfile = true;
+                                isCreatingProfile = true;
                               });
 
                               await profileManager.createProfile(profileName);
 
                               setState(() {
-                                _isCreatingProfile = false;
+                                isCreatingProfile = false;
                               });
                               await _initializeProfiles();
-                              Navigator.of(context).pop();
+                              if (context.mounted) Navigator.of(context).pop();
                             }
                           }
                         },
@@ -122,9 +122,10 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                     setState(() {
                       _initializeProfiles();
                     });
-                    Navigator.of(context).pop();
+                    if (context.mounted) Navigator.of(context).pop();
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
                           'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
@@ -133,6 +134,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                         backgroundColor: AppColors.warningColor,
                       ),
                     );
+                    }
                   }
                 }
               },
@@ -160,6 +162,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
           Expanded(
             child: profileManager.hasProfiles()
                 ? ListView.builder(
+                    physics:
+                        const ClampingScrollPhysics(), // Add smooth bounce physics
                     itemCount: profileManager.getProfiles().length,
                     itemBuilder: (context, index) {
                       final Character profile = profileManager.getProfiles()[index];
@@ -183,14 +187,15 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                               onTap: () async {
                                 await profileManager.selectProfile(profile);
 
-                                Navigator.push(
+                                if(context.mounted) {
+                                  Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CharacterView(
-                                        currentDb: profileManager.currentDb,
                                         profileManager: profileManager),
                                   ),
                                 );
+                                }
                               },
                               trailing: PopupMenuButton<String>(
                                 onSelected: (value) async {

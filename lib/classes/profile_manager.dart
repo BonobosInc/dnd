@@ -50,7 +50,9 @@ class ProfileManager {
         profiles.add(character);
       }
     } catch (e) {
-      print("Error querying the database: $e");
+      if (kDebugMode) {
+        print("Error querying the database: $e");
+      }
     } finally {
       await db.close();
     }
@@ -921,24 +923,30 @@ class ProfileManager {
     }
   }
 
-  Future<int?> getStatValue(String statName) async {
-    if (currentDb == null) return null;
+  Future<void> removeSpell(String spellName) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'spells',
+      where: 'charId = ? AND spellname = ?',
+      whereArgs: [selectedID, spellName],
+    );
+  }
+
+  Future<Map<String, dynamic>> getStats(String statName) async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'stats',
-      where: 'stat = ?',
-      whereArgs: [statName],
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
 
-    if (result.isNotEmpty) {
-      return result.first['value'] as int?;
-    }
-
-    return null;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getProfileInfo() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getProfileInfo() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'info',
@@ -946,11 +954,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getWeapons() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getWeapons() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'weapons',
@@ -958,11 +966,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getProficiencies() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getProficiencies() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'proficiencies',
@@ -970,11 +978,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getSkills() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getSkills() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'skills',
@@ -982,11 +990,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getSpellSlots() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getSpellSlots() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spellslots',
@@ -994,11 +1002,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getAllBagItems() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getAllBagItems() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'bag',
@@ -1006,11 +1014,11 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
-  Future<List<Map<String, dynamic>>> getAllSpellsWithLevels() async {
-    if (currentDb == null) return [];
+  Future<Map<String, dynamic>> getAllSpellsWithLevels() async {
+    if (currentDb == null) return {};
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
@@ -1019,7 +1027,7 @@ class ProfileManager {
       whereArgs: [selectedID],
     );
 
-    return result;
+    return result.isNotEmpty ? result.first : {};
   }
 
   Future<String?> getSpellDescription(String spellName) async {
