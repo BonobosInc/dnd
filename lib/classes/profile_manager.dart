@@ -880,7 +880,8 @@ class ProfileManager {
   }
 
   Future<void> updateSpell({
-    required String spellName,
+    required uuid,
+    String? spellName,
     String? status,
     int? level,
     String? description,
@@ -889,12 +890,11 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> existingSpellList = await currentDb!.query(
       'spells',
-      where: 'charId = ? AND spellname = ?',
-      whereArgs: [selectedID, spellName],
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
     );
 
     final Map<String, dynamic> updates = {
-      'charId': selectedID,
       'spellname': spellName,
       'status': status,
       'level': level,
@@ -911,8 +911,8 @@ class ProfileManager {
       await currentDb!.update(
         'spells',
         updates,
-        where: 'charId = ? AND spellname = ?',
-        whereArgs: [selectedID, spellName],
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
       );
     } else {
       await currentDb!.insert(
@@ -923,13 +923,40 @@ class ProfileManager {
     }
   }
 
-  Future<void> removeSpell(String spellName) async {
+  Future<void> addSpell({
+    required String spellName,
+    String? status,
+    int? level,
+    String? description,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> spellData = {
+      'charId': selectedID,
+      'spellname': spellName,
+      'status': status,
+      'level': level,
+      'description': description,
+    };
+
+    try {
+      await currentDb!.insert(
+        'spells',
+        spellData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      print('Error adding spell: $e');
+    }
+  }
+
+  Future<void> removeSpell(int uuid) async {
     if (currentDb == null) return;
 
     await currentDb!.delete(
       'spells',
-      where: 'charId = ? AND spellname = ?',
-      whereArgs: [selectedID, spellName],
+      where: 'charId = ? AND uuid = ?',
+      whereArgs: [selectedID, uuid],
     );
   }
 
@@ -1022,7 +1049,7 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
-      columns: ['spellname', 'level', 'status', 'description'],
+      columns: ['spellname', 'level', 'status', 'description', 'ID'],
       where: 'charId = ?',
       whereArgs: [selectedID],
     );

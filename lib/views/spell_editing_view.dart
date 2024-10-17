@@ -41,6 +41,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
           description: spell['description'] ?? '',
           status: spell['status'] ?? 'nicht bekannt',
           level: spell['level'] is int ? spell['level'] : 0,
+          uuid: spell['ID'],
         ));
       }
       spells.sort((a, b) => a.level.compareTo(b.level));
@@ -105,19 +106,21 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   void _showAddSpellDialog() {
+    var newspell = true;
     _showSpellDialog(Spell(
       name: '',
       description: '',
       status: Defines.spellKnown,
       level: Defines.spellZero,
-    ));
+    ), newspell);
   }
 
   void _showSpellDetails(Spell spell) {
-    _showSpellDialog(spell);
+    var newSpell = false;
+    _showSpellDialog(spell, newSpell);
   }
 
-  void _showSpellDialog(Spell spell) {
+  void _showSpellDialog(Spell spell, bool newSpell) {
     TextEditingController descriptionController =
         TextEditingController(text: spell.description);
 
@@ -151,7 +154,11 @@ class SpellEditingPageState extends State<SpellEditingPage> {
               height: 36,
               child: TextButton(
                 onPressed: () {
-                  _updateSpell(spell, descriptionController.text);
+                  if (newSpell) {
+                    _addSpell(spell, descriptionController.text);
+                  } else {
+                    _updateSpell(spell, descriptionController.text);
+                  }
                   Navigator.of(context).pop(true);
                 },
                 child: const Text('Speichern'),
@@ -180,7 +187,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
             ),
             TextButton(
               onPressed: () {
-                _deleteSpell(spell.name);
+                _deleteSpell(spell.uuid!);
                 Navigator.of(context).pop();
                 Navigator.of(context).pop(true);
               },
@@ -287,22 +294,35 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   void _updateSpell(Spell spell, String description) {
+    widget.profileManager
+        .updateSpell(
+      spellName: spell.name,
+      status: spell.status,
+      level: spell.level,
+      description: description,
+      uuid: spell.uuid,
+    )
+        .then((_) {
+      _fetchSpells();
+    });
+  }
 
-  widget.profileManager
-      .updateSpell(
-    spellName: spell.name,
-    status: spell.status,
-    level: spell.level,
-    description: description,
-  )
-      .then((_) {
-    _fetchSpells();
-  });
-}
+  void _addSpell(Spell spell, String description) {
 
+    widget.profileManager
+        .addSpell(
+      spellName: spell.name,
+      status: spell.status,
+      level: spell.level,
+      description: description,
+    )
+        .then((_) {
+      _fetchSpells();
+    });
+  }
 
-  void _deleteSpell(String spellName) async {
-    await widget.profileManager.removeSpell(spellName);
+  void _deleteSpell(int uuid) async {
+    await widget.profileManager.removeSpell(uuid);
     _fetchSpells();
   }
 
@@ -316,11 +336,13 @@ class Spell {
   String description;
   String status;
   int level;
+  int? uuid;
 
   Spell({
     required this.name,
     required this.description,
     required this.status,
     required this.level,
+    this.uuid,
   });
 }
