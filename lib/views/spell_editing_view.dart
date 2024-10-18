@@ -101,18 +101,37 @@ class SpellEditingPageState extends State<SpellEditingPage> {
           style: const TextStyle(color: AppColors.textColorDark),
         ),
         onTap: () => _showSpellDetails(spell),
+        trailing: SizedBox(
+          width: 35,
+          height: 35,
+          child: IconButton(
+            icon: const Icon(Icons.close, color: AppColors.textColorDark),
+            iconSize: 20.0,
+            padding: EdgeInsets.zero,
+            onPressed: () {
+              _showDeleteConfirmationDialog(spell);
+            },
+          ),
+        ),
+        tileColor: AppColors.cardColor,
+        selectedTileColor: AppColors.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
       ),
     );
   }
 
   void _showAddSpellDialog() {
     var newspell = true;
-    _showSpellDialog(Spell(
-      name: '',
-      description: '',
-      status: Defines.spellKnown,
-      level: Defines.spellZero,
-    ), newspell);
+    _showSpellDialog(
+        Spell(
+          name: '',
+          description: '',
+          status: Defines.spellKnown,
+          level: Defines.spellZero,
+        ),
+        newspell);
   }
 
   void _showSpellDetails(Spell spell) {
@@ -128,8 +147,10 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Edit Spell'),
-          content: _buildSpellDetailForm(spell, descriptionController),
+          title: const Text('Zauber bearbeiten'),
+          content: SingleChildScrollView(
+            child: _buildSpellDetailForm(spell, descriptionController),
+          ),
           actions: [
             SizedBox(
               height: 36,
@@ -140,16 +161,6 @@ class SpellEditingPageState extends State<SpellEditingPage> {
                 child: const Text('Abbrechen'),
               ),
             ),
-            if (spell.name.isNotEmpty)
-              SizedBox(
-                height: 36,
-                child: TextButton(
-                  onPressed: () {
-                    _showDeleteConfirmationDialog(spell);
-                  },
-                  child: const Text('Löschen'),
-                ),
-              ),
             SizedBox(
               height: 36,
               child: TextButton(
@@ -188,7 +199,6 @@ class SpellEditingPageState extends State<SpellEditingPage> {
             TextButton(
               onPressed: () {
                 _deleteSpell(spell.uuid!);
-                Navigator.of(context).pop();
                 Navigator.of(context).pop(true);
               },
               child: const Text('Löschen'),
@@ -255,7 +265,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       items: List.generate(10, (index) => index).map((int level) {
         return DropdownMenuItem<int>(
           value: level,
-          child: Text('Level $level'),
+          child: Text(level == 0 ? 'Zaubertrick' : 'Level $level'),
         );
       }).toList(),
       onChanged: (value) {
@@ -294,12 +304,15 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   void _updateSpell(Spell spell, String description) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
     widget.profileManager
         .updateSpell(
       spellName: spell.name,
       status: spell.status,
       level: spell.level,
-      description: description,
+      description: finalDescription,
       uuid: spell.uuid,
     )
         .then((_) {
@@ -308,13 +321,15 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   void _addSpell(Spell spell, String description) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
 
     widget.profileManager
         .addSpell(
       spellName: spell.name,
       status: spell.status,
       level: spell.level,
-      description: description,
+      description: finalDescription,
     )
         .then((_) {
       _fetchSpells();

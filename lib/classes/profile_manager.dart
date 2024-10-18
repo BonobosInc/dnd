@@ -955,7 +955,7 @@ class ProfileManager {
 
     await currentDb!.delete(
       'spells',
-      where: 'charId = ? AND uuid = ?',
+      where: 'charId = ? AND ID = ?',
       whereArgs: [selectedID, uuid],
     );
   }
