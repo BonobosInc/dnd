@@ -946,7 +946,9 @@ class ProfileManager {
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
     } catch (e) {
-      print('Error adding spell: $e');
+      if (kDebugMode) {
+        print('Error adding spell: $e');
+      }
     }
   }
 
