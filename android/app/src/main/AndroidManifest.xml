@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="dnd"
+        android:label="DND Character Sheet"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
