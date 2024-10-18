@@ -88,6 +88,7 @@ class Defines {
   static const String profTools = "tools_list";
 
   // Spell Slot Defines
+  static const String slotZero = "spell_splot_zero";
   static const String slotOne = "spell_splot_one";
   static const String slotTwo = "spell_splot_two";
   static const String slotThree = "spell_splot_three";
@@ -97,4 +98,18 @@ class Defines {
   static const String slotSeven = "spell_splot_seven";
   static const String slotEight = "spell_splot_eight";
   static const String slotNine= "spell_splot_nine";
+
+  // Spell Defines
+  static const String spellPrep = "spell_prepared";
+  static const String spellKnown = "spell_known";
+  static const int spellZero = 0;
+  static const int spellOne = 1;
+  static const int spellTwo = 2;
+  static const int spellThree = 3;
+  static const int spellFour = 4;
+  static const int spellFive = 5;
+  static const int spellSix = 7;
+  static const int spellSeven = 7;
+  static const int spellEight = 8;
+  static const int spellNine= 9;
 }

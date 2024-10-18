@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../classes/profile_manager.dart';
-import '../configs/colours.dart';
+import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/configs/colours.dart';
 import 'character_view.dart';
 
 class ProfileHomeScreen extends StatefulWidget {

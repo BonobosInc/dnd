@@ -1,7 +1,8 @@
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:flutter/material.dart';
-import '../configs/defines.dart';
-import '../configs/colours.dart';
+import 'package:dnd/configs/defines.dart';
+import 'package:dnd/configs/colours.dart';
+import 'spell_view.dart';
 
 class CharacterView extends StatelessWidget {
   final ProfileManager profileManager;
@@ -24,18 +25,6 @@ class CharacterView extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Character View'),
           backgroundColor: AppColors.appBarColor,
-          actions: [
-            Builder(
-              builder: (BuildContext context) {
-                return IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                );
-              },
-            ),
-          ],
         ),
         body: const Center(
           child: Text('Using database for profile.'),
@@ -48,12 +37,30 @@ class CharacterView extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: <Widget>[
                 ListTile(
+                  leading: const Icon(Icons.menu, color: AppColors.textColorLight),
                   title: const Text(
-                    'Item 1',
+                    'Menu',
                     style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () {
                     Navigator.pop(context);
+                  },
+                ),
+                ListTile(
+                  title: const Text(
+                    'Spells',
+                    style: TextStyle(color: AppColors.textColorLight),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SpellManagementPage(
+                          profileManager: profileManager,
+                        ),
+                      ),
+                    );
                   },
                 ),
                 ListTile(
