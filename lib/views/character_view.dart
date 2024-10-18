@@ -1,4 +1,5 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/views/notes_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
@@ -65,11 +66,19 @@ class CharacterView extends StatelessWidget {
                 ),
                 ListTile(
                   title: const Text(
-                    'Item 2',
+                    'Notes',
                     style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NotesPage(
+                          profileManager: profileManager,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ],
