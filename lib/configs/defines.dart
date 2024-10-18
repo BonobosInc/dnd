@@ -22,6 +22,7 @@ class Defines {
   static const String infoSkinColour = "skin_colour";
   static const String infoAppearance = "appearance";
   static const String infoTraits = "traits";
+  static const String infoNotes = "notes";
   static const String infoSpellcastingClass = "spellcasting_class";
   static const String infoSpellcastingAbility = "spellcasting_ability";
 

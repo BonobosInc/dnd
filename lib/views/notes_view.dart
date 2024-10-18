@@ -37,6 +37,7 @@ class NotesPageState extends State<NotesPage> {
   final TextEditingController skinColourController = TextEditingController();
   final TextEditingController appearanceController = TextEditingController();
   final TextEditingController traitsController = TextEditingController();
+  final TextEditingController otherNotesController = TextEditingController();
 
   String? selectedSize;
 
@@ -247,6 +248,9 @@ class NotesPageState extends State<NotesPage> {
             const SizedBox(height: 16),
             _buildLargeTextField(
                 'Klassenmerkmale', traitsController, Defines.infoTraits),
+            const SizedBox(height: 16),
+            _buildLargeTextField(
+                'Sonstige Notizen', otherNotesController, Defines.infoNotes),
           ],
         ),
       ),
@@ -417,7 +421,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(17);
+                _scrollToSection(15);
               },
             ),
             ListTile(
@@ -426,6 +430,14 @@ class NotesPageState extends State<NotesPage> {
               onTap: () {
                 Navigator.pop(context);
                 _scrollToSection(18);
+              },
+            ),
+            ListTile(
+              title: const Text('Sonstige Notizen',
+                  style: TextStyle(color: AppColors.textColorLight)),
+              onTap: () {
+                Navigator.pop(context);
+                _scrollToSection(20);
               },
             ),
           ],
