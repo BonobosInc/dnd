@@ -117,63 +117,46 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   }
 
   Widget _buildSpellcastingFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _spellAttackController,
-                label: 'Zauber Angriff',
-                hint: '',
-                onChanged: (value) =>
-                    _updateField(Defines.statSpellAttackBonus, value),
-                isIntegerField: true,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildTextField(
-                controller: _spellDcController,
-                label: 'Zauberrettungswurf-SG',
-                hint: '',
-                onChanged: (value) =>
-                    _updateField(Defines.statSpellSaveDC, value),
-                isIntegerField: true,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _spellcastingClassController,
-                label: 'Zauberwirkende Klasse',
-                hint: '',
-                onChanged: (value) =>
-                    _updateField(Defines.infoSpellcastingClass, value),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildTextField(
-                controller: _spellcastingAbilityController,
-                label: 'Zauberattribut',
-                hint: '',
-                onChanged: (value) =>
-                    _updateField(Defines.infoSpellcastingAbility, value),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-      ],
+    return SizedBox(
+      width: 300,
+      height: 200,
+      child: GridView.count(
+        crossAxisCount: 2,
+        childAspectRatio: 1.5,
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        children: [
+          _buildTextField(
+            controller: _spellAttackController,
+            label: 'Zauber Angriff',
+            hint: '',
+            onChanged: (value) =>
+                _updateField(Defines.statSpellAttackBonus, value),
+            isIntegerField: true,
+          ),
+          _buildTextField(
+            controller: _spellDcController,
+            label: 'Zauberrettungswurf-SG',
+            hint: '',
+            onChanged: (value) => _updateField(Defines.statSpellSaveDC, value),
+            isIntegerField: true,
+          ),
+          _buildTextField(
+            controller: _spellcastingClassController,
+            label: 'Zauberwirkende Klasse',
+            hint: '',
+            onChanged: (value) =>
+                _updateField(Defines.infoSpellcastingClass, value),
+          ),
+          _buildTextField(
+            controller: _spellcastingAbilityController,
+            label: 'Zauberattribut',
+            hint: '',
+            onChanged: (value) =>
+                _updateField(Defines.infoSpellcastingAbility, value),
+          ),
+        ],
+      ),
     );
   }
 
@@ -319,38 +302,56 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   }
 
   List<Widget> _buildSpellNames(int levelIndex) {
-    List<Widget> fields = [];
-    for (var controller in spellLevels[levelIndex]) {
-      fields.add(
-        GestureDetector(
-          onTap: () async {
-            String? description = await widget.profileManager
-                .getSpellDescription(controller.text);
-            _showSpellDescription(controller.text, description);
-          },
-          child: SizedBox(
-            width: 200,
-            child: Container(
-              padding: const EdgeInsets.all(8.0),
-              margin: const EdgeInsets.only(bottom: 8.0),
-              decoration: BoxDecoration(
-                color: AppColors.cardColor,
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: AppColors.dividerColor),
-              ),
-              child: Center(
-                child: Text(
-                  controller.text.isNotEmpty ? controller.text : '',
-                  style: const TextStyle(color: AppColors.textColorDark),
+  List<Widget> fields = [];
+  for (var controller in spellLevels[levelIndex]) {
+    fields.add(
+      GestureDetector(
+        onTap: () async {
+          String? description = await widget.profileManager
+              .getSpellDescription(controller.text);
+          _showSpellDescription(controller.text, description);
+        },
+        child: SizedBox(
+          width: 150,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            margin: const EdgeInsets.only(bottom: 8.0),
+            decoration: BoxDecoration(
+              color: AppColors.cardColor,
+              borderRadius: BorderRadius.circular(10.0),
+              border: Border.all(color: AppColors.dividerColor, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  offset: const Offset(2, 2),
+                  blurRadius: 4.0,
+                  spreadRadius: 1.0,
                 ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                controller.text.isNotEmpty ? controller.text : '',
+                style: const TextStyle(
+                  color: AppColors.textColorDark,
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 4,
+                overflow: TextOverflow.visible,
               ),
             ),
           ),
         ),
-      );
-    }
-    return fields;
+      ),
+    );
   }
+  return fields;
+}
+
+
+
 
   void _showSpellDescription(String spellName, String? description) {
     showDialog(
@@ -476,7 +477,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                         _fetchAndUpdateSlots();
                       });
                     }
-                    if(context.mounted) Navigator.of(context).pop();
+                    if (context.mounted) Navigator.of(context).pop();
                   },
                   child: const Text('Speichern'),
                 ),
