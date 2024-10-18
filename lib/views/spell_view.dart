@@ -291,8 +291,9 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 14),
                 ..._buildSpellNames(levelIndex),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
               ],
             ),
           );
@@ -302,56 +303,66 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   }
 
   List<Widget> _buildSpellNames(int levelIndex) {
-  List<Widget> fields = [];
-  for (var controller in spellLevels[levelIndex]) {
-    fields.add(
-      GestureDetector(
-        onTap: () async {
-          String? description = await widget.profileManager
-              .getSpellDescription(controller.text);
-          _showSpellDescription(controller.text, description);
-        },
-        child: SizedBox(
-          width: 150,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4.0),
-            margin: const EdgeInsets.only(bottom: 8.0),
-            decoration: BoxDecoration(
-              color: AppColors.cardColor,
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(color: AppColors.dividerColor, width: 1.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  offset: const Offset(2, 2),
-                  blurRadius: 4.0,
-                  spreadRadius: 1.0,
+    List<Widget> fields = [];
+    for (var controller in spellLevels[levelIndex]) {
+      fields.add(
+        GestureDetector(
+          onTap: () async {
+            String? description = await widget.profileManager
+                .getSpellDescription(controller.text);
+            _showSpellDescription(controller.text, description);
+          },
+          child: SizedBox(
+            width: 150,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              margin: const EdgeInsets.only(bottom: 8.0, right: 8.0),
+              decoration: BoxDecoration(
+                color: AppColors.cardColor,
+                borderRadius: BorderRadius.circular(10.0),
+                border: Border.all(color: AppColors.dividerColor, width: 1.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    offset: const Offset(2, 2),
+                    blurRadius: 4.0,
+                    spreadRadius: 1.0,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  controller.text.isNotEmpty ? controller.text : '',
+                  style: const TextStyle(
+                    color: AppColors.textColorDark,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.visible,
                 ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                controller.text.isNotEmpty ? controller.text : '',
-                style: const TextStyle(
-                  color: AppColors.textColorDark,
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 4,
-                overflow: TextOverflow.visible,
               ),
             ),
           ),
         ),
+      );
+    }
+
+    return [
+      Center(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.7,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: fields,
+          ),
+        ),
       ),
-    );
+    ];
   }
-  return fields;
-}
-
-
-
 
   void _showSpellDescription(String spellName, String? description) {
     showDialog(
