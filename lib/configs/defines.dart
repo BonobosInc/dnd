@@ -113,4 +113,12 @@ class Defines {
   static const int spellSeven = 7;
   static const int spellEight = 8;
   static const int spellNine= 9;
+
+  // Bag Defines
+  static const String bagBag = "bagItems";
+  static const String bagPlatin = "platin";
+  static const String bagGold = "gold";
+  static const String bagElectrum = "electrum";
+  static const String bagSilver = "silver";
+  static const String bagCopper = "copper";
 }

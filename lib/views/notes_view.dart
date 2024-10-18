@@ -233,24 +233,24 @@ class NotesPageState extends State<NotesPage> {
             ),
             const SizedBox(height: 16),
             _buildLargeTextField(
-                'Aussehen', appearanceController, Defines.infoAppearance),
+                'Aussehen', appearanceController, Defines.infoAppearance, 3),
             const SizedBox(height: 16),
             _buildLargeTextField('Persönlichkeitsmerkmale',
-                personalityTraitsController, Defines.infoPersonalityTraits),
+                personalityTraitsController, Defines.infoPersonalityTraits, 3),
             const SizedBox(height: 16),
             _buildLargeTextField(
-                'Ideale', idealsController, Defines.infoIdeals),
+                'Ideale', idealsController, Defines.infoIdeals, 3),
             const SizedBox(height: 16),
             _buildLargeTextField(
-                'Bindungen', bondsController, Defines.infoBonds),
+                'Bindungen', bondsController, Defines.infoBonds, 3),
             const SizedBox(height: 16),
-            _buildLargeTextField('Makel', flawsController, Defines.infoFlaws),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Klassenmerkmale', traitsController, Defines.infoTraits),
+            _buildLargeTextField('Makel', flawsController, Defines.infoFlaws, 3),
             const SizedBox(height: 16),
             _buildLargeTextField(
-                'Sonstige Notizen', otherNotesController, Defines.infoNotes),
+                'Klassenmerkmale', traitsController, Defines.infoTraits, 15),
+            const SizedBox(height: 16),
+            _buildLargeTextField(
+                'Sonstige Notizen', otherNotesController, Defines.infoNotes, 15),
           ],
         ),
       ),
@@ -466,10 +466,10 @@ class NotesPageState extends State<NotesPage> {
   }
 
   Widget _buildLargeTextField(
-      String label, TextEditingController controller, String field) {
+      String label, TextEditingController controller, String field, int maxLines) {
     return TextField(
       controller: controller,
-      maxLines: 10,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
