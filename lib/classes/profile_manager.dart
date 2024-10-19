@@ -260,6 +260,17 @@ class ProfileManager {
       };
       await txn.insert('proficiencies', initialProfs);
 
+      var initialBag = {
+        'charId': insertedCharId,
+        Defines.bagPlatin: 0,
+        Defines.bagGold: 0,
+        Defines.bagElectrum: 0,
+        Defines.bagSilver: 0,
+        Defines.bagCopper: 0,
+        Defines.bagBag: '',
+      };
+      await txn.insert('bag', initialBag);
+
       var initialSpellSlots = [
         {
           'charId': insertedCharId,
@@ -353,6 +364,8 @@ class ProfileManager {
         '${Defines.infoSkinColour} TEXT, '
         '${Defines.infoAppearance} TEXT, '
         '${Defines.infoTraits} TEXT, '
+        '${Defines.infoBackstory} TEXT, '
+        '${Defines.infoNotes} TEXT, '
         '${Defines.infoSpellcastingClass} TEXT, '
         '${Defines.infoSpellcastingAbility} TEXT'
         ')');
@@ -406,12 +419,19 @@ class ProfileManager {
         '${Defines.profTools} TEXT, '
         'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
         ')');
+    currentDb!.execute('CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY,'
+        'charId INTEGER, '
+        '${Defines.bagPlatin} INTEGER, '
+        '${Defines.bagGold} INTEGER, '
+        '${Defines.bagElectrum} INTEGER, '
+        '${Defines.bagSilver} INTEGER, '
+        '${Defines.bagCopper} INTEGER, '
+        '${Defines.bagBag} TEXT, '
+        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS skills (ID INTEGER PRIMARY KEY AUTOINCREMENT, skill TEXT , charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY, item TEXT, charId INTEGER, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS spells (ID INTEGER PRIMARY KEY AUTOINCREMENT, spellname TEXT, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
@@ -702,53 +722,22 @@ class ProfileManager {
     );
   }
 
-  Future<void> updateBagItem({
-    required String itemName,
-    required int? amount,
+  Future<void> updateBag({
+    required String field,
+    required dynamic value,
   }) async {
-    if (currentDb == null || amount == null) {
-      return;
-    }
+    if (currentDb == null) return;
 
-    final List<Map<String, dynamic>> existingItemList = await currentDb!.query(
+    final Map<String, dynamic> updates = {
+      field: value,
+    };
+
+    await currentDb!.update(
       'bag',
-      where: 'charId = ? AND item = ?',
-      whereArgs: [selectedID, itemName],
+      updates,
+      where: 'charId = ?',
+      whereArgs: [selectedID],
     );
-
-    if (existingItemList.isNotEmpty) {
-      if (amount <= 0) {
-        await currentDb!.delete(
-          'bag',
-          where: 'charId = ? AND item = ?',
-          whereArgs: [selectedID, itemName],
-        );
-      } else {
-        final Map<String, dynamic> updates = {
-          'amount': amount,
-        };
-
-        await currentDb!.update(
-          'bag',
-          updates,
-          where: 'charId = ? AND item = ?',
-          whereArgs: [selectedID, itemName],
-        );
-      }
-    } else {
-      if (amount > 0) {
-        final Map<String, dynamic> newItem = {
-          'item': itemName,
-          'charId': selectedID,
-          'amount': amount,
-        };
-
-        await currentDb!.insert(
-          'bag',
-          newItem,
-        );
-      }
-    }
   }
 
   Future<void> updateProfileInfo({
@@ -1034,7 +1023,7 @@ class ProfileManager {
     return result;
   }
 
-  Future<List<Map<String, dynamic>>> getAllBagItems() async {
+  Future<List<Map<String, dynamic>>> getBagItems() async {
     if (currentDb == null) return [];
 
     final List<Map<String, dynamic>> result = await currentDb!.query(

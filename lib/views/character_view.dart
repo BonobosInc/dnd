@@ -1,4 +1,6 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/views/bag_view.dart';
+import 'package:dnd/views/notes_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
@@ -36,15 +38,21 @@ class CharacterView extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.menu, color: AppColors.textColorLight),
-                  title: const Text(
-                    'Menu',
-                    style: TextStyle(color: AppColors.textColorLight),
+                const SizedBox(
+                  height: 100,
+                  child: DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: AppColors.appBarColor,
+                    ),
+                    child: Text(
+                      'Menü',
+                      style: TextStyle(
+                        color: AppColors.textColorLight,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
                 ),
                 ListTile(
                   title: const Text(
@@ -65,11 +73,36 @@ class CharacterView extends StatelessWidget {
                 ),
                 ListTile(
                   title: const Text(
-                    'Item 2',
+                    'Notes',
                     style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NotesPage(
+                          profileManager: profileManager,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  title: const Text(
+                    'Bag',
+                    style: TextStyle(color: AppColors.textColorLight),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BagPage(
+                          profileManager: profileManager,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ],
