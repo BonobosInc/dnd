@@ -130,7 +130,7 @@ class NotesPageState extends State<NotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Character Notes'),
+        title: const Text('Notizen'),
         backgroundColor: AppColors.appBarColor,
         actions: [
           Builder(
