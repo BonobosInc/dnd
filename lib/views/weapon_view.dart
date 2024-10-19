@@ -109,7 +109,6 @@ class WeaponPageState extends State<WeaponPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(isNewWeapon ? 'Waffe hinzufügen' : 'Waffe bearbeiten'),
-          backgroundColor: AppColors.cardColor,
           content: SingleChildScrollView(
             child: _buildWeaponDetailForm(
               nameController,
@@ -127,8 +126,7 @@ class WeaponPageState extends State<WeaponPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("Abbrechen",
-                  style: TextStyle(color: AppColors.textColorLight)),
+              child: const Text("Abbrechen"),
             ),
             TextButton(
               onPressed: () {
@@ -162,8 +160,7 @@ class WeaponPageState extends State<WeaponPage> {
                 }
                 Navigator.of(context).pop();
               },
-              child: const Text("Speichern",
-                  style: TextStyle(color: AppColors.textColorLight)),
+              child: const Text("Speichern"),
             ),
           ],
         );
@@ -207,6 +204,34 @@ class WeaponPageState extends State<WeaponPage> {
         description: '',
       ),
       true,
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Weapon weapon) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Löschen bestätigen'),
+          content: Text(
+              'Sind Sie sicher, dass Sie "${weapon.name}" löschen möchten?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Abbrechen'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteWeapon(weapon.uuid!);
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Löschen'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -359,12 +384,7 @@ class WeaponPageState extends State<WeaponPage> {
                       ],
                     ),
                     const Divider(color: AppColors.dividerColor),
-                    GestureDetector(
-                      onTap: () {
-                        _showDescriptionDialog(weapon.description ??
-                            "Keine Beschreibung verfügbar");
-                      },
-                      child: Padding(
+                      Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Row(
                           children: [
@@ -379,12 +399,9 @@ class WeaponPageState extends State<WeaponPage> {
                                 ),
                               ),
                             ),
-                            const Icon(Icons.info_outline,
-                                color: AppColors.textColorLight, size: 16.0),
                           ],
                         ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -395,31 +412,10 @@ class WeaponPageState extends State<WeaponPage> {
         IconButton(
           icon: const Icon(Icons.close, color: AppColors.textColorDark),
           onPressed: () {
-            _deleteWeapon(weapon.uuid!);
+            _showDeleteConfirmationDialog(weapon);
           },
         ),
       ],
-    );
-  }
-
-  void _showDescriptionDialog(String description) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Waffenbeschreibung'),
-          content: Text(description),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Schließen",
-                  style: TextStyle(color: AppColors.textColorLight)),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -431,15 +427,7 @@ class WeaponPageState extends State<WeaponPage> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
-          labelStyle: const TextStyle(color: AppColors.textColorLight),
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppColors.textColorLight),
-          ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: AppColors.textColorLight),
-          ),
         ),
-        style: const TextStyle(color: AppColors.textColorLight),
       ),
     );
   }
@@ -451,15 +439,7 @@ class WeaponPageState extends State<WeaponPage> {
       decoration: const InputDecoration(
         labelText: 'Beschreibung',
         border: OutlineInputBorder(),
-        labelStyle: TextStyle(color: AppColors.textColorLight),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.textColorLight),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.textColorLight),
-        ),
       ),
-      style: const TextStyle(color: AppColors.textColorLight),
     );
   }
 }
