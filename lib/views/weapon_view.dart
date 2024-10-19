@@ -106,16 +106,15 @@ class WeaponPageState extends State<WeaponPage> {
         return AlertDialog(
           title: Text(isNewWeapon ? 'Waffe hinzufügen' : 'Waffe bearbeiten'),
           content: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildTextField('Waffe', nameController),
-                _buildTextField('Attribut', attributeController),
-                _buildTextField('Reichweite', reachController),
-                _buildTextField('Bonus', bonusController),
-                _buildTextField('Schaden', damageController),
-                _buildTextField('Schadenstyp', damageTypeController),
-                _buildDescriptionTextField(descriptionController),
-              ],
+            child: _buildWeaponDetailForm(
+              nameController,
+              attributeController,
+              reachController,
+              bonusController,
+              damageController,
+              damageTypeController,
+              descriptionController,
+              weapon,
             ),
           ),
           actions: [
@@ -141,16 +140,51 @@ class WeaponPageState extends State<WeaponPage> {
                     descriptionController.text,
                   );
                 } else {
-                  _updateWeapon(weapon, descriptionController.text);
+                  _updateWeapon(
+                    Weapon(
+                      name: nameController.text,
+                      attribute: attributeController.text,
+                      reach: reachController.text,
+                      bonus: bonusController.text,
+                      damage: damageController.text,
+                      damageType: damageTypeController.text,
+                      description: descriptionController.text,
+                      uuid: weapon.uuid,
+                    ),
+                    descriptionController.text,
+                  );
                 }
                 Navigator.of(context).pop();
-                _fetchWeapons();
               },
               child: const Text("Speichern"),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildWeaponDetailForm(
+    TextEditingController nameController,
+    TextEditingController attributeController,
+    TextEditingController reachController,
+    TextEditingController bonusController,
+    TextEditingController damageController,
+    TextEditingController damageTypeController,
+    TextEditingController descriptionController,
+    Weapon weapon,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTextField('Waffe', nameController),
+        _buildTextField('Reichweite', reachController),
+        _buildTextField('Schadenstyp', damageTypeController),
+        _buildTextField('Bonus', bonusController),
+        _buildTextField('Schaden', damageController),
+        _buildTextField('Attribut', attributeController),
+        _buildDescriptionTextField(descriptionController),
+      ],
     );
   }
 
@@ -238,8 +272,7 @@ class WeaponPageState extends State<WeaponPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                  weapon.damageType ?? "N/A"),
+                              Text(weapon.damageType ?? "N/A"),
                             ],
                           ),
                         ),
