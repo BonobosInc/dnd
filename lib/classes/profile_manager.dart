@@ -513,6 +513,28 @@ class ProfileManager {
     }
   }
 
+  Future<void> clearDatabase() async {
+    final databasesPath = await getDatabasesPath();
+    final profileDbPath = join(databasesPath, 'characters.db');
+
+    if (currentDb != null) {
+      await currentDb!.close();
+      currentDb = null;
+    }
+
+    try {
+      await deleteDatabase(profileDbPath);
+      if (kDebugMode) {
+        print('Database deleted successfully.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error deleting database: $e');
+      }
+    }
+    // await loadProfiles();
+  }
+
   Future<void> dumpDatabase(String profileName) async {
     final databasesPath = await getDatabasesPath();
     final profileDbPath = join(databasesPath, '$profileName.db');

@@ -92,6 +92,38 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     );
   }
 
+  Future<void> _clearDatabase() async {
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Datenbank leeren'),
+          content: const Text('Möchtest du wirklich die gesamte Datenbank leeren?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Nein'),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Ja'),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete == true) {
+      await profileManager.clearDatabase();
+      profileManager.profiles.clear();
+      await _initializeProfiles();
+    }
+  }
+
   Future<void> _dumpDatabase(String profileName) async {
     await profileManager.dumpDatabase(profileName);
   }
@@ -151,9 +183,27 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addNewProfile,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'create') {
+                await _addNewProfile();
+              } else if (value == 'clear') {
+                await _clearDatabase();
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem<String>(
+                  value: 'create',
+                  child: Text('Neuen Charakter erstellen'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'clear',
+                  child: Text('Datenbank leeren'),
+                ),
+              ];
+            },
           ),
         ],
       ),
@@ -163,7 +213,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
             child: profileManager.hasProfiles()
                 ? ListView.builder(
                     physics:
-                        const ClampingScrollPhysics(), // Add smooth bounce physics
+                        const ClampingScrollPhysics(),
                     itemCount: profileManager.getProfiles().length,
                     itemBuilder: (context, index) {
                       final Character profile = profileManager.getProfiles()[index];
