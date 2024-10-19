@@ -808,7 +808,8 @@ class ProfileManager {
   }
 
   Future<void> updateWeapons({
-    required String weapon,
+    required uuid,
+    String? weapon,
     String? attribute,
     String? reach,
     String? bonus,
@@ -821,13 +822,12 @@ class ProfileManager {
     final List<Map<String, dynamic>> existingWeaponList =
         await currentDb!.query(
       'weapons',
-      where: 'charId = ? AND weapon = ?',
-      whereArgs: [selectedID, weapon],
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
     );
 
     final Map<String, dynamic> updates = {
       'weapon': weapon,
-      'charId': selectedID,
       'attribute': attribute,
       'reach': reach,
       'bonus': bonus,
@@ -846,8 +846,8 @@ class ProfileManager {
       await currentDb!.update(
         'weapons',
         updates,
-        where: 'charId = ? AND weapon = ?',
-        whereArgs: [selectedID, weapon],
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
       );
     } else {
       await currentDb!.insert(
@@ -858,13 +858,48 @@ class ProfileManager {
     }
   }
 
-  Future<void> removeWeapon(String weapon) async {
+  Future<void> addWeapon({
+    required String weapon,
+    String? attribute,
+    String? reach,
+    String? bonus,
+    String? damage,
+    String? damagetype,
+    String? description,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> weapondata = {
+      'weapon': weapon,
+      'charId': selectedID,
+      'attribute': attribute,
+      'reach': reach,
+      'bonus': bonus,
+      'damage': damage,
+      'damagetype': damagetype,
+      'description': description,
+    };
+
+    try {
+      await currentDb!.insert(
+        'weapons',
+        weapondata,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding weapon: $e');
+      }
+    }
+  }
+
+  Future<void> removeweapon(int uuid) async {
     if (currentDb == null) return;
 
     await currentDb!.delete(
       'weapons',
-      where: 'charId = ? AND weapon = ?',
-      whereArgs: [selectedID, weapon],
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
     );
   }
 
