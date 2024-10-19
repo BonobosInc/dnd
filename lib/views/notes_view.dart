@@ -36,6 +36,7 @@ class NotesPageState extends State<NotesPage> {
   final TextEditingController hairColourController = TextEditingController();
   final TextEditingController skinColourController = TextEditingController();
   final TextEditingController appearanceController = TextEditingController();
+  final TextEditingController backStoryController = TextEditingController();
   final TextEditingController traitsController = TextEditingController();
   final TextEditingController otherNotesController = TextEditingController();
 
@@ -246,6 +247,9 @@ class NotesPageState extends State<NotesPage> {
             const SizedBox(height: 16),
             _buildLargeTextField('Makel', flawsController, Defines.infoFlaws, 3),
             const SizedBox(height: 16),
+             _buildLargeTextField(
+                'Hintergrundgeschichte', backStoryController, Defines.infoBackstory, 15),
+            const SizedBox(height: 16),
             _buildLargeTextField(
                 'Klassenmerkmale', traitsController, Defines.infoTraits, 15),
             const SizedBox(height: 16),
@@ -389,7 +393,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(5);
+                _scrollToSection(4);
               },
             ),
             ListTile(
@@ -397,7 +401,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(7);
+                _scrollToSection(6);
               },
             ),
             ListTile(
@@ -405,7 +409,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(10);
+                _scrollToSection(7);
               },
             ),
             ListTile(
@@ -413,7 +417,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(13);
+                _scrollToSection(8);
               },
             ),
             ListTile(
@@ -421,7 +425,15 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(15);
+                _scrollToSection(9);
+              },
+            ),
+            ListTile(
+              title: const Text('Hintergrundgeschichte',
+                  style: TextStyle(color: AppColors.textColorLight)),
+              onTap: () {
+                Navigator.pop(context);
+                _scrollToSection(10);
               },
             ),
             ListTile(
@@ -429,7 +441,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(18);
+                _scrollToSection(14);
               },
             ),
             ListTile(
@@ -437,7 +449,7 @@ class NotesPageState extends State<NotesPage> {
                   style: TextStyle(color: AppColors.textColorLight)),
               onTap: () {
                 Navigator.pop(context);
-                _scrollToSection(20);
+                _scrollToSection(16);
               },
             ),
           ],

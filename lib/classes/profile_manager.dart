@@ -364,6 +364,7 @@ class ProfileManager {
         '${Defines.infoSkinColour} TEXT, '
         '${Defines.infoAppearance} TEXT, '
         '${Defines.infoTraits} TEXT, '
+        '${Defines.infoBackstory} TEXT, '
         '${Defines.infoNotes} TEXT, '
         '${Defines.infoSpellcastingClass} TEXT, '
         '${Defines.infoSpellcastingAbility} TEXT'

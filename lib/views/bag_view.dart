@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
+import 'dart:math';
 
 class BagPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -129,7 +130,7 @@ class BagPageState extends State<BagPage> {
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        double fontSize = constraints.maxWidth * 0.18;
+        double fontSize = min(constraints.maxWidth * 0.18, 90 * 0.18);
 
         return TextField(
           controller: controller,
