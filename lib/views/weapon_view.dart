@@ -1,5 +1,9 @@
+import 'dart:math';
+
+import 'package:dnd/configs/defines.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/configs/colours.dart';
 
 class WeaponPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -27,13 +31,13 @@ class WeaponPageState extends State<WeaponPage> {
       weapons.clear();
       for (var weapon in fetchedWeapons) {
         weapons.add(Weapon(
-          name: weapon['weapon'],
-          attribute: weapon['attribute'],
-          reach: weapon['reach'],
-          bonus: weapon['bonus'],
-          damage: weapon['damage'],
-          damageType: weapon['damagetype'],
-          description: weapon['description'],
+          name: weapon[Defines.weaponName],
+          attribute: weapon[Defines.weaponAttr],
+          reach: weapon[Defines.weaponReach],
+          bonus: weapon[Defines.weaponBonus],
+          damage: weapon[Defines.weaponDamage],
+          damageType: weapon[Defines.weaponDamageType],
+          description: weapon[Defines.weaponDescription],
           uuid: weapon['ID'],
         ));
       }
@@ -105,6 +109,7 @@ class WeaponPageState extends State<WeaponPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(isNewWeapon ? 'Waffe hinzufügen' : 'Waffe bearbeiten'),
+          backgroundColor: AppColors.cardColor,
           content: SingleChildScrollView(
             child: _buildWeaponDetailForm(
               nameController,
@@ -122,7 +127,8 @@ class WeaponPageState extends State<WeaponPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("Abbrechen"),
+              child: const Text("Abbrechen",
+                  style: TextStyle(color: AppColors.textColorLight)),
             ),
             TextButton(
               onPressed: () {
@@ -156,7 +162,8 @@ class WeaponPageState extends State<WeaponPage> {
                 }
                 Navigator.of(context).pop();
               },
-              child: const Text("Speichern"),
+              child: const Text("Speichern",
+                  style: TextStyle(color: AppColors.textColorLight)),
             ),
           ],
         );
@@ -205,12 +212,18 @@ class WeaponPageState extends State<WeaponPage> {
 
   @override
   Widget build(BuildContext context) {
+    final constraints = BoxConstraints(
+      maxWidth: MediaQuery.of(context).size.width,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Waffen"),
+        title: const Text("Waffen",
+            style: TextStyle(color: AppColors.textColorLight)),
+        backgroundColor: AppColors.appBarColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: AppColors.textColorLight),
             onPressed: _showAddWeaponDialog,
           ),
         ],
@@ -219,13 +232,15 @@ class WeaponPageState extends State<WeaponPage> {
         itemCount: weapons.length,
         itemBuilder: (context, index) {
           final weapon = weapons[index];
-          return _buildWeaponTile(weapon);
+          return _buildWeaponTile(weapon, constraints);
         },
       ),
     );
   }
 
-  Widget _buildWeaponTile(Weapon weapon) {
+  Widget _buildWeaponTile(Weapon weapon, BoxConstraints constraints) {
+    double scaledfontSize = min(constraints.maxWidth * 0.04, 600 * 0.04);
+    double scaledfontDamageType = min(constraints.maxWidth * 0.035, 600 * 0.035);
     return Row(
       children: [
         Expanded(
@@ -234,9 +249,10 @@ class WeaponPageState extends State<WeaponPage> {
               _showWeaponDialog(weapon, false);
             },
             child: Card(
-              elevation: 4.0,
+              elevation: 8.0,
+              color: AppColors.cardColor,
               margin:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
@@ -251,28 +267,42 @@ class WeaponPageState extends State<WeaponPage> {
                             children: [
                               Text(
                                 weapon.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(weapon.reach ?? "N/A"),
+                              Text(
+                                weapon.reach ?? "",
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(weapon.damageType ?? "N/A"),
+                              Text(
+                                weapon.damageType ?? "",
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontDamageType,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -286,36 +316,73 @@ class WeaponPageState extends State<WeaponPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(weapon.bonus ?? "N/A"),
+                              Text(
+                                weapon.bonus ?? "",
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(weapon.damage ?? "N/A"),
+                              Text(
+                                weapon.damage ?? "",
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(weapon.attribute ?? "N/A"),
+                              Text(
+                                weapon.attribute ?? "",
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const Divider(),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        weapon.description ?? "Keine Beschreibung verfügbar",
-                        textAlign: TextAlign.left,
+                    const Divider(color: AppColors.dividerColor),
+                    GestureDetector(
+                      onTap: () {
+                        _showDescriptionDialog(weapon.description ??
+                            "Keine Beschreibung verfügbar");
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                weapon.description ??
+                                    "Keine Beschreibung verfügbar",
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  color: AppColors.textColorLight,
+                                  fontSize: scaledfontSize,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.info_outline,
+                                color: AppColors.textColorLight, size: 16.0),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -326,12 +393,33 @@ class WeaponPageState extends State<WeaponPage> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, color: AppColors.textColorDark),
           onPressed: () {
             _deleteWeapon(weapon.uuid!);
           },
         ),
       ],
+    );
+  }
+
+  void _showDescriptionDialog(String description) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Waffenbeschreibung'),
+          content: Text(description),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Schließen",
+                  style: TextStyle(color: AppColors.textColorLight)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -343,7 +431,15 @@ class WeaponPageState extends State<WeaponPage> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
+          labelStyle: const TextStyle(color: AppColors.textColorLight),
+          enabledBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: AppColors.textColorLight),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: AppColors.textColorLight),
+          ),
         ),
+        style: const TextStyle(color: AppColors.textColorLight),
       ),
     );
   }
@@ -355,7 +451,15 @@ class WeaponPageState extends State<WeaponPage> {
       decoration: const InputDecoration(
         labelText: 'Beschreibung',
         border: OutlineInputBorder(),
+        labelStyle: TextStyle(color: AppColors.textColorLight),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.textColorLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.textColorLight),
+        ),
       ),
+      style: const TextStyle(color: AppColors.textColorLight),
     );
   }
 }

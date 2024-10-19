@@ -199,7 +199,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               fillColor: AppColors.cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
-                borderSide: const BorderSide(color: AppColors.dividerColor),
+                borderSide: const BorderSide(color: AppColors.borderColor),
               ),
               hintText: hint,
               hintStyle: const TextStyle(color: AppColors.textColorDark),
@@ -320,7 +320,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               decoration: BoxDecoration(
                 color: AppColors.cardColor,
                 borderRadius: BorderRadius.circular(10.0),
-                border: Border.all(color: AppColors.dividerColor, width: 1.0),
+                border: Border.all(color: AppColors.borderColor, width: 1.0),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),

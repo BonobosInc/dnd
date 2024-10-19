@@ -121,4 +121,14 @@ class Defines {
   static const String bagElectrum = "electrum";
   static const String bagSilver = "silver";
   static const String bagCopper = "copper";
+
+  // Weapon Defines
+  static const String weaponName = "weapon";
+  static const String weaponAttr = "attribute";
+  static const String weaponReach = "reach";
+  static const String weaponBonus = "bonus";
+  static const String weaponDamage = "damage";
+  static const String weaponDamageType = "damagetype";
+  static const String weaponDescription = "description";
+
 }
