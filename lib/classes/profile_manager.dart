@@ -532,7 +532,6 @@ class ProfileManager {
         print('Error deleting database: $e');
       }
     }
-    // await loadProfiles();
   }
 
   Future<void> dumpDatabase(String profileName) async {
