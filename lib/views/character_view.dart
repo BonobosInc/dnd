@@ -1,6 +1,7 @@
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/views/bag_view.dart';
 import 'package:dnd/views/notes_view.dart';
+import 'package:dnd/views/weapon_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
@@ -65,6 +66,23 @@ class CharacterView extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpellManagementPage(
+                          profileManager: profileManager,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  title: const Text(
+                    'Weapons',
+                    style: TextStyle(color: AppColors.textColorLight),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WeaponPage(
                           profileManager: profileManager,
                         ),
                       ),
