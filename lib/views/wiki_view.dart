@@ -51,11 +51,11 @@ class WikiPageState extends State<WikiPage> {
       String newFilePath;
 
       if (Platform.isWindows) {
-        newFilePath = './temp/imported_wiki.xml';
+        newFilePath = './temp/wiki.xml';
         Directory('./temp').createSync(recursive: true);
       } else {
         Directory appSupportDir = await getApplicationSupportDirectory();
-        newFilePath = '${appSupportDir.path}/imported_wiki.xml';
+        newFilePath = '${appSupportDir.path}/wiki.xml';
       }
 
       await selectedFile.copy(newFilePath);
@@ -69,17 +69,47 @@ class WikiPageState extends State<WikiPage> {
     }
   }
 
+  Future<void> exportXmlFile() async {
+    if (savedXmlFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kein Wiki zum exportieren.')),
+      );
+      return;
+    }
+
+    String? exportPath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Exportiere Wiki',
+      fileName: 'wiki.xml',
+    );
+
+    if (exportPath != null) {
+      try {
+        File originalFile = File(savedXmlFilePath!);
+        await originalFile.copy(exportPath);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exportiert nach $exportPath')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Exportieren fehlgeschlagen.')),
+        );
+      }
+    }
+  }
+
   Future<void> loadSavedXml() async {
     String savedFilePath;
 
     if (Platform.isWindows) {
-      savedFilePath = './temp/imported_wiki.xml';
+      savedFilePath = './temp/wiki.xml';
     } else {
       Directory appSupportDir = await getApplicationSupportDirectory();
-      savedFilePath = '${appSupportDir.path}/imported_wiki.xml';
+      savedFilePath = '${appSupportDir.path}/wiki.xml';
     }
 
     File file = File(savedFilePath);
+
     if (await file.exists()) {
       setState(() {
         savedXmlFilePath = savedFilePath;
@@ -87,6 +117,11 @@ class WikiPageState extends State<WikiPage> {
       });
 
       await parseXmlInIsolate(await file.readAsString());
+    } else {
+      setState(() {
+        savedXmlFilePath = null;
+        isLoading = false;
+      });
     }
   }
 
@@ -94,16 +129,11 @@ class WikiPageState extends State<WikiPage> {
     final response = ReceivePort();
     await Isolate.spawn(_parseXml, response.sendPort);
 
-    final sendPort =
-        await response.first as SendPort;
+    final sendPort = await response.first as SendPort;
     final result = ReceivePort();
-    sendPort.send([
-      xmlData,
-      result.sendPort
-    ]);
+    sendPort.send([xmlData, result.sendPort]);
 
-    final parsedData = await result.first
-        as Map<String, List<dynamic>>;
+    final parsedData = await result.first as Map<String, List<dynamic>>;
 
     setState(() {
       classes = (parsedData['classes'] as List<ClassData>? ?? []);
@@ -119,11 +149,9 @@ class WikiPageState extends State<WikiPage> {
 
     port.listen((message) {
       final xmlData = message[0] as String;
-      final replyPort =
-          message[1] as SendPort;
+      final replyPort = message[1] as SendPort;
 
-      final result =
-          parseXmlData(xmlData);
+      final result = parseXmlData(xmlData);
       replyPort.send(result);
     });
   }
@@ -249,9 +277,25 @@ class WikiPageState extends State<WikiPage> {
               });
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.file_open),
-            onPressed: importXmlFile,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'import') {
+                importXmlFile();
+              } else if (value == 'export') {
+                exportXmlFile();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'import',
+                child: Text('Importiere Wiki'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'export',
+                child: Text('Exportiere Wiki'),
+              ),
+            ],
           ),
         ],
       ),
@@ -259,8 +303,7 @@ class WikiPageState extends State<WikiPage> {
           ? const Center(child: CircularProgressIndicator())
           : savedXmlFilePath == null
               ? const Center(
-                  child: Text(
-                      'No XML file imported. Use the button above to import.'),
+                  child: Text('Kein Wiki gefunden. Bitte importiere ein Wiki'),
                 )
               : ListView(
                   padding: const EdgeInsets.all(16.0),
@@ -291,7 +334,7 @@ class WikiPageState extends State<WikiPage> {
             ),
           ),
           children: filteredItems.isEmpty
-              ? [const ListTile(title: Text('No results found'))]
+              ? [const ListTile(title: Text('Keine Ergebnisse gefunden'))]
               : filteredItems.map((item) {
                   return Column(
                     children: [
