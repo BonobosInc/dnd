@@ -1,9 +1,11 @@
 import 'dart:isolate';
 import 'package:dnd/views/wiki/background_view.dart';
 import 'package:dnd/views/wiki/classes_view.dart';
+import 'package:dnd/views/wiki/feat_view.dart';
 import 'package:dnd/views/wiki/races_view.dart';
+import 'package:dnd/views/wiki/spellwiki_view.dart';
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:flutter/material.dart';
-import 'package:xml/xml.dart' as xml;
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dnd/classes/wiki_classes.dart';
@@ -21,6 +23,8 @@ class WikiPageState extends State<WikiPage> {
   List<ClassData> classes = [];
   List<RaceData> races = [];
   List<BackgroundData> backgrounds = [];
+  List<FeatData> feats = [];
+  List<SpellData> spells = [];
   String? savedXmlFilePath;
   bool isLoading = true;
 
@@ -87,13 +91,17 @@ class WikiPageState extends State<WikiPage> {
         File originalFile = File(savedXmlFilePath!);
         await originalFile.copy(exportPath);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exportiert nach $exportPath')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Exportiert nach $exportPath')),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Exportieren fehlgeschlagen.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Exportieren fehlgeschlagen.')),
+          );
+        }
       }
     }
   }
@@ -139,6 +147,8 @@ class WikiPageState extends State<WikiPage> {
       classes = (parsedData['classes'] as List<ClassData>? ?? []);
       races = (parsedData['races'] as List<RaceData>? ?? []);
       backgrounds = (parsedData['backgrounds'] as List<BackgroundData>? ?? []);
+      feats = (parsedData['feats'] as List<FeatData>? ?? []);
+      spells = (parsedData['spells'] as List<SpellData>? ?? []);
       isLoading = false;
     });
   }
@@ -151,97 +161,9 @@ class WikiPageState extends State<WikiPage> {
       final xmlData = message[0] as String;
       final replyPort = message[1] as SendPort;
 
-      final result = parseXmlData(xmlData);
+      final result = WikiParser.parseXmlData(xmlData);
       replyPort.send(result);
     });
-  }
-
-  static Map<String, List<dynamic>> parseXmlData(String xmlData) {
-    final document = xml.XmlDocument.parse(xmlData);
-    List<ClassData> classes = [];
-    List<RaceData> races = [];
-    List<BackgroundData> backgrounds = [];
-
-    final classElements = document.findAllElements('class');
-    classes = classElements.map((classElement) {
-      final name = classElement.findElements('name').isNotEmpty
-          ? classElement.findElements('name').first.innerText
-          : 'Unknown';
-      final hd = classElement.findElements('hd').isNotEmpty
-          ? classElement.findElements('hd').first.innerText
-          : 'Unknown';
-      final proficiency = classElement.findElements('proficiency').isNotEmpty
-          ? classElement.findElements('proficiency').first.innerText
-          : 'Unknown';
-      final numSkills = classElement.findElements('numSkills').isNotEmpty
-          ? classElement.findElements('numSkills').first.innerText
-          : 'Unknown';
-
-      final autolevels =
-          classElement.findAllElements('autolevel').map((levelElement) {
-        final level = levelElement.getAttribute('level') ?? 'Unknown';
-
-        final features =
-            levelElement.findAllElements('feature').map((featureElement) {
-          final featureName = featureElement.findElements('name').isNotEmpty
-              ? featureElement.findElements('name').first.innerText
-              : 'Unnamed Feature';
-          final featureText = featureElement
-              .findAllElements('text')
-              .map((textElement) => textElement.innerText)
-              .join('\n');
-          return FeatureData(name: featureName, description: featureText);
-        }).toList();
-
-        return Autolevel(level: level, features: features);
-      }).toList();
-
-      return ClassData(
-        name: name,
-        hd: hd,
-        proficiency: proficiency,
-        numSkills: numSkills,
-        autolevels: autolevels,
-      );
-    }).toList();
-
-    final raceElements = document.findAllElements('race');
-    races = raceElements.map((raceElement) {
-      final name = raceElement.findElements('name').isNotEmpty
-          ? raceElement.findElements('name').first.innerText
-          : 'Unknown';
-      return RaceData(name: name);
-    }).toList();
-
-    final backgroundElements = document.findAllElements('background');
-    backgrounds = backgroundElements.map((backgroundElement) {
-      final name = backgroundElement.findElements('name').isNotEmpty
-          ? backgroundElement.findElements('name').first.innerText
-          : 'Unknown';
-      final proficiency =
-          backgroundElement.findElements('proficiency').isNotEmpty
-              ? backgroundElement.findElements('proficiency').first.innerText
-              : 'Unknown';
-      final traits =
-          backgroundElement.findAllElements('trait').map((traitElement) {
-        final traitName = traitElement.findElements('name').isNotEmpty
-            ? traitElement.findElements('name').first.innerText
-            : 'Unnamed Trait';
-        final traitDescription = traitElement.findElements('text').isNotEmpty
-            ? traitElement.findElements('text').first.innerText
-            : 'No description available.';
-        return Trait(name: traitName, description: traitDescription);
-      }).toList();
-
-      return BackgroundData(
-          name: name, proficiency: proficiency, traits: traits);
-    }).toList();
-
-    return {
-      'classes': classes,
-      'races': races,
-      'backgrounds': backgrounds,
-    };
   }
 
   @override
@@ -279,7 +201,7 @@ class WikiPageState extends State<WikiPage> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'import') {
                 importXmlFile();
               } else if (value == 'export') {
@@ -311,6 +233,8 @@ class WikiPageState extends State<WikiPage> {
                     buildCollapsibleSection('Races', races),
                     buildCollapsibleSection('Classes', classes),
                     buildCollapsibleSection('Backgrounds', backgrounds),
+                    buildCollapsibleSection('Feats', feats),
+                    buildSpellCollapsibleSection('Spells', spells),
                   ],
                 ),
     );
@@ -352,6 +276,10 @@ class WikiPageState extends State<WikiPage> {
                                 } else if (item is BackgroundData) {
                                   return BackgroundDetailPage(
                                       backgroundData: item);
+                                } else if (item is FeatData) {
+                                  return FeatDetailPage(featData: item);
+                                } else if (item is SpellData) {
+                                  return SpellDetailPage(spellData: item);
                                 }
                                 return const SizedBox.shrink();
                               },
@@ -365,6 +293,61 @@ class WikiPageState extends State<WikiPage> {
                 }).toList(),
         ),
         const Divider(),
+      ],
+    );
+  }
+
+  Widget buildSpellCollapsibleSection(String title, List<SpellData> spells) {
+    final groupedSpells = <String, List<SpellData>>{};
+
+    for (var spell in spells) {
+      for (var className in spell.classes) {
+        if (className.isNotEmpty) {
+          if (!groupedSpells.containsKey(className)) {
+            groupedSpells[className] = [];
+          }
+          groupedSpells[className]!.add(spell);
+        }
+      }
+    }
+
+    final sortedClassNames =
+        groupedSpells.keys.where((name) => name.isNotEmpty).toList()..sort();
+
+    return ExpansionTile(
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ),
+      children: [
+        ListTile(
+          title: const Text('All Spells'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AllSpellsPage(spells: spells),
+              ),
+            );
+          },
+        ),
+        ...sortedClassNames.map((className) {
+          return ListTile(
+            title: Text(className),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ClassSpellsPage(
+                      className: className, spells: groupedSpells[className]!),
+                ),
+              );
+            },
+          );
+        }),
       ],
     );
   }

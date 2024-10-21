@@ -9,8 +9,13 @@ class ClassDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Map<String, List<FeatureData>> featuresByLevel = {};
+    
     for (var autolevel in classData.autolevels) {
-      featuresByLevel[autolevel.level] = autolevel.features;
+      if (featuresByLevel.containsKey(autolevel.level)) {
+        featuresByLevel[autolevel.level]!.addAll(autolevel.features);
+      } else {
+        featuresByLevel[autolevel.level] = autolevel.features;
+      }
     }
 
     return Scaffold(
@@ -41,8 +46,10 @@ class ClassDetailPage extends StatelessWidget {
                 title: Text('Level $level'),
                 children: features.map((feature) {
                   return ListTile(
-                    title: Text(feature.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      feature.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text(feature.description),
                   );
                 }).toList(),

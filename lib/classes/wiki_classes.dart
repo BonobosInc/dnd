@@ -32,8 +32,22 @@ class FeatureData {
 class RaceData implements Nameable {
   @override
   final String name;
+  final String size;
+  final int speed;
+  final String ability;
+  final String proficiency;
+  final String spellAbility;
+  final List<Trait> traits;
 
-  RaceData({required this.name});
+  RaceData({
+    required this.name,
+    required this.size,
+    required this.speed,
+    required this.ability,
+    required this.proficiency,
+    required this.spellAbility,
+    required this.traits,
+  });
 }
 
 class BackgroundData implements Nameable {
@@ -55,6 +69,49 @@ class Trait {
 
   Trait({required this.name, required this.description});
 }
+
+class FeatData implements Nameable {
+  @override
+  final String name;
+  final String? prerequisite;
+  final String text;
+  final String? modifier;
+
+  FeatData({
+    required this.name,
+    this.prerequisite,
+    required this.text,
+    this.modifier,
+  });
+}
+
+class SpellData implements Nameable {
+  @override
+  final String name;
+  final List<String> classes;
+  final String level;
+  final String school;
+  final String ritual;
+  final String time;
+  final String range;
+  final String components;
+  final String duration;
+  final String text;
+
+  SpellData({
+    required this.name,
+    required this.classes,
+    required this.level,
+    required this.school,
+    required this.ritual,
+    required this.time,
+    required this.range,
+    required this.components,
+    required this.duration,
+    required this.text,
+  });
+}
+
 
 abstract class Nameable {
   String get name;
