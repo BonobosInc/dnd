@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:file_picker/file_picker.dart';
 import 'package:xml/xml.dart' as xml;
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,6 +33,41 @@ class WikiParser {
       await parseXmlInIsolate(xmlData);
     } else {
       throw Exception("XML file not found");
+    }
+  }
+
+  Future<void> importXml(String sourceFilePath) async {
+    String destinationFilePath;
+
+    if (Platform.isWindows) {
+      destinationFilePath = './temp/wiki.xml';
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      destinationFilePath = '${appSupportDir.path}/wiki.xml';
+    }
+
+    final sourceFile = File(sourceFilePath);
+    final destinationFile = File(destinationFilePath);
+    await destinationFile.writeAsBytes(await sourceFile.readAsBytes());
+    await loadXml();
+  }
+
+  Future<void> exportXml() async {
+    if (savedXmlFilePath == null) {
+      throw Exception("No XML file has been loaded to export.");
+    }
+
+    final destinationPath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Wiki speichern',
+      fileName: 'wiki_export.xml',
+    );
+
+    if (destinationPath != null) {
+      final sourceFile = File(savedXmlFilePath!);
+      final destinationFile = File(destinationPath);
+      await destinationFile.writeAsBytes(await sourceFile.readAsBytes());
+    } else {
+      throw Exception("Export abgebrochen.");
     }
   }
 
@@ -121,9 +157,7 @@ class WikiParser {
           final slotsText = levelElement.findElements('slots').first.innerText;
           final slotsList = slotsText
               .split(',')
-              .map((slot) =>
-                  int.tryParse(slot.trim()) ??
-                  0)
+              .map((slot) => int.tryParse(slot.trim()) ?? 0)
               .toList();
           slots = Slots(slots: slotsList);
         }
@@ -255,9 +289,17 @@ class WikiParser {
       final name = spellElement.findElements('name').isNotEmpty
           ? spellElement.findElements('name').first.innerText
           : 'Unknown';
+
       final spellclasses = spellElement.findElements('classes').isNotEmpty
-          ? spellElement.findElements('classes').first.innerText.split(', ')
-          : [];
+          ? spellElement
+              .findElements('classes')
+              .first
+              .innerText
+              .split(', ')
+              .map((className) => className.trim())
+              .toList()
+          : <String>[];
+
       final level = spellElement.findElements('level').isNotEmpty
           ? spellElement.findElements('level').first.innerText
           : 'Unknown';
@@ -285,7 +327,7 @@ class WikiParser {
 
       return SpellData(
         name: name,
-        classes: spellclasses as List<String>,
+        classes: spellclasses,
         level: level,
         school: school,
         ritual: ritual,

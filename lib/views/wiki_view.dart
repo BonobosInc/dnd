@@ -6,6 +6,7 @@ import 'package:dnd/views/wiki/spellwiki_view.dart';
 import 'package:dnd/classes/wiki_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:file_picker/file_picker.dart';
 
 class WikiPage extends StatefulWidget {
   final WikiParser wikiParser;
@@ -49,6 +50,57 @@ class WikiPageState extends State<WikiPage> {
     });
   }
 
+  Future<void> importXml() async {
+    String? filePath = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xml'],
+    ).then((result) => result?.files.single.path);
+
+    if (filePath != null) {
+      try {
+        await widget.wikiParser.importXml(filePath);
+        loadDataFromParser();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Import erfolgreich')));
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Import fehlgeschlagen: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Import abgebrochen oder fehlgeschlagen.')));
+    }
+  }
+
+  Future<void> exportXml() async {
+    if (widget.wikiParser.savedXmlFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No XML file has been loaded to export.')));
+      return;
+    }
+
+    String? filePath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Wiki exportieren',
+      fileName: 'exported_wiki.xml',
+      type: FileType.custom,
+      allowedExtensions: ['xml'],
+    );
+
+    if (filePath != null) {
+      try {
+        await widget.wikiParser.exportXml();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Export erfolgreich!')));
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Export abgebrochen oder fehlgeschlagen.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,7 +120,7 @@ class WikiPageState extends State<WikiPage> {
                   });
                 },
               )
-            : const Text('D&D Wiki Table of Contents'),
+            : const Text('D&D Wiki'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -82,16 +134,38 @@ class WikiPageState extends State<WikiPage> {
               });
             },
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'import') {
+                importXml();
+              } else if (value == 'export') {
+                exportXml();
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem<String>(
+                  value: 'import',
+                  child: Text('Import XML'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'export',
+                  child: Text('Export XML'),
+                ),
+              ];
+            },
+          ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          buildCollapsibleSection('Races', races),
-          buildCollapsibleSection('Classes', classes),
-          buildCollapsibleSection('Backgrounds', backgrounds),
-          buildCollapsibleSection('Feats', feats),
-          buildSpellCollapsibleSection('Spells', spells),
+          buildCollapsibleSection('Rassen', races),
+          buildCollapsibleSection('Klassen', classes),
+          buildCollapsibleSection('Hintergründe', backgrounds),
+          buildCollapsibleSection('Talente', feats),
+          buildSpellCollapsibleSection('Zauber', spells),
         ],
       ),
     );
@@ -184,7 +258,7 @@ class WikiPageState extends State<WikiPage> {
       ),
       children: [
         ListTile(
-          title: const Text('All Spells'),
+          title: const Text('Alle Zauber'),
           onTap: () {
             Navigator.push(
               context,

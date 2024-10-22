@@ -23,14 +23,14 @@ class FeatDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (featData.prerequisite != null && featData.prerequisite!.isNotEmpty)
-              Text('Prerequisite: ${featData.prerequisite}'),
+              Text('Voraussetzung: ${featData.prerequisite}'),
             const SizedBox(height: 10),
-            const Text('Description:',
+            const Text('Beschreibung:',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text(featData.text),
             const SizedBox(height: 10),
             if (featData.modifier != null && featData.modifier!.isNotEmpty)
-              Text('Modifier: ${featData.modifier}'),
+              Text('Modifikator: ${featData.modifier}'),
           ],
         ),
       ),

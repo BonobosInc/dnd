@@ -27,20 +27,20 @@ class SpellDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text('Level: ${spellData.level}'),
-            Text('School: ${spellData.school}'),
-            Text('Casting Time: ${spellData.time}'),
-            Text('Range: ${spellData.range}'),
-            Text('Duration: ${spellData.duration}'),
+            Text('Schule: ${spellData.school}'),
+            Text('Zauberzeit: ${spellData.time}'),
+            Text('Reichweite: ${spellData.range}'),
+            Text('Dauer: ${spellData.duration}'),
             Text('Ritual: ${spellData.ritual}'),
-            Text('Components: ${spellData.components}'),
+            Text('Komponenten: ${spellData.components}'),
             const SizedBox(height: 10),
             Text(
-              'Classes: $classesString',
+              'Klassen: $classesString',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Description:',
+              'Beschreibung:',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 5),
@@ -63,7 +63,7 @@ class ClassSpellsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$className Spells'),
+        title: Text('$className Zauber'),
       ),
       body: buildSpellCollapsibleSections(spells, context),
     );
@@ -79,7 +79,7 @@ class AllSpellsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Spells'),
+        title: const Text('Alle Zauber'),
       ),
       body: buildSpellCollapsibleSections(spells, context),
     );

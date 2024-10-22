@@ -22,9 +22,9 @@ class BackgroundDetailPage extends StatelessWidget {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Text('Proficiency: ${backgroundData.proficiency}'),
+            Text('Fähigkeiten: ${backgroundData.proficiency}'),
             const SizedBox(height: 10),
-            const Text('Traits:',
+            const Text('Merkmale:',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             ...backgroundData.traits.map((trait) {
               return ListTile(
