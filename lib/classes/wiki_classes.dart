@@ -18,8 +18,15 @@ class ClassData implements Nameable {
 class Autolevel {
   final String level;
   final List<FeatureData> features;
+  final Slots? slots;
 
-  Autolevel({required this.level, required this.features});
+  Autolevel({required this.level, required this.features, this.slots});
+}
+
+class Slots {
+  final List<int> slots;
+
+  Slots({required this.slots});
 }
 
 class FeatureData {

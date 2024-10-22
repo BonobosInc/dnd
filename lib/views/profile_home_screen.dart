@@ -1,10 +1,16 @@
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/colours.dart';
 import 'character_view.dart';
 
 class ProfileHomeScreen extends StatefulWidget {
-  const ProfileHomeScreen({super.key});
+  final WikiParser wikiParser;
+
+  const ProfileHomeScreen({
+    super.key,
+    required this.wikiParser,
+  });
 
   @override
   ProfileHomeScreenState createState() => ProfileHomeScreenState();
@@ -242,7 +248,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CharacterView(
-                                        profileManager: profileManager),
+                                        profileManager: profileManager, wikiParser: widget.wikiParser,),
                                   ),
                                 );
                                 }

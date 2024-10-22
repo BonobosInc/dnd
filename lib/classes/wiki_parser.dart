@@ -1,9 +1,58 @@
 import 'dart:isolate';
 import 'package:xml/xml.dart' as xml;
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class WikiParser {
-  static void parseXml(SendPort sendPort) {
+  List<ClassData> classes = [];
+  List<RaceData> races = [];
+  List<BackgroundData> backgrounds = [];
+  List<FeatData> feats = [];
+  List<SpellData> spells = [];
+  String? savedXmlFilePath;
+
+  WikiParser();
+
+  Future<void> loadXml() async {
+    String savedFilePath;
+
+    if (Platform.isWindows) {
+      savedFilePath = './temp/wiki.xml';
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      savedFilePath = '${appSupportDir.path}/wiki.xml';
+    }
+
+    File file = File(savedFilePath);
+
+    if (await file.exists()) {
+      savedXmlFilePath = savedFilePath;
+      String xmlData = await file.readAsString();
+      await parseXmlInIsolate(xmlData);
+    } else {
+      throw Exception("XML file not found");
+    }
+  }
+
+  Future<void> parseXmlInIsolate(String xmlData) async {
+    final response = ReceivePort();
+    await Isolate.spawn(_parseXml, response.sendPort);
+
+    final sendPort = await response.first as SendPort;
+    final result = ReceivePort();
+    sendPort.send([xmlData, result.sendPort]);
+
+    final parsedData = await result.first as Map<String, List<dynamic>>;
+
+    classes = (parsedData['classes'] as List<ClassData>? ?? []);
+    races = (parsedData['races'] as List<RaceData>? ?? []);
+    backgrounds = (parsedData['backgrounds'] as List<BackgroundData>? ?? []);
+    feats = (parsedData['feats'] as List<FeatData>? ?? []);
+    spells = (parsedData['spells'] as List<SpellData>? ?? []);
+  }
+
+  static void _parseXml(SendPort sendPort) {
     final port = ReceivePort();
     sendPort.send(port.sendPort);
 
@@ -11,7 +60,7 @@ class WikiParser {
       final xmlData = message[0] as String;
       final replyPort = message[1] as SendPort;
 
-      final result = parseXmlData(xmlData);
+      final result = WikiParser.parseXmlData(xmlData);
       replyPort.send(result);
     });
   }
@@ -67,7 +116,19 @@ class WikiParser {
           return FeatureData(name: featureName, description: featureText);
         }).toList();
 
-        return Autolevel(level: level, features: features);
+        Slots? slots;
+        if (levelElement.findElements('slots').isNotEmpty) {
+          final slotsText = levelElement.findElements('slots').first.innerText;
+          final slotsList = slotsText
+              .split(',')
+              .map((slot) =>
+                  int.tryParse(slot.trim()) ??
+                  0)
+              .toList();
+          slots = Slots(slots: slotsList);
+        }
+
+        return Autolevel(level: level, features: features, slots: slots);
       }).toList();
 
       return ClassData(

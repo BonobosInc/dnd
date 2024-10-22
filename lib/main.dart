@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -13,11 +14,16 @@ void main() async {
     databaseFactory = databaseFactoryFfi;
   }
 
-  runApp(const DNDApp());
+  WikiParser wikiParser = WikiParser();
+  await wikiParser.loadXml();
+
+  runApp(DNDApp(wikiParser: wikiParser));
 }
 
 class DNDApp extends StatelessWidget {
-  const DNDApp({super.key});
+  final WikiParser wikiParser;
+
+  const DNDApp({super.key, required this.wikiParser});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +44,7 @@ class DNDApp extends StatelessWidget {
           displayLarge: TextStyle(color: AppColors.textColorLight, fontSize: 20),
         ),
       ),
-      home: const ProfileHomeScreen(),
+      home: ProfileHomeScreen(wikiParser: wikiParser),
       debugShowCheckedModeBanner: false,
     );
   }
