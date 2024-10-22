@@ -125,26 +125,26 @@ class WikiParser {
     return classElements.map((classElement) {
       final name = classElement.findElements('name').isNotEmpty
           ? classElement.findElements('name').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final hd = classElement.findElements('hd').isNotEmpty
           ? classElement.findElements('hd').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final proficiency = classElement.findElements('proficiency').isNotEmpty
           ? classElement.findElements('proficiency').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final numSkills = classElement.findElements('numSkills').isNotEmpty
           ? classElement.findElements('numSkills').first.innerText
-          : 'Unknown';
+          : 'N/A';
 
       final autolevels =
           classElement.findAllElements('autolevel').map((levelElement) {
-        final level = levelElement.getAttribute('level') ?? 'Unknown';
+        final level = levelElement.getAttribute('level') ?? 'N/A';
 
         final features =
             levelElement.findAllElements('feature').map((featureElement) {
           final featureName = featureElement.findElements('name').isNotEmpty
               ? featureElement.findElements('name').first.innerText
-              : 'Unnamed Feature';
+              : 'N/A';
           final featureText = featureElement
               .findAllElements('text')
               .map((textElement) => textElement.innerText)
@@ -181,11 +181,11 @@ class WikiParser {
     return raceElements.map((raceElement) {
       final name = raceElement.findElements('name').isNotEmpty
           ? raceElement.findElements('name').first.innerText
-          : 'Unknown';
+          : 'N/A';
 
       final size = raceElement.findElements('size').isNotEmpty
           ? raceElement.findElements('size').first.innerText
-          : 'Unknown';
+          : 'N/A';
 
       final speed = raceElement.findElements('speed').isNotEmpty
           ? int.tryParse(raceElement.findElements('speed').first.innerText) ?? 0
@@ -193,23 +193,23 @@ class WikiParser {
 
       final ability = raceElement.findElements('ability').isNotEmpty
           ? raceElement.findElements('ability').first.innerText
-          : 'Unknown';
+          : 'N/A';
 
       final proficiency = raceElement.findElements('proficiency').isNotEmpty
           ? raceElement.findElements('proficiency').first.innerText
-          : 'None';
+          : 'Keine';
 
       final spellAbility = raceElement.findElements('spellAbility').isNotEmpty
           ? raceElement.findElements('spellAbility').first.innerText
-          : 'None';
+          : 'Keine';
 
       final traits = raceElement.findAllElements('trait').map((traitElement) {
         final traitName = traitElement.findElements('name').isNotEmpty
             ? traitElement.findElements('name').first.innerText
-            : 'Unnamed Trait';
+            : 'N/A';
         final traitDescription = traitElement.findElements('text').isNotEmpty
             ? traitElement.findElements('text').first.innerText
-            : 'No description available.';
+            : 'Keine Beschreibung vorhanden.';
         return Trait(name: traitName, description: traitDescription);
       }).toList();
 
@@ -231,13 +231,13 @@ class WikiParser {
     return featElements.map((featElement) {
       final name = featElement.findElements('name').isNotEmpty
           ? featElement.findElements('name').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final prerequisite = featElement.findElements('prerequisite').isNotEmpty
           ? featElement.findElements('prerequisite').first.innerText
           : null;
       final text = featElement.findElements('text').isNotEmpty
           ? featElement.findElements('text').first.innerText
-          : 'No description available.';
+          : 'Keine Beschreibung vorhanden.';
       final modifier = featElement.findElements('modifier').isNotEmpty
           ? featElement.findElements('modifier').first.innerText
           : null;
@@ -257,20 +257,20 @@ class WikiParser {
     return backgroundElements.map((backgroundElement) {
       final name = backgroundElement.findElements('name').isNotEmpty
           ? backgroundElement.findElements('name').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final proficiency =
           backgroundElement.findElements('proficiency').isNotEmpty
               ? backgroundElement.findElements('proficiency').first.innerText
-              : 'Unknown';
+              : 'N/A';
 
       final traits =
           backgroundElement.findAllElements('trait').map((traitElement) {
         final traitName = traitElement.findElements('name').isNotEmpty
             ? traitElement.findElements('name').first.innerText
-            : 'Unnamed Trait';
+            : 'N/A';
         final traitDescription = traitElement.findElements('text').isNotEmpty
             ? traitElement.findElements('text').first.innerText
-            : 'No description available.';
+            : 'Keine Beschreibung vorhanden.';
         return Trait(name: traitName, description: traitDescription);
       }).toList();
 
@@ -287,8 +287,8 @@ class WikiParser {
 
     return spellElements.map((spellElement) {
       final name = spellElement.findElements('name').isNotEmpty
-          ? spellElement.findElements('name').first.innerText
-          : 'Unknown';
+          ? spellElement.findElements('name').first.innerText.replaceAll('*', '')
+          : 'N/A';
 
       final spellclasses = spellElement.findElements('classes').isNotEmpty
           ? spellElement
@@ -302,28 +302,28 @@ class WikiParser {
 
       final level = spellElement.findElements('level').isNotEmpty
           ? spellElement.findElements('level').first.innerText
-          : 'Unknown';
+          : 'Zaubertrick';
       final school = spellElement.findElements('school').isNotEmpty
           ? spellElement.findElements('school').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final ritual = spellElement.findElements('ritual').isNotEmpty
           ? spellElement.findElements('ritual').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final time = spellElement.findElements('time').isNotEmpty
           ? spellElement.findElements('time').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final range = spellElement.findElements('range').isNotEmpty
           ? spellElement.findElements('range').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final components = spellElement.findElements('components').isNotEmpty
           ? spellElement.findElements('components').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final duration = spellElement.findElements('duration').isNotEmpty
           ? spellElement.findElements('duration').first.innerText
-          : 'Unknown';
+          : 'N/A';
       final text = spellElement.findElements('text').isNotEmpty
           ? spellElement.findElements('text').first.innerText
-          : 'No description available.';
+          : 'Keine Beschreibung vorhanden.';
 
       return SpellData(
         name: name,

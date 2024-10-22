@@ -9,7 +9,6 @@ class SpellDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uniqueClasses = spellData.classes.toSet().toList();
-
     final classesString = uniqueClasses.join(', ');
 
     return Scaffold(
@@ -89,6 +88,7 @@ class AllSpellsPage extends StatelessWidget {
 Widget buildSpellCollapsibleSections(
     List<SpellData> spells, BuildContext context) {
   final groupedSpells = <String, List<SpellData>>{};
+
   for (var spell in spells) {
     if (!groupedSpells.containsKey(spell.level)) {
       groupedSpells[spell.level] = [];
@@ -96,7 +96,16 @@ Widget buildSpellCollapsibleSections(
     groupedSpells[spell.level]!.add(spell);
   }
 
-  final sortedLevels = groupedSpells.keys.toList()..sort();
+  final sortedLevels = <String>[];
+  if (groupedSpells.containsKey("Zaubertrick")) {
+    sortedLevels.add("Zaubertrick");
+  }
+
+  final otherLevels = groupedSpells.keys
+      .where((level) => level != "Zaubertrick")
+      .toList()
+    ..sort();
+  sortedLevels.addAll(otherLevels);
 
   return ListView(
     padding: const EdgeInsets.all(16.0),
@@ -116,7 +125,7 @@ Widget buildCollapsibleSectionForSpells(
         title: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Text(
-            'Level $level',
+            level == "Zaubertrick" ? "Zaubertrick" : 'Level $level',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
