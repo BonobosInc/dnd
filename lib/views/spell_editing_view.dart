@@ -130,16 +130,32 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   void _navigateToClassSelectionPage() async {
-    final Spell? newSpell = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ClassSelectionPage(spells: spellsData),
-      ),
-    );
+    if (spellsData.isEmpty) {
+      _showAddSpellDialog();
+    } else {
+      final Spell? newSpell = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClassSelectionPage(spells: spellsData),
+        ),
+      );
 
-    if (newSpell != null) {
-      _addSpell(newSpell, newSpell.description);
+      if (newSpell != null) {
+        _addSpell(newSpell, newSpell.description);
+      }
     }
+  }
+
+  void _showAddSpellDialog() {
+    var newspell = true;
+    _showSpellDialog(
+        Spell(
+          name: '',
+          description: '',
+          status: Defines.spellKnown,
+          level: Defines.spellZero,
+        ),
+        newspell);
   }
 
   void _showSpellDetails(Spell spell) {

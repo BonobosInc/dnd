@@ -14,6 +14,29 @@ class SpellDetailPage extends StatelessWidget {
     this.importspell = false,
   });
 
+  String getSchoolFullName(String abbreviation) {
+    switch (abbreviation) {
+      case 'T':
+        return 'Verwandlungszauber';
+      case 'D':
+        return 'Weissagung';
+      case 'EV':
+        return 'Hervorrufungszauber';
+      case 'EN':
+        return 'Verzauberungen';
+      case 'C':
+        return 'Beschwörung';
+      case 'A':
+        return 'Bannmagie';
+      case 'I':
+        return 'Illusion';
+      case 'N':
+        return 'Nekromantiezauber';
+      default:
+        return 'Keine Schule';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final uniqueClasses = spellData.classes.toSet().toList();
@@ -34,7 +57,7 @@ class SpellDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text('Level: ${spellData.level}'),
-            Text('Schule: ${spellData.school}'),
+            Text('Schule: ${getSchoolFullName(spellData.school)}'),
             Text('Zauberzeit: ${spellData.time}'),
             Text('Reichweite: ${spellData.range}'),
             Text('Dauer: ${spellData.duration}'),
@@ -414,5 +437,7 @@ Widget _buildTextField({
 }
 
 String _getStatus(String status) {
-  return status == Defines.spellPrep ? 'vorbereiteter Zauber' : 'bekannter Zauber';
+  return status == Defines.spellPrep
+      ? 'vorbereiteter Zauber'
+      : 'bekannter Zauber';
 }

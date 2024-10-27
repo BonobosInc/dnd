@@ -28,11 +28,25 @@ class WikiParser {
     File file = File(savedFilePath);
 
     if (await file.exists()) {
-      savedXmlFilePath = savedFilePath;
+      savedXmlFilePath =
+          savedFilePath;
       String xmlData = await file.readAsString();
-      await parseXmlInIsolate(xmlData);
+      await parseXmlInIsolate(
+          xmlData);
     } else {
-      throw Exception("XML file not found");
+      String initialXmlContent = '''<?xml version="1.0" encoding="UTF-8"?>
+<compendium version="5" auto_indent="NO">
+    <!-- Items -->
+    <!-- Races -->
+    <!-- Classes -->
+    <!-- Feats -->
+    <!-- Backgrounds -->
+    <!-- Spells -->
+    <!-- Monsters -->
+</compendium>''';
+      await file.writeAsString(initialXmlContent);
+      savedXmlFilePath = savedFilePath;
+      await parseXmlInIsolate(initialXmlContent);
     }
   }
 
@@ -287,7 +301,11 @@ class WikiParser {
 
     return spellElements.map((spellElement) {
       final name = spellElement.findElements('name').isNotEmpty
-          ? spellElement.findElements('name').first.innerText.replaceAll('*', '')
+          ? spellElement
+              .findElements('name')
+              .first
+              .innerText
+              .replaceAll('*', '')
           : 'N/A';
 
       final spellclasses = spellElement.findElements('classes').isNotEmpty
