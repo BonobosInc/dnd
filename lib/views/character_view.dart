@@ -70,7 +70,7 @@ class CharacterView extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpellManagementPage(
-                          profileManager: profileManager,
+                          profileManager: profileManager, wikiParser: wikiParser,
                         ),
                       ),
                     );

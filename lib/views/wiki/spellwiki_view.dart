@@ -1,10 +1,18 @@
+import 'package:dnd/configs/colours.dart';
+import 'package:dnd/configs/defines.dart';
+import 'package:dnd/views/spell_editing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 
 class SpellDetailPage extends StatelessWidget {
   final SpellData spellData;
+  final bool importspell;
 
-  const SpellDetailPage({super.key, required this.spellData});
+  const SpellDetailPage({
+    super.key,
+    required this.spellData,
+    this.importspell = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +55,19 @@ class SpellDetailPage extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: importspell
+          ? FloatingActionButton(
+              onPressed: () async {
+                final newSpell = await _showAddSpellDialog(context, spellData);
+                if (newSpell != null && context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(newSpell);
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
@@ -54,9 +75,13 @@ class SpellDetailPage extends StatelessWidget {
 class ClassSpellsPage extends StatelessWidget {
   final String className;
   final List<SpellData> spells;
+  final bool importspell;
 
   const ClassSpellsPage(
-      {super.key, required this.className, required this.spells});
+      {super.key,
+      required this.className,
+      required this.spells,
+      this.importspell = false});
 
   @override
   Widget build(BuildContext context) {
@@ -64,15 +89,17 @@ class ClassSpellsPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('$className Zauber'),
       ),
-      body: buildSpellCollapsibleSections(spells, context),
+      body: buildSpellCollapsibleSections(spells, context, importspell),
     );
   }
 }
 
 class AllSpellsPage extends StatelessWidget {
   final List<SpellData> spells;
+  final bool importspell;
 
-  const AllSpellsPage({super.key, required this.spells});
+  const AllSpellsPage(
+      {super.key, required this.spells, this.importspell = false});
 
   @override
   Widget build(BuildContext context) {
@@ -80,13 +107,13 @@ class AllSpellsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Alle Zauber'),
       ),
-      body: buildSpellCollapsibleSections(spells, context),
+      body: buildSpellCollapsibleSections(spells, context, importspell),
     );
   }
 }
 
 Widget buildSpellCollapsibleSections(
-    List<SpellData> spells, BuildContext context) {
+    List<SpellData> spells, BuildContext context, bool importSpell) {
   final groupedSpells = <String, List<SpellData>>{};
 
   for (var spell in spells) {
@@ -111,13 +138,13 @@ Widget buildSpellCollapsibleSections(
     padding: const EdgeInsets.all(16.0),
     children: sortedLevels.map((level) {
       return buildCollapsibleSectionForSpells(
-          level, groupedSpells[level]!, context);
+          level, groupedSpells[level]!, context, importSpell);
     }).toList(),
   );
 }
 
-Widget buildCollapsibleSectionForSpells(
-    String level, List<SpellData> spells, BuildContext context) {
+Widget buildCollapsibleSectionForSpells(String level, List<SpellData> spells,
+    BuildContext context, bool importSpell) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -138,7 +165,8 @@ Widget buildCollapsibleSectionForSpells(
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SpellDetailPage(spellData: spell),
+                      builder: (context) => SpellDetailPage(
+                          spellData: spell, importspell: importSpell),
                     ),
                   );
                 },
@@ -151,4 +179,240 @@ Widget buildCollapsibleSectionForSpells(
       const Divider(),
     ],
   );
+}
+
+class ClassSelectionPage extends StatelessWidget {
+  final List<SpellData> spells;
+
+  const ClassSelectionPage({super.key, required this.spells});
+
+  @override
+  Widget build(BuildContext context) {
+    final groupedSpells = <String, List<SpellData>>{};
+
+    for (var spell in spells) {
+      for (var className in spell.classes) {
+        if (className.isNotEmpty) {
+          groupedSpells.putIfAbsent(className, () => []).add(spell);
+        }
+      }
+    }
+
+    final sortedClassNames =
+        groupedSpells.keys.where((name) => name.isNotEmpty).toList()..sort();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Wählen Sie eine Klasse'),
+        backgroundColor: AppColors.appBarColor,
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Alle Zauber'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      AllSpellsPage(spells: spells, importspell: true),
+                ),
+              );
+            },
+          ),
+          ...sortedClassNames.map((className) {
+            return ListTile(
+              title: Text(className),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ClassSpellsPage(
+                      className: className,
+                      spells: groupedSpells[className]!,
+                      importspell: true,
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final Spell? newSpell = await _showAddSpellDialog(context, null);
+          if (newSpell != null && context.mounted) {
+            Navigator.of(context).pop(newSpell);
+          }
+        },
+        tooltip: 'Add Spell',
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+}
+
+Future<Spell?> _showAddSpellDialog(
+    BuildContext context, SpellData? spellData) async {
+  const bool isNewSpell = true;
+
+  String name = spellData?.name ?? '';
+  String description = spellData?.text ?? '';
+
+  int level = Defines.spellZero;
+  if (spellData?.level is String) {
+    try {
+      level = int.parse(spellData!.level);
+    } catch (e) {
+      level = Defines.spellZero;
+    }
+  } else if (spellData?.level is int) {
+    level = spellData!.level as int;
+  }
+
+  return await _showSpellDialog(
+    context,
+    Spell(
+      name: name,
+      description: description,
+      status: Defines.spellKnown,
+      level: level,
+    ),
+    isNewSpell,
+  );
+}
+
+Future<Spell?> _showSpellDialog(
+    BuildContext context, Spell spell, bool isNewSpell) {
+  final TextEditingController descriptionController =
+      TextEditingController(text: spell.description);
+
+  return showDialog<Spell>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Zauber bearbeiten'),
+        content: SingleChildScrollView(
+          child: _buildSpellDetailForm(spell, descriptionController),
+        ),
+        actions: [
+          SizedBox(
+            height: 36,
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Abbrechen'),
+            ),
+          ),
+          SizedBox(
+            height: 36,
+            child: TextButton(
+              onPressed: () {
+                spell.description = descriptionController.text;
+                Navigator.of(context).pop(spell);
+              },
+              child: const Text('Speichern'),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildSpellDetailForm(
+    Spell spell, TextEditingController descriptionController) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _buildTextField(
+        label: 'Zaubername',
+        controller: TextEditingController(text: spell.name),
+        onChanged: (value) => spell.name = value,
+      ),
+      const SizedBox(height: 16),
+      _buildDescriptionTextField(descriptionController),
+      const SizedBox(height: 16),
+      _buildLevelDropdown(spell),
+      const SizedBox(height: 16),
+      _buildStatusDropdown(spell),
+    ],
+  );
+}
+
+Widget _buildStatusDropdown(Spell spell) {
+  const List<String> statuses = [Defines.spellPrep, Defines.spellKnown];
+
+  return DropdownButtonFormField<String>(
+    value: spell.status,
+    decoration: const InputDecoration(
+      labelText: 'Status',
+      border: OutlineInputBorder(),
+    ),
+    items: statuses.map((String status) {
+      return DropdownMenuItem<String>(
+        value: status,
+        child: Text(_getStatus(status)),
+      );
+    }).toList(),
+    onChanged: (value) {
+      if (value != null) {
+        spell.status = value;
+      }
+    },
+  );
+}
+
+Widget _buildLevelDropdown(Spell spell) {
+  return DropdownButtonFormField<int>(
+    value: spell.level,
+    decoration: const InputDecoration(
+      labelText: 'Level',
+      border: OutlineInputBorder(),
+    ),
+    items: List.generate(10, (index) => index).map((int level) {
+      return DropdownMenuItem<int>(
+        value: level,
+        child: Text(level == 0 ? 'Zaubertrick' : 'Level $level'),
+      );
+    }).toList(),
+    onChanged: (value) {
+      if (value != null) {
+        spell.level = value;
+      }
+    },
+  );
+}
+
+Widget _buildDescriptionTextField(TextEditingController controller) {
+  return TextField(
+    controller: controller,
+    maxLines: 4,
+    decoration: const InputDecoration(
+      labelText: 'Beschreibung',
+      border: OutlineInputBorder(),
+    ),
+  );
+}
+
+Widget _buildTextField({
+  required String label,
+  required TextEditingController controller,
+  required ValueChanged<String> onChanged,
+}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+    ),
+    onChanged: onChanged,
+  );
+}
+
+String _getStatus(String status) {
+  return status == Defines.spellPrep ? 'vorbereiteter Zauber' : 'bekannter Zauber';
 }

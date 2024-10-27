@@ -1,3 +1,4 @@
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,9 +9,12 @@ import 'spell_editing_view.dart';
 class SpellManagementPage extends StatefulWidget {
   final ProfileManager profileManager;
 
+  final WikiParser wikiParser;
+
   const SpellManagementPage({
     super.key,
     required this.profileManager,
+    required this.wikiParser,
   });
 
   @override
@@ -97,7 +101,9 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => SpellEditingPage(
-                        profileManager: widget.profileManager)),
+                          profileManager: widget.profileManager,
+                          wikiParser: widget.wikiParser,
+                        )),
               );
               await _fetchSpells();
             },
@@ -370,7 +376,9 @@ class SpellManagementPageState extends State<SpellManagementPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(spellName),
-          content: Text(description ?? "Keine Beschreibung gefunden."),
+          content: SingleChildScrollView(
+            child: Text(description ?? "Keine Beschreibung gefunden."),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

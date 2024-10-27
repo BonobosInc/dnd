@@ -1,14 +1,19 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/views/wiki/spellwiki_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 
 class SpellEditingPage extends StatefulWidget {
   final ProfileManager profileManager;
+  final WikiParser wikiParser;
 
   const SpellEditingPage({
     super.key,
     required this.profileManager,
+    required this.wikiParser,
   });
 
   @override
@@ -17,6 +22,7 @@ class SpellEditingPage extends StatefulWidget {
 
 class SpellEditingPageState extends State<SpellEditingPage> {
   final List<Spell> spells = [];
+  List<SpellData> spellsData = [];
 
   static const Map<String, String> statusMapping = {
     Defines.spellPrep: 'vorbereiteter Zauber',
@@ -27,6 +33,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   void initState() {
     super.initState();
     _fetchSpells();
+    spellsData = widget.wikiParser.spells;
   }
 
   Future<void> _fetchSpells() async {
@@ -57,7 +64,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: _showAddSpellDialog,
+            onPressed: _navigateToClassSelectionPage,
           ),
         ],
       ),
@@ -122,16 +129,17 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     );
   }
 
-  void _showAddSpellDialog() {
-    var newspell = true;
-    _showSpellDialog(
-        Spell(
-          name: '',
-          description: '',
-          status: Defines.spellKnown,
-          level: Defines.spellZero,
-        ),
-        newspell);
+  void _navigateToClassSelectionPage() async {
+    final Spell? newSpell = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClassSelectionPage(spells: spellsData),
+      ),
+    );
+
+    if (newSpell != null) {
+      _addSpell(newSpell, newSpell.description);
+    }
   }
 
   void _showSpellDetails(Spell spell) {
