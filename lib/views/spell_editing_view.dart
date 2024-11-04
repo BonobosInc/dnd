@@ -129,19 +129,48 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     );
   }
 
+  Spell _convertSpellDataToSpell(SpellData spellData) {
+    String name = spellData.name;
+    String description = spellData.text;
+
+    int level = Defines.spellZero;
+    try {
+      level = int.parse(spellData.level);
+    } catch (e) {
+      level = Defines.spellZero;
+    }
+  
+    return Spell(
+      name: name,
+      description: description,
+      status: Defines.spellKnown,
+      level: level,
+    );
+  }
+
   void _navigateToClassSelectionPage() async {
     if (spellsData.isEmpty) {
       _showAddSpellDialog();
     } else {
-      final Spell? newSpell = await Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ClassSelectionPage(spells: spellsData),
         ),
       );
 
-      if (newSpell != null) {
-        _addSpell(newSpell, newSpell.description);
+      if (result != null) {
+        if (result is List<SpellData>) {
+          for (var spellData in result) {
+            final spell = _convertSpellDataToSpell(spellData);
+            _addSpell(spell, spell.description);
+          }
+        } else if (result is SpellData) {
+          final spell = _convertSpellDataToSpell(result);
+          _addSpell(spell, spell.description);
+        } else if (result is Spell) {
+          _addSpell(result, result.description);
+        }
       }
     }
   }

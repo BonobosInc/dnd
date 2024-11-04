@@ -4,6 +4,8 @@ import 'package:dnd/views/spell_editing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 
+final Set<SpellData> _selectedSpells = {};
+
 class SpellDetailPage extends StatelessWidget {
   final SpellData spellData;
   final bool importspell;
@@ -95,48 +97,124 @@ class SpellDetailPage extends StatelessWidget {
   }
 }
 
-class ClassSpellsPage extends StatelessWidget {
+class ClassSpellsPage extends StatefulWidget {
   final String className;
   final List<SpellData> spells;
   final bool importspell;
 
-  const ClassSpellsPage(
-      {super.key,
-      required this.className,
-      required this.spells,
-      this.importspell = false});
+  const ClassSpellsPage({
+    super.key,
+    required this.className,
+    required this.spells,
+    this.importspell = false,
+  });
+
+  @override
+  ClassSpellsPageState createState() => ClassSpellsPageState();
+}
+
+class ClassSpellsPageState extends State<ClassSpellsPage> {
+  final Set<SpellData> _selectedSpells = {};
+
+  void _onSpellSelected(SpellData spell, bool isSelected) {
+    setState(() {
+      if (isSelected) {
+        _selectedSpells.add(spell);
+      } else {
+        _selectedSpells.remove(spell);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$className Zauber'),
+        title: Text('${widget.className} Zauber'),
+        actions: widget.importspell
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(_selectedSpells.toList());
+                  },
+                ),
+              ]
+            : null,
       ),
-      body: buildSpellCollapsibleSections(spells, context, importspell),
+      body: buildSpellCollapsibleSections(
+        widget.spells,
+        context,
+        widget.importspell,
+        _selectedSpells,
+        _onSpellSelected,
+      ),
     );
   }
 }
 
-class AllSpellsPage extends StatelessWidget {
+class AllSpellsPage extends StatefulWidget {
   final List<SpellData> spells;
   final bool importspell;
 
-  const AllSpellsPage(
-      {super.key, required this.spells, this.importspell = false});
+  const AllSpellsPage({
+    super.key,
+    required this.spells,
+    this.importspell = false,
+  });
+
+  @override
+  AllSpellsPageState createState() => AllSpellsPageState();
+}
+
+class AllSpellsPageState extends State<AllSpellsPage> {
+  final Set<SpellData> _selectedSpells = {};
+
+  void _onSpellSelected(SpellData spell, bool isSelected) {
+    setState(() {
+      if (isSelected) {
+        _selectedSpells.add(spell);
+      } else {
+        _selectedSpells.remove(spell);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alle Zauber'),
+        actions: widget.importspell
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: () {
+                    Navigator.of(context).pop(_selectedSpells.toList());
+                  },
+                ),
+              ]
+            : null,
       ),
-      body: buildSpellCollapsibleSections(spells, context, importspell),
+      body: buildSpellCollapsibleSections(
+        widget.spells,
+        context,
+        widget.importspell,
+        _selectedSpells,
+        _onSpellSelected,
+      ),
     );
   }
 }
 
 Widget buildSpellCollapsibleSections(
-    List<SpellData> spells, BuildContext context, bool importSpell) {
+  List<SpellData> spells,
+  BuildContext context,
+  bool importSpell,
+  Set<SpellData> selectedSpells,
+  void Function(SpellData spell, bool isSelected) onSpellSelected,
+) {
   final groupedSpells = <String, List<SpellData>>{};
 
   for (var spell in spells) {
@@ -161,13 +239,25 @@ Widget buildSpellCollapsibleSections(
     padding: const EdgeInsets.all(16.0),
     children: sortedLevels.map((level) {
       return buildCollapsibleSectionForSpells(
-          level, groupedSpells[level]!, context, importSpell);
+        level,
+        groupedSpells[level]!,
+        context,
+        importSpell,
+        selectedSpells,
+        onSpellSelected,
+      );
     }).toList(),
   );
 }
 
-Widget buildCollapsibleSectionForSpells(String level, List<SpellData> spells,
-    BuildContext context, bool importSpell) {
+Widget buildCollapsibleSectionForSpells(
+  String level,
+  List<SpellData> spells,
+  BuildContext context,
+  bool importSpell,
+  Set<SpellData> selectedSpells,
+  void Function(SpellData spell, bool isSelected) onSpellSelected,
+) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -184,15 +274,25 @@ Widget buildCollapsibleSectionForSpells(String level, List<SpellData> spells,
             children: [
               ListTile(
                 title: Text(spell.name),
+                leading: importSpell
+                    ? Checkbox(
+                        value: selectedSpells.contains(spell),
+                        onChanged: (isSelected) {
+                          onSpellSelected(spell, isSelected ?? false);
+                        },
+                      )
+                    : null,
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SpellDetailPage(
-                          spellData: spell, importspell: importSpell),
-                    ),
-                  );
-                },
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SpellDetailPage(
+                          spellData: spell,
+                          importspell: importSpell,
+                        ),
+                      ),
+                    );
+                  }
               ),
               const Divider(),
             ],
