@@ -1,14 +1,19 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/views/wiki/spellwiki_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 
 class SpellEditingPage extends StatefulWidget {
   final ProfileManager profileManager;
+  final WikiParser wikiParser;
 
   const SpellEditingPage({
     super.key,
     required this.profileManager,
+    required this.wikiParser,
   });
 
   @override
@@ -17,6 +22,7 @@ class SpellEditingPage extends StatefulWidget {
 
 class SpellEditingPageState extends State<SpellEditingPage> {
   final List<Spell> spells = [];
+  List<SpellData> spellsData = [];
 
   static const Map<String, String> statusMapping = {
     Defines.spellPrep: 'vorbereiteter Zauber',
@@ -27,6 +33,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   void initState() {
     super.initState();
     _fetchSpells();
+    spellsData = widget.wikiParser.spells;
   }
 
   Future<void> _fetchSpells() async {
@@ -57,7 +64,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: _showAddSpellDialog,
+            onPressed: _navigateToClassSelectionPage,
           ),
         ],
       ),
@@ -120,6 +127,52 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         ),
       ),
     );
+  }
+
+  Spell _convertSpellDataToSpell(SpellData spellData) {
+    String name = spellData.name;
+    String description = spellData.text;
+
+    int level = Defines.spellZero;
+    try {
+      level = int.parse(spellData.level);
+    } catch (e) {
+      level = Defines.spellZero;
+    }
+  
+    return Spell(
+      name: name,
+      description: description,
+      status: Defines.spellKnown,
+      level: level,
+    );
+  }
+
+  void _navigateToClassSelectionPage() async {
+    if (spellsData.isEmpty) {
+      _showAddSpellDialog();
+    } else {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClassSelectionPage(spells: spellsData),
+        ),
+      );
+
+      if (result != null) {
+        if (result is List<SpellData>) {
+          for (var spellData in result) {
+            final spell = _convertSpellDataToSpell(spellData);
+            _addSpell(spell, spell.description);
+          }
+        } else if (result is SpellData) {
+          final spell = _convertSpellDataToSpell(result);
+          _addSpell(spell, spell.description);
+        } else if (result is Spell) {
+          _addSpell(result, result.description);
+        }
+      }
+    }
   }
 
   void _showAddSpellDialog() {

@@ -1,7 +1,9 @@
 import 'package:dnd/classes/profile_manager.dart';
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/views/bag_view.dart';
 import 'package:dnd/views/notes_view.dart';
 import 'package:dnd/views/weapon_view.dart';
+import 'package:dnd/views/wiki_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
@@ -9,10 +11,12 @@ import 'spell_view.dart';
 
 class CharacterView extends StatelessWidget {
   final ProfileManager profileManager;
+  final WikiParser wikiParser;
 
   const CharacterView({
     super.key,
     required this.profileManager,
+    required this.wikiParser,
   });
 
   @override
@@ -66,7 +70,7 @@ class CharacterView extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpellManagementPage(
-                          profileManager: profileManager,
+                          profileManager: profileManager, wikiParser: wikiParser,
                         ),
                       ),
                     );
@@ -118,6 +122,23 @@ class CharacterView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => BagPage(
                           profileManager: profileManager,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  title: const Text(
+                    'Wiki',
+                    style: TextStyle(color: AppColors.textColorLight),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WikiPage(
+                          wikiParser: wikiParser,
                         ),
                       ),
                     );
