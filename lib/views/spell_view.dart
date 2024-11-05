@@ -239,30 +239,40 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   Widget _buildSpellLevelFields() {
     return Center(
       child: ListView.builder(
-        itemCount: spellLevels.length,
+        itemCount: spellLevels.where((spells) => spells.isNotEmpty).length,
         itemBuilder: (context, levelIndex) {
+          // Get the filtered index that corresponds to the level with spells
+          int filteredLevelIndex = spellLevels
+              .asMap()
+              .entries
+              .where((entry) => entry.value.isNotEmpty)
+              .map((entry) => entry.key)
+              .elementAt(levelIndex);
+
           return Center(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
                   onTap: () {
-                    if (levelIndex > 0) {
-                      _editSpellSlots(levelIndex);
+                    if (filteredLevelIndex > 0) {
+                      _editSpellSlots(filteredLevelIndex);
                     }
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        levelIndex == 0 ? 'Zaubertrick' : 'Level $levelIndex',
+                        filteredLevelIndex == 0
+                            ? 'Zaubertrick'
+                            : 'Level $filteredLevelIndex',
                         style: const TextStyle(
                           color: AppColors.textColorLight,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (levelIndex > 0) ...[
+                      if (filteredLevelIndex > 0) ...[
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: widget.profileManager.getSpellSlots(),
                           builder: (context, snapshot) {
@@ -275,7 +285,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
 
                             if (snapshot.hasData) {
                               String spellSlotKey =
-                                  _getSpellSlotKey(levelIndex);
+                                  _getSpellSlotKey(filteredLevelIndex);
 
                               for (var slot in snapshot.data!) {
                                 if (slot['spellslot'] == spellSlotKey) {
@@ -298,7 +308,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                ..._buildSpellNames(levelIndex),
+                ..._buildSpellNames(filteredLevelIndex),
                 const SizedBox(height: 8),
               ],
             ),

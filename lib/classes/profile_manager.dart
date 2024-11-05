@@ -80,7 +80,6 @@ class ProfileManager {
       Defines.infoHairColour: '',
       Defines.infoSkinColour: '',
       Defines.infoAppearance: '',
-      Defines.infoTraits: '',
       Defines.infoSpellcastingClass: '',
       Defines.infoSpellcastingAbility: '',
     };
@@ -363,7 +362,6 @@ class ProfileManager {
         '${Defines.infoHairColour} TEXT, '
         '${Defines.infoSkinColour} TEXT, '
         '${Defines.infoAppearance} TEXT, '
-        '${Defines.infoTraits} TEXT, '
         '${Defines.infoBackstory} TEXT, '
         '${Defines.infoNotes} TEXT, '
         '${Defines.infoSpellcastingClass} TEXT, '
@@ -436,6 +434,8 @@ class ProfileManager {
         'CREATE TABLE IF NOT EXISTS spells (ID INTEGER PRIMARY KEY AUTOINCREMENT, spellname TEXT, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS weapons (ID INTEGER PRIMARY KEY AUTOINCREMENT, weapon TEXT, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     await initializeDatabase(currentDb!, profileName);
 
     await loadProfiles();
@@ -478,6 +478,7 @@ class ProfileManager {
     await currentDb!.delete('spells', where: 'charId = ?', whereArgs: [charId]);
     await currentDb!
         .delete('weapons', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('feats', where: 'charId = ?', whereArgs: [charId]);
 
     await loadProfiles();
   }
@@ -1007,6 +1008,85 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateFeat({
+    required uuid,
+    String? featName,
+    String? description,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingFeatList = await currentDb!.query(
+      'feats',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'featname': featName,
+      'description': description,
+      'type' : type,
+    };
+
+    if (existingFeatList.isNotEmpty) {
+      final Map<String, dynamic> existingFeat = existingFeatList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingFeat[key];
+        }
+      });
+      await currentDb!.update(
+        'feats',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'feats',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addFeat({
+    required String featName,
+    String? description,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> spellData = {
+      'charId': selectedID,
+      'featname': featName,
+      'description': description,
+      'type' : type,
+    };
+
+    try {
+      await currentDb!.insert(
+        'feats',
+        spellData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding feat: $e');
+      }
+    }
+  }
+
+  Future<void> removeFeat(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'feats',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getStats() async {
     if (currentDb == null) return [];
 
@@ -1084,6 +1164,18 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'bag',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getFeats() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'feats',
       where: 'charId = ?',
       whereArgs: [selectedID],
     );

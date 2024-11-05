@@ -1,14 +1,33 @@
+import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/views/wiki_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 
+class Feat {
+  String name;
+  String description;
+  int? uuid;
+  String? type;
+
+  Feat({
+    required this.name,
+    required this.description,
+    this.uuid,
+    required this.type,
+  });
+}
+
 class NotesPage extends StatefulWidget {
   final ProfileManager profileManager;
+  final WikiParser wikiParser;
 
   const NotesPage({
     super.key,
     required this.profileManager,
+    required this.wikiParser,
   });
 
   @override
@@ -37,10 +56,11 @@ class NotesPageState extends State<NotesPage> {
   final TextEditingController skinColourController = TextEditingController();
   final TextEditingController appearanceController = TextEditingController();
   final TextEditingController backStoryController = TextEditingController();
-  final TextEditingController traitsController = TextEditingController();
   final TextEditingController otherNotesController = TextEditingController();
 
   String? selectedSize;
+
+  List<FeatData> featsData = [];
 
   final List<String> sizeOptions = [
     '',
@@ -54,10 +74,32 @@ class NotesPageState extends State<NotesPage> {
 
   final ScrollController _scrollController = ScrollController();
 
+  final List<Feat> feats = [];
+
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
+    _fetchFeats();
+    featsData = widget.wikiParser.feats;
+  }
+
+  Future<void> _fetchFeats() async {
+    List<Map<String, dynamic>> fetchedFeats =
+        await widget.profileManager.getFeats();
+
+    setState(() {
+      feats.clear();
+      for (var feat in fetchedFeats) {
+        feats.add(Feat(
+          name: feat['featname'],
+          description: feat['description'] ?? '',
+          uuid: feat['ID'],
+          type: feat['type'],
+        ));
+      }
+      feats.sort((a, b) => a.uuid!.compareTo(b.uuid as num));
+    });
   }
 
   Future<void> _loadCharacterData() async {
@@ -91,7 +133,6 @@ class NotesPageState extends State<NotesPage> {
         hairColourController.text = characterData[Defines.infoHairColour] ?? '';
         skinColourController.text = characterData[Defines.infoSkinColour] ?? '';
         appearanceController.text = characterData[Defines.infoAppearance] ?? '';
-        traitsController.text = characterData[Defines.infoTraits] ?? '';
       });
     } else {
       selectedSize = sizeOptions[0];
@@ -122,7 +163,6 @@ class NotesPageState extends State<NotesPage> {
     hairColourController.dispose();
     skinColourController.dispose();
     appearanceController.dispose();
-    traitsController.dispose();
     super.dispose();
   }
 
@@ -133,335 +173,478 @@ class NotesPageState extends State<NotesPage> {
         title: const Text('Notizen'),
         backgroundColor: AppColors.appBarColor,
         actions: [
-          Builder(
-            builder: (context) {
-              return IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(context).openEndDrawer(),
-              );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.add),
+            onSelected: (String value) {
+              if (value == 'addFeat') {
+                _showAddFeatDialog();
+              } else if (value == 'navigateToWiki') {
+                _navigateToWiki();
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return featsData.isEmpty
+                  ? [
+                      const PopupMenuItem<String>(
+                        value: 'addFeat',
+                        child: Text('Neues Feature'),
+                      )
+                    ]
+                  : [
+                      const PopupMenuItem<String>(
+                        value: 'addFeat',
+                        child: Text('Neues Feature'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'navigateToWiki',
+                        child: Text('Feature aus Wiki importieren'),
+                      ),
+                    ];
             },
           ),
         ],
       ),
-      endDrawer: _buildDrawer(),
       body: SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField(
-                        'Volk', raceController, Defines.infoRace)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField(
-                        'Herkunft', originController, Defines.infoOrigin)),
-              ],
+            const Divider(),
+            ExpansionTile(
+              title: const Text(
+                'Notizen',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              children: _buildNotesFields(),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField(
-                        'Klasse', classController, Defines.infoClass)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField('Hintergrund', backgroundController,
-                        Defines.infoBackground)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField(
-                        'Alter', ageController, Defines.infoAge)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField(
-                        'Geschlecht', sexController, Defines.infoSex)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField(
-                        'Größe', heightController, Defines.infoHeight)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField(
-                        'Gewicht', weightController, Defines.infoWeight)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField('Augenfarbe', eyeColourController,
-                        Defines.infoEyeColour)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField('Haarfarbe', hairColourController,
-                        Defines.infoHairColour)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField('Hautfarbe', skinColourController,
-                        Defines.infoSkinColour)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField(
-                        'Glaube/Gottheit', godController, Defines.infoGod)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                    child: _buildTextField('Größenkategorie', alignmentController,
-                        Defines.infoAlignment)),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildTextField('Gesinnung', alignmentController,
-                        Defines.infoAlignment)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Aussehen', appearanceController, Defines.infoAppearance, 3),
-            const SizedBox(height: 16),
-            _buildLargeTextField('Persönlichkeitsmerkmale',
-                personalityTraitsController, Defines.infoPersonalityTraits, 3),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Ideale', idealsController, Defines.infoIdeals, 3),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Bindungen', bondsController, Defines.infoBonds, 3),
-            const SizedBox(height: 16),
-            _buildLargeTextField('Makel', flawsController, Defines.infoFlaws, 3),
-            const SizedBox(height: 16),
-             _buildLargeTextField(
-                'Hintergrundgeschichte', backStoryController, Defines.infoBackstory, 15),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Klassenmerkmale', traitsController, Defines.infoTraits, 15),
-            const SizedBox(height: 16),
-            _buildLargeTextField(
-                'Sonstige Notizen', otherNotesController, Defines.infoNotes, 15),
+            const Divider(),
+            _buildFeatsExpansionTiles(),
+            const Divider(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-        backgroundColor: AppColors.primaryColor,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const SizedBox(
-              height: 100,
-              child: DrawerHeader(
-                decoration: BoxDecoration(
-                  color: AppColors.appBarColor,
-                ),
-                child:
-                  Text(
-                    'Schnellwahl',
-                    style: TextStyle(
-                      color: AppColors.textColorLight,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-              ),
-            ),
-            ListTile(
-              title: const Text('Volk',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Herkunft',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Klasse',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Hintergrund',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Alter',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Geschlecht',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Größe',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Gewicht',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Augenfarbe',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Haarfarbe',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Hautfarbe',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Glaube/Gottheit',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Gesinnung',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(0);
-              },
-            ),
-            ListTile(
-              title: const Text('Aussehen',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(4);
-              },
-            ),
-            ListTile(
-              title: const Text('Persönlichkeitsmerkmale',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(6);
-              },
-            ),
-            ListTile(
-              title: const Text('Ideale',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(7);
-              },
-            ),
-            ListTile(
-              title: const Text('Bindungen',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(8);
-              },
-            ),
-            ListTile(
-              title: const Text('Makel',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(9);
-              },
-            ),
-            ListTile(
-              title: const Text('Hintergrundgeschichte',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(10);
-              },
-            ),
-            ListTile(
-              title: const Text('Klassenmerkmale',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(14);
-              },
-            ),
-            ListTile(
-              title: const Text('Sonstige Notizen',
-                  style: TextStyle(color: AppColors.textColorLight)),
-              onTap: () {
-                Navigator.pop(context);
-                _scrollToSection(16);
-              },
-            ),
-          ],
-        ));
+  void _navigateToWiki() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            WikiPage(wikiParser: widget.wikiParser, importFeat: true),
+      ),
+    );
+
+    if (result != null) {
+      if (result is List<FeatureData>) {
+        for (var featData in result) {
+          final feat = _convertFeatDataToFeat(featData);
+          _addFeat(feat, feat.description, feat.type);
+        }
+      } else if (result is FeatureData) {
+        final feat = _convertFeatDataToFeat(result);
+        _addFeat(feat, feat.description, feat.type);
+      } else if (result is Feat) {
+        _addFeat(result, result.description, result.type);
+      }
+    }
   }
 
-  void _scrollToSection(int index) {
-    double offset = index * 100.0;
-    _scrollController.animateTo(
-      offset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+  Feat _convertFeatDataToFeat(FeatureData featData) {
+    String name = featData.name;
+    String description = featData.description;
+
+    return Feat(
+      name: name,
+      description: description,
+      type: featData.type ?? "Sonstige",
+    );
+  }
+
+  void _showAddFeatDialog() {
+    var newFeat = true;
+    _showFeatDialog(
+        Feat(
+          name: '',
+          description: '',
+          type: 'Sonstige',
+        ),
+        newFeat);
+  }
+
+  void _showFeatDetails(Feat feat) {
+    var newFeat = false;
+    _showFeatDialog(feat, newFeat);
+  }
+
+  void _showFeatDialog(Feat feat, bool newFeat) {
+    TextEditingController descriptionController =
+        TextEditingController(text: feat.description);
+
+    String? selectedType = feat.type;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Feat bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildFeatDetailForm(feat, descriptionController),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  items: const [
+                    DropdownMenuItem(value: 'Klasse', child: Text('Klasse')),
+                    DropdownMenuItem(value: 'Rasse', child: Text('Rasse')),
+                    DropdownMenuItem(
+                        value: 'Hintergrund', child: Text('Hintergrund')),
+                    DropdownMenuItem(
+                        value: 'Fähigkeiten', child: Text('Fähigkeiten')),
+                    DropdownMenuItem(
+                        value: 'Sonstige', child: Text('Sonstige')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Typ',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    selectedType = value;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            SizedBox(
+              height: 36,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Abbrechen'),
+              ),
+            ),
+            SizedBox(
+              height: 36,
+              child: TextButton(
+                onPressed: () {
+                  if (newFeat) {
+                    _addFeat(feat, descriptionController.text, selectedType!);
+                  } else {
+                    _updateFeat(
+                        feat, descriptionController.text, selectedType!);
+                  }
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('Speichern'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateFeat(Feat feat, String description, String? type) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    widget.profileManager
+        .updateFeat(
+      featName: feat.name,
+      description: finalDescription,
+      uuid: feat.uuid,
+      type: feat.type,
+    )
+        .then((_) {
+      _fetchFeats();
+    });
+  }
+
+  void _addFeat(Feat feat, String description, String? type) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    widget.profileManager
+        .addFeat(featName: feat.name, description: finalDescription, type: type)
+        .then((_) {
+      _fetchFeats();
+    });
+  }
+
+  void _deleteFeat(int uuid) async {
+    await widget.profileManager.removeFeat(uuid);
+    _fetchFeats();
+  }
+
+  Widget _buildFeatDetailForm(
+      Feat feat, TextEditingController descriptionController) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFeatTextField(
+          label: 'Name',
+          controller: TextEditingController(text: feat.name),
+          onChanged: (value) => feat.name = value,
+        ),
+        const SizedBox(height: 16),
+        _buildDescriptionTextField(descriptionController),
+      ],
+    );
+  }
+
+  Widget _buildFeatTextField({
+    required String label,
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDescriptionTextField(TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      maxLines: 15,
+      decoration: const InputDecoration(
+        labelText: 'Beschreibung',
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  List<Widget> _buildNotesFields() {
+    return [
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField('Volk', raceController, Defines.infoRace)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Herkunft', originController, Defines.infoOrigin)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField(
+                  'Klasse', classController, Defines.infoClass)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Hintergrund', backgroundController, Defines.infoBackground)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField('Alter', ageController, Defines.infoAge)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Geschlecht', sexController, Defines.infoSex)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField(
+                  'Größe', heightController, Defines.infoHeight)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Gewicht', weightController, Defines.infoWeight)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField(
+                  'Augenfarbe', eyeColourController, Defines.infoEyeColour)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Haarfarbe', hairColourController, Defines.infoHairColour)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField(
+                  'Hautfarbe', skinColourController, Defines.infoSkinColour)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Glaube/Gottheit', godController, Defines.infoGod)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+              child: _buildTextField('Größenkategorie', alignmentController,
+                  Defines.infoAlignment)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: _buildTextField(
+                  'Gesinnung', alignmentController, Defines.infoAlignment)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      _buildLargeTextField(
+          'Aussehen', appearanceController, Defines.infoAppearance, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextField('Persönlichkeitsmerkmale',
+          personalityTraitsController, Defines.infoPersonalityTraits, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextField('Ideale', idealsController, Defines.infoIdeals, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextField('Bindungen', bondsController, Defines.infoBonds, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextField('Makel', flawsController, Defines.infoFlaws, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextField('Hintergrundgeschichte', backStoryController,
+          Defines.infoBackstory, 15),
+      const SizedBox(height: 16),
+      _buildLargeTextField(
+          'Sonstige Notizen', otherNotesController, Defines.infoNotes, 15),
+    ];
+  }
+
+  Widget _buildFeatsExpansionTiles() {
+    feats.sort((a, b) => a.uuid!.compareTo(b.uuid!));
+
+    // Determine the names from the controllers
+    String className =
+        classController.text.isEmpty ? "Klasse" : classController.text;
+    String raceName =
+        raceController.text.isEmpty ? "Rasse" : raceController.text;
+    String backgroundName = backgroundController.text.isEmpty
+        ? "Hintergrund"
+        : backgroundController.text;
+
+    // Initialize the grouped feats map
+    Map<String, List<Feat>> groupedFeats = {
+      className: [],
+      raceName: [],
+      backgroundName: [],
+      'Fähigkeiten': [],
+      'Sonstige': []
+    };
+
+    for (var feat in feats) {
+      String groupKey;
+      switch (feat.type) {
+        case 'Klasse':
+          groupKey = className;
+          break;
+        case 'Rasse':
+          groupKey = raceName;
+          break;
+        case 'Hintergrund':
+          groupKey = backgroundName;
+          break;
+        default:
+          groupKey = 'Sonstige';
+          break;
+      }
+
+      groupedFeats[groupKey]!.add(feat);
+    }
+
+    return ExpansionTile(
+      title: const Text(
+        'Feats',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      children: groupedFeats.entries.map((entry) {
+        String type = entry.key;
+        List<Feat> featsOfType = entry.value;
+
+        if (featsOfType.isEmpty) return const SizedBox.shrink();
+
+        return ExpansionTile(
+          title: Text(
+            type,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          children: featsOfType.map((feat) {
+            return Card(
+              color: AppColors.cardColor,
+              elevation: 4.0,
+              margin:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              child: ListTile(
+                title: Text(
+                  feat.name,
+                  style: const TextStyle(color: AppColors.textColorLight),
+                ),
+                onTap: () => _showFeatDetails(feat),
+                trailing: SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: IconButton(
+                    icon:
+                        const Icon(Icons.close, color: AppColors.textColorDark),
+                    iconSize: 20.0,
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      _showDeleteConfirmationDialog(feat);
+                    },
+                  ),
+                ),
+                tileColor: AppColors.cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      }).toList(),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Feat feat) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Löschen bestätigen'),
+          content:
+              Text('Bist du sicher, dass du "${feat.name}" löschen möchtest?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteFeat(feat.uuid!);
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -477,39 +660,16 @@ class NotesPageState extends State<NotesPage> {
     );
   }
 
-  Widget _buildLargeTextField(
-      String label, TextEditingController controller, String field, int maxLines) {
+  Widget _buildLargeTextField(String label, TextEditingController controller,
+      String field, int maxLines) {
     return TextField(
       controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
       maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
       onChanged: (value) => _onFieldChanged(field, value),
-    );
-  }
-
-  Widget _buildDropdownField(
-      String label, String? selectedValue, List<String> options, String field) {
-    return DropdownButtonFormField<String>(
-      value: selectedValue,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      items: options.map((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-      onChanged: (String? newValue) {
-        setState(() {
-          selectedSize = newValue;
-        });
-        _onFieldChanged(field, newValue!);
-      },
     );
   }
 }

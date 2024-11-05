@@ -10,8 +10,10 @@ import 'package:file_picker/file_picker.dart';
 
 class WikiPage extends StatefulWidget {
   final WikiParser wikiParser;
+  final bool importFeat;
 
-  const WikiPage({super.key, required this.wikiParser});
+  const WikiPage(
+      {super.key, required this.wikiParser, this.importFeat = false});
 
   @override
   WikiPageState createState() => WikiPageState();
@@ -27,6 +29,7 @@ class WikiPageState extends State<WikiPage> {
   String searchQuery = '';
   bool isSearchVisible = false;
   final TextEditingController searchController = TextEditingController();
+  final FocusNode searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class WikiPageState extends State<WikiPage> {
   @override
   void dispose() {
     searchController.dispose();
+    searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -60,15 +64,22 @@ class WikiPageState extends State<WikiPage> {
       try {
         await widget.wikiParser.importXml(filePath);
         loadDataFromParser();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Import erfolgreich')));
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Import erfolgreich')));
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Import fehlgeschlagen: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Import fehlgeschlagen: $e')));
+        }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Import abgebrochen oder fehlgeschlagen.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Import abgebrochen oder fehlgeschlagen.')));
+      }
     }
   }
 
@@ -89,25 +100,47 @@ class WikiPageState extends State<WikiPage> {
     if (filePath != null) {
       try {
         await widget.wikiParser.exportXml();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Export erfolgreich!')));
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Export erfolgreich!')));
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Export fehlgeschlagen: $e')));
+        }
       }
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Export abgebrochen oder fehlgeschlagen.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Export abgebrochen oder fehlgeschlagen.')));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    List<dynamic> filteredItems = [];
+    if (searchQuery.isNotEmpty) {
+      filteredItems.addAll(classes.where((item) =>
+          item.name.toLowerCase().contains(searchQuery.toLowerCase())));
+      filteredItems.addAll(races.where((item) =>
+          item.name.toLowerCase().contains(searchQuery.toLowerCase())));
+      filteredItems.addAll(backgrounds.where((item) =>
+          item.name.toLowerCase().contains(searchQuery.toLowerCase())));
+      filteredItems.addAll(feats.where((item) =>
+          item.name.toLowerCase().contains(searchQuery.toLowerCase())));
+      filteredItems.addAll(spells.where((item) =>
+          item.name.toLowerCase().contains(searchQuery.toLowerCase())));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: isSearchVisible
             ? TextField(
                 controller: searchController,
+                focusNode: searchFocusNode,
                 decoration: const InputDecoration(
                   hintText: 'Search...',
                   border: InputBorder.none,
@@ -121,52 +154,100 @@ class WikiPageState extends State<WikiPage> {
                 },
               )
             : const Text('D&D Wiki'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              setState(() {
-                isSearchVisible = !isSearchVisible;
-                if (!isSearchVisible) {
-                  searchQuery = '';
-                  searchController.clear();
-                }
-              });
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'import') {
-                importXml();
-              } else if (value == 'export') {
-                exportXml();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'import',
-                  child: Text('Import XML'),
+        actions: widget.importFeat == false
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    setState(() {
+                      isSearchVisible = !isSearchVisible;
+                      if (isSearchVisible) {
+                        searchFocusNode.requestFocus();
+                      } else {
+                        searchQuery = '';
+                        searchController.clear();
+                        searchFocusNode.unfocus();
+                      }
+                    });
+                  },
                 ),
-                const PopupMenuItem<String>(
-                  value: 'export',
-                  child: Text('Export XML'),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) {
+                    if (value == 'import') {
+                      importXml();
+                    } else if (value == 'export') {
+                      exportXml();
+                    }
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      const PopupMenuItem<String>(
+                        value: 'import',
+                        child: Text('Import XML'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'export',
+                        child: Text('Export XML'),
+                      ),
+                    ];
+                  },
                 ),
-              ];
-            },
-          ),
-        ],
+              ]
+            : [],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
-        children: [
-          buildCollapsibleSection('Rassen', races),
-          buildCollapsibleSection('Klassen', classes),
-          buildCollapsibleSection('Hintergründe', backgrounds),
-          buildCollapsibleSection('Talente', feats),
-          buildSpellCollapsibleSection('Zauber', spells),
-        ],
+        children: searchQuery.isNotEmpty
+            ? (filteredItems.isEmpty
+                ? [const ListTile(title: Text('Keine Ergebnisse gefunden'))]
+                : filteredItems.map((item) {
+                    return Column(
+                      children: [
+                        ListTile(
+                          title: Text(item.name),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  if (item is ClassData) {
+                                    return ClassDetailPage(
+                                        classData: item,
+                                        importFeat: widget.importFeat);
+                                  } else if (item is RaceData) {
+                                    return RaceDetailPage(
+                                        raceData: item,
+                                        importFeat: widget.importFeat);
+                                  } else if (item is BackgroundData) {
+                                    return BackgroundDetailPage(
+                                        backgroundData: item,
+                                        importFeat: widget.importFeat);
+                                  } else if (item is FeatData) {
+                                    return FeatDetailPage(
+                                        featData: item,
+                                        importFeat: widget.importFeat);
+                                  } else if (item is SpellData) {
+                                    return SpellDetailPage(spellData: item);
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                        const Divider(),
+                      ],
+                    );
+                  }).toList())
+            : [
+                buildCollapsibleSection('Rassen', races),
+                buildCollapsibleSection('Klassen', classes),
+                buildCollapsibleSection('Hintergründe', backgrounds),
+                buildCollapsibleSection('Talente', feats),
+                if (widget.importFeat == false)
+                  buildSpellCollapsibleSection('Zauber', spells),
+              ],
       ),
     );
   }
@@ -204,14 +285,21 @@ class WikiPageState extends State<WikiPage> {
                             MaterialPageRoute(
                               builder: (context) {
                                 if (item is ClassData) {
-                                  return ClassDetailPage(classData: item);
+                                  return ClassDetailPage(
+                                      classData: item,
+                                      importFeat: widget.importFeat);
                                 } else if (item is RaceData) {
-                                  return RaceDetailPage(raceData: item);
+                                  return RaceDetailPage(
+                                      raceData: item,
+                                      importFeat: widget.importFeat);
                                 } else if (item is BackgroundData) {
                                   return BackgroundDetailPage(
-                                      backgroundData: item);
+                                      backgroundData: item,
+                                      importFeat: widget.importFeat);
                                 } else if (item is FeatData) {
-                                  return FeatDetailPage(featData: item);
+                                  return FeatDetailPage(
+                                      featData: item,
+                                      importFeat: widget.importFeat);
                                 } else if (item is SpellData) {
                                   return SpellDetailPage(spellData: item);
                                 }

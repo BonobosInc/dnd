@@ -4,8 +4,6 @@ import 'package:dnd/views/spell_editing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 
-final Set<SpellData> _selectedSpells = {};
-
 class SpellDetailPage extends StatelessWidget {
   final SpellData spellData;
   final bool importspell;
@@ -191,6 +189,7 @@ class AllSpellsPageState extends State<AllSpellsPage> {
                 IconButton(
                   icon: const Icon(Icons.check),
                   onPressed: () {
+                    Navigator.of(context).pop();
                     Navigator.of(context).pop(_selectedSpells.toList());
                   },
                 ),
@@ -218,10 +217,12 @@ Widget buildSpellCollapsibleSections(
   final groupedSpells = <String, List<SpellData>>{};
 
   for (var spell in spells) {
-    if (!groupedSpells.containsKey(spell.level)) {
-      groupedSpells[spell.level] = [];
+    final levelKey = spell.level == "0" ? "Zaubertrick" : spell.level;
+
+    if (!groupedSpells.containsKey(levelKey)) {
+      groupedSpells[levelKey] = [];
     }
-    groupedSpells[spell.level]!.add(spell);
+    groupedSpells[levelKey]!.add(spell);
   }
 
   final sortedLevels = <String>[];
@@ -273,16 +274,16 @@ Widget buildCollapsibleSectionForSpells(
           return Column(
             children: [
               ListTile(
-                title: Text(spell.name),
-                leading: importSpell
-                    ? Checkbox(
-                        value: selectedSpells.contains(spell),
-                        onChanged: (isSelected) {
-                          onSpellSelected(spell, isSelected ?? false);
-                        },
-                      )
-                    : null,
-                onTap: () {
+                  title: Text(spell.name),
+                  leading: importSpell
+                      ? Checkbox(
+                          value: selectedSpells.contains(spell),
+                          onChanged: (isSelected) {
+                            onSpellSelected(spell, isSelected ?? false);
+                          },
+                        )
+                      : null,
+                  onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -292,8 +293,7 @@ Widget buildCollapsibleSectionForSpells(
                         ),
                       ),
                     );
-                  }
-              ),
+                  }),
               const Divider(),
             ],
           );

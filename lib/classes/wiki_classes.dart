@@ -32,8 +32,24 @@ class Slots {
 class FeatureData {
   final String name;
   final String description;
+  String? type;
 
-  FeatureData({required this.name, required this.description});
+  FeatureData({
+    required this.name,
+    required this.description,
+    this.type,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is FeatureData &&
+        name == other.name &&
+        description == other.description;
+  }
+
+  @override
+  int get hashCode => name.hashCode ^ description.hashCode;
 }
 
 class RaceData implements Nameable {
@@ -44,7 +60,7 @@ class RaceData implements Nameable {
   final String ability;
   final String proficiency;
   final String spellAbility;
-  final List<Trait> traits;
+  final List<FeatureData> traits;
 
   RaceData({
     required this.name,
@@ -61,7 +77,7 @@ class BackgroundData implements Nameable {
   @override
   final String name;
   final String proficiency;
-  final List<Trait> traits;
+  final List<FeatureData> traits;
 
   BackgroundData({
     required this.name,
@@ -118,7 +134,6 @@ class SpellData implements Nameable {
     required this.text,
   });
 }
-
 
 abstract class Nameable {
   String get name;
