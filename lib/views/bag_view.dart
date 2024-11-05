@@ -18,7 +18,6 @@ class BagPage extends StatefulWidget {
 }
 
 class BagPageState extends State<BagPage> {
-  final TextEditingController bagController = TextEditingController();
   final TextEditingController platinController = TextEditingController();
   final TextEditingController goldController = TextEditingController();
   final TextEditingController electrumController = TextEditingController();
@@ -27,10 +26,13 @@ class BagPageState extends State<BagPage> {
 
   final ScrollController _scrollController = ScrollController();
 
+  final List<Item> items = [];
+
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
+    _fetchItems();
   }
 
   Future<void> _loadCharacterData() async {
@@ -40,7 +42,6 @@ class BagPageState extends State<BagPage> {
     if (result.isNotEmpty) {
       Map<String, dynamic> characterData = result.first;
       setState(() {
-        bagController.text = characterData[Defines.bagBag] ?? '';
         platinController.text =
             (characterData[Defines.bagPlatin] ?? 0).toString();
         goldController.text = (characterData[Defines.bagGold] ?? 0).toString();
@@ -55,23 +56,14 @@ class BagPageState extends State<BagPage> {
   }
 
   void _onFieldChanged(String field, String value) {
-    if (field == Defines.bagPlatin ||
-        field == Defines.bagGold ||
-        field == Defines.bagElectrum ||
-        field == Defines.bagSilver ||
-        field == Defines.bagCopper) {
-      final int? intValue = int.tryParse(value);
-      if (intValue != null) {
-        widget.profileManager.updateBag(field: field, value: intValue);
-      }
-    } else {
-      widget.profileManager.updateBag(field: field, value: value);
+    final int? intValue = int.tryParse(value);
+    if (intValue != null) {
+      widget.profileManager.updateBag(field: field, value: intValue);
     }
   }
 
   @override
   void dispose() {
-    bagController.dispose();
     platinController.dispose();
     goldController.dispose();
     electrumController.dispose();
@@ -80,12 +72,37 @@ class BagPageState extends State<BagPage> {
     super.dispose();
   }
 
+  Future<void> _fetchItems() async {
+    List<Map<String, dynamic>> fetchedItems =
+        await widget.profileManager.getItems();
+
+    setState(() {
+      items.clear();
+      for (var item in fetchedItems) {
+        items.add(Item(
+          name: item['itemname'],
+          description: item['description'] ?? '',
+          uuid: item['ID'],
+          type: item['type'] ?? 'Sonstige',
+        ));
+      }
+      items.sort((a, b) => a.uuid!.compareTo(b.uuid as num));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gegenstände/Ausrüstung'),
         backgroundColor: AppColors.appBarColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _showAddItemDialog,
+            tooltip: 'Add Item',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
@@ -95,28 +112,48 @@ class BagPageState extends State<BagPage> {
             Row(
               children: [
                 Expanded(
-                    child: _buildIntegerTextField(
-                        'PM', platinController, Defines.bagPlatin)),
+                  child: _buildIntegerTextField(
+                    'PM',
+                    platinController,
+                    Defines.bagPlatin,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
-                    child: _buildIntegerTextField(
-                        'GM', goldController, Defines.bagGold)),
+                  child: _buildIntegerTextField(
+                    'GM',
+                    goldController,
+                    Defines.bagGold,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
-                    child: _buildIntegerTextField(
-                        'EM', electrumController, Defines.bagElectrum)),
+                  child: _buildIntegerTextField(
+                    'EM',
+                    electrumController,
+                    Defines.bagElectrum,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
-                    child: _buildIntegerTextField(
-                        'SM', silverController, Defines.bagSilver)),
+                  child: _buildIntegerTextField(
+                    'SM',
+                    silverController,
+                    Defines.bagSilver,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
-                    child: _buildIntegerTextField(
-                        'KM', copperController, Defines.bagCopper)),
+                  child: _buildIntegerTextField(
+                    'KM',
+                    copperController,
+                    Defines.bagCopper,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildLargeTextField('Tasche', bagController, Defines.bagBag, 20),
+            _buildItemsTiles(),
           ],
         ),
       ),
@@ -150,16 +187,282 @@ class BagPageState extends State<BagPage> {
     );
   }
 
-  Widget _buildLargeTextField(String label, TextEditingController controller,
-      String field, int maxLines) {
+  void _showAddItemDialog() {
+    var newItem = true;
+    _showItemDialog(Item(name: '', description: '', type: 'Sonstige'), newItem);
+  }
+
+  void _showItemDetails(Item item) {
+    var newItem = false;
+    _showItemDialog(item, newItem);
+  }
+
+  void _showItemDialog(Item item, bool newItem) {
+    TextEditingController descriptionController =
+        TextEditingController(text: item.description);
+
+    String? selectedType = item.type;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Item bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildItemDetailForm(item, descriptionController),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  items: const [
+                    DropdownMenuItem(value: 'Item', child: Text('Item')),
+                    DropdownMenuItem(
+                        value: 'Equipment', child: Text('Equipment')),
+                    DropdownMenuItem(
+                        value: 'Sonstige', child: Text('Sonstige')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Typ',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    selectedType = value;
+                    item.type = selectedType;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            SizedBox(
+              height: 36,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Abbrechen'),
+              ),
+            ),
+            SizedBox(
+              height: 36,
+              child: TextButton(
+                onPressed: () {
+                  if (newItem) {
+                    _addItem(item, descriptionController.text);
+                  } else {
+                    _updateItem(item, descriptionController.text);
+                  }
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('Speichern'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateItem(Item item, String description) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    widget.profileManager
+        .updateItem(
+      itemname: item.name,
+      description: finalDescription,
+      type: item.type,
+      uuid: item.uuid,
+    )
+        .then((_) {
+      _fetchItems();
+    });
+  }
+
+  void _addItem(Item item, String description) {
+    final finalDescription =
+        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    widget.profileManager
+        .addItem(
+            itemname: item.name, description: finalDescription, type: item.type)
+        .then((_) {
+      _fetchItems();
+    });
+  }
+
+  void _deleteItem(int uuid) async {
+    await widget.profileManager.removeItem(uuid);
+    _fetchItems();
+  }
+
+  Widget _buildItemDetailForm(
+      Item item, TextEditingController descriptionController) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildItemTextField(
+          label: 'Name',
+          controller: TextEditingController(text: item.name),
+          onChanged: (value) => item.name = value,
+        ),
+        const SizedBox(height: 16),
+        _buildDescriptionTextField(descriptionController),
+      ],
+    );
+  }
+
+  Widget _buildItemTextField({
+    required String label,
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+  }) {
     return TextField(
       controller: controller,
-      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
       ),
-      onChanged: (value) => _onFieldChanged(field, value),
+      onChanged: onChanged,
     );
   }
+
+  Widget _buildDescriptionTextField(TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      maxLines: 15,
+      decoration: const InputDecoration(
+        labelText: 'Beschreibung',
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildItemsTiles() {
+    items.sort((a, b) => a.uuid!.compareTo(b.uuid!));
+
+    Map<String, List<Item>> groupedItems = {
+      'Item': [],
+      'Equipment': [],
+      'Sonstige': [],
+    };
+
+    for (var item in items) {
+      String groupKey;
+      switch (item.type) {
+        case 'Item':
+          groupKey = 'Item';
+          break;
+        case 'Equipment':
+          groupKey = 'Equipment';
+          break;
+        default:
+          groupKey = 'Sonstige';
+          break;
+      }
+      groupedItems[groupKey]!.add(item);
+    }
+
+    var nonEmptyCategories =
+        groupedItems.entries.where((entry) => entry.value.isNotEmpty).toList();
+
+    return Column(
+      children: nonEmptyCategories.map((entry) {
+        String category = entry.key;
+        List<Item> itemsOfCategory = entry.value;
+
+        List<Widget> categoryWidgets = [
+          const Divider(),
+          ExpansionTile(
+            shape: const Border(),
+            title: Text(
+              category,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            children: itemsOfCategory.map((item) {
+              return Card(
+                color: AppColors.cardColor,
+                elevation: 4.0,
+                margin:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                child: ListTile(
+                  title: Text(
+                    item.name,
+                    style: const TextStyle(color: AppColors.textColorLight),
+                  ),
+                  onTap: () => _showItemDetails(item),
+                  trailing: SizedBox(
+                    width: 35,
+                    height: 35,
+                    child: IconButton(
+                      icon: const Icon(Icons.close,
+                          color: AppColors.textColorDark),
+                      iconSize: 20.0,
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        _showDeleteConfirmationDialog(item);
+                      },
+                    ),
+                  ),
+                  tileColor: AppColors.cardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ];
+        if (entry == nonEmptyCategories.last) {
+          categoryWidgets.add(const Divider());
+        }
+
+        return Column(children: categoryWidgets);
+      }).toList(),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(Item item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Löschen bestätigen'),
+          content:
+              Text('Bist du sicher, dass du "${item.name}" löschen möchtest?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Abbrechen'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteItem(item.uuid!);
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Löschen'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class Item {
+  String name;
+  String description;
+  int? uuid;
+  String? type;
+
+  Item({
+    required this.name,
+    required this.description,
+    this.uuid,
+    required this.type,
+  });
 }

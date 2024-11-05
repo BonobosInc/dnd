@@ -169,61 +169,64 @@ class NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notizen'),
-        backgroundColor: AppColors.appBarColor,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.add),
-            onSelected: (String value) {
-              if (value == 'addFeat') {
-                _showAddFeatDialog();
-              } else if (value == 'navigateToWiki') {
-                _navigateToWiki();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return featsData.isEmpty
-                  ? [
-                      const PopupMenuItem<String>(
-                        value: 'addFeat',
-                        child: Text('Neues Feature'),
-                      )
-                    ]
-                  : [
-                      const PopupMenuItem<String>(
-                        value: 'addFeat',
-                        child: Text('Neues Feature'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'navigateToWiki',
-                        child: Text('Feature aus Wiki importieren'),
-                      ),
-                    ];
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Divider(),
-            ExpansionTile(
-              title: const Text(
-                'Notizen',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              children: _buildNotesFields(),
+        appBar: AppBar(
+          title: const Text('Notizen'),
+          backgroundColor: AppColors.appBarColor,
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.add),
+              onSelected: (String value) {
+                if (value == 'addFeat') {
+                  _showAddFeatDialog();
+                } else if (value == 'navigateToWiki') {
+                  _navigateToWiki();
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return featsData.isEmpty
+                    ? [
+                        const PopupMenuItem<String>(
+                          value: 'addFeat',
+                          child: Text('Neues Feature'),
+                        )
+                      ]
+                    : [
+                        const PopupMenuItem<String>(
+                          value: 'addFeat',
+                          child: Text('Neues Feature'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'navigateToWiki',
+                          child: Text('Feature aus Wiki importieren'),
+                        ),
+                      ];
+              },
             ),
-            const Divider(),
-            _buildFeatsExpansionTiles(),
-            const Divider(),
           ],
         ),
-      ),
-    );
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              const Divider(),
+              ExpansionTile(
+                shape: const Border(),
+                title: const Text(
+                  'Notizen',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                children: [
+                  const SizedBox(height: 16),
+                  ..._buildNotesFields(),
+                ],
+              ),
+              const Divider(),
+              _buildFeatsExpansionTiles(),
+              const Divider(),
+            ],
+          ),
+        ));
   }
 
   void _navigateToWiki() async {
@@ -239,13 +242,13 @@ class NotesPageState extends State<NotesPage> {
       if (result is List<FeatureData>) {
         for (var featData in result) {
           final feat = _convertFeatDataToFeat(featData);
-          _addFeat(feat, feat.description, feat.type);
+          _addFeat(feat, feat.description);
         }
       } else if (result is FeatureData) {
         final feat = _convertFeatDataToFeat(result);
-        _addFeat(feat, feat.description, feat.type);
+        _addFeat(feat, feat.description);
       } else if (result is Feat) {
-        _addFeat(result, result.description, result.type);
+        _addFeat(result, result.description);
       }
     }
   }
@@ -312,6 +315,7 @@ class NotesPageState extends State<NotesPage> {
                   ),
                   onChanged: (value) {
                     selectedType = value;
+                    feat.type = selectedType;
                   },
                 ),
               ],
@@ -332,10 +336,10 @@ class NotesPageState extends State<NotesPage> {
               child: TextButton(
                 onPressed: () {
                   if (newFeat) {
-                    _addFeat(feat, descriptionController.text, selectedType!);
+                    _addFeat(feat, descriptionController.text);
                   } else {
                     _updateFeat(
-                        feat, descriptionController.text, selectedType!);
+                        feat, descriptionController.text);
                   }
                   Navigator.of(context).pop(true);
                 },
@@ -348,7 +352,7 @@ class NotesPageState extends State<NotesPage> {
     );
   }
 
-  void _updateFeat(Feat feat, String description, String? type) {
+  void _updateFeat(Feat feat, String description) {
     final finalDescription =
         description.isEmpty ? "Keine Beschreibung vorhanden" : description;
 
@@ -364,12 +368,12 @@ class NotesPageState extends State<NotesPage> {
     });
   }
 
-  void _addFeat(Feat feat, String description, String? type) {
+  void _addFeat(Feat feat, String description) {
     final finalDescription =
         description.isEmpty ? "Keine Beschreibung vorhanden" : description;
 
     widget.profileManager
-        .addFeat(featName: feat.name, description: finalDescription, type: type)
+        .addFeat(featName: feat.name, description: finalDescription, type: feat.type)
         .then((_) {
       _fetchFeats();
     });
@@ -529,7 +533,6 @@ class NotesPageState extends State<NotesPage> {
   Widget _buildFeatsExpansionTiles() {
     feats.sort((a, b) => a.uuid!.compareTo(b.uuid!));
 
-    // Determine the names from the controllers
     String className =
         classController.text.isEmpty ? "Klasse" : classController.text;
     String raceName =
@@ -538,7 +541,6 @@ class NotesPageState extends State<NotesPage> {
         ? "Hintergrund"
         : backgroundController.text;
 
-    // Initialize the grouped feats map
     Map<String, List<Feat>> groupedFeats = {
       className: [],
       raceName: [],
@@ -559,6 +561,9 @@ class NotesPageState extends State<NotesPage> {
         case 'Hintergrund':
           groupKey = backgroundName;
           break;
+        case 'Fähigkeiten':
+          groupKey = "Fähigkeiten";
+          break;
         default:
           groupKey = 'Sonstige';
           break;
@@ -568,6 +573,7 @@ class NotesPageState extends State<NotesPage> {
     }
 
     return ExpansionTile(
+      shape: const Border(),
       title: const Text(
         'Feats',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -578,43 +584,52 @@ class NotesPageState extends State<NotesPage> {
 
         if (featsOfType.isEmpty) return const SizedBox.shrink();
 
-        return ExpansionTile(
-          title: Text(
-            type,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          children: featsOfType.map((feat) {
-            return Card(
-              color: AppColors.cardColor,
-              elevation: 4.0,
-              margin:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: ListTile(
-                title: Text(
-                  feat.name,
-                  style: const TextStyle(color: AppColors.textColorLight),
-                ),
-                onTap: () => _showFeatDetails(feat),
-                trailing: SizedBox(
-                  width: 35,
-                  height: 35,
-                  child: IconButton(
-                    icon:
-                        const Icon(Icons.close, color: AppColors.textColorDark),
-                    iconSize: 20.0,
-                    padding: EdgeInsets.zero,
-                    onPressed: () {
-                      _showDeleteConfirmationDialog(feat);
-                    },
-                  ),
-                ),
-                tileColor: AppColors.cardColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
+        return Column(
+          children: [
+            const SizedBox(
+                height:
+                    10),
+            ExpansionTile(
+              shape: const Border(),
+              title: Text(
+                type,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-            );
-          }).toList(),
+              children: featsOfType.map((feat) {
+                return Card(
+                  color: AppColors.cardColor,
+                  elevation: 4.0,
+                  margin: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
+                  child: ListTile(
+                    title: Text(
+                      feat.name,
+                      style: const TextStyle(color: AppColors.textColorLight),
+                    ),
+                    onTap: () => _showFeatDetails(feat),
+                    trailing: SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: IconButton(
+                        icon: const Icon(Icons.close,
+                            color: AppColors.textColorDark),
+                        iconSize: 20.0,
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          _showDeleteConfirmationDialog(feat);
+                        },
+                      ),
+                    ),
+                    tileColor: AppColors.cardColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         );
       }).toList(),
     );
@@ -633,14 +648,14 @@ class NotesPageState extends State<NotesPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel'),
+              child: const Text('Abbrechen'),
             ),
             TextButton(
               onPressed: () {
                 _deleteFeat(feat.uuid!);
                 Navigator.of(context).pop(true);
               },
-              child: const Text('Delete'),
+              child: const Text('Löschen'),
             ),
           ],
         );

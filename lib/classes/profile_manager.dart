@@ -266,7 +266,6 @@ class ProfileManager {
         Defines.bagElectrum: 0,
         Defines.bagSilver: 0,
         Defines.bagCopper: 0,
-        Defines.bagBag: '',
       };
       await txn.insert('bag', initialBag);
 
@@ -424,7 +423,6 @@ class ProfileManager {
         '${Defines.bagElectrum} INTEGER, '
         '${Defines.bagSilver} INTEGER, '
         '${Defines.bagCopper} INTEGER, '
-        '${Defines.bagBag} TEXT, '
         'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS skills (ID INTEGER PRIMARY KEY AUTOINCREMENT, skill TEXT , charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
@@ -436,6 +434,8 @@ class ProfileManager {
         'CREATE TABLE IF NOT EXISTS weapons (ID INTEGER PRIMARY KEY AUTOINCREMENT, weapon TEXT, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     await initializeDatabase(currentDb!, profileName);
 
     await loadProfiles();
@@ -1087,6 +1087,85 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateItem({
+    required uuid,
+    String? itemname,
+    String? description,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingItemList = await currentDb!.query(
+      'items',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'itemname': itemname,
+      'description': description,
+      'type': type,
+    };
+
+    if (existingItemList.isNotEmpty) {
+      final Map<String, dynamic> existingItem = existingItemList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingItem[key];
+        }
+      });
+      await currentDb!.update(
+        'items',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'items',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addItem({
+    required String itemname,
+    String? description,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> itemData = {
+      'charId': selectedID,
+      'itemname': itemname,
+      'description': description,
+      'type': type,
+    };
+
+    try {
+      await currentDb!.insert(
+        'items',
+        itemData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding item: $e');
+      }
+    }
+  }
+
+  Future<void> removeItem(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'items',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getStats() async {
     if (currentDb == null) return [];
 
@@ -1164,6 +1243,18 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'bag',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getItems() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'items',
       where: 'charId = ?',
       whereArgs: [selectedID],
     );
