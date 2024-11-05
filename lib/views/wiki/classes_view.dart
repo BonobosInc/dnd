@@ -112,6 +112,7 @@ class ClassDetailPageState extends State<ClassDetailPage> {
 
   Widget _buildSpellSlotsTable() {
     return ExpansionTile(
+      shape: const Border(),
       key: _firstExpansionTileKey,
       title: const Text('Zauberplätze'),
       children: [
@@ -234,6 +235,7 @@ class ClassDetailPageState extends State<ClassDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ExpansionTile(
+          shape: const Border(),
           title: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
@@ -241,9 +243,14 @@ class ClassDetailPageState extends State<ClassDetailPage> {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
-          children: features.map((feature) {
+          children: features.asMap().entries.map((entry) {
+            int index = entry.key;
+            FeatureData feature = entry.value;
+
             return Column(
               children: [
+                if (index == 0) const Divider(),
+
                 ListTile(
                   title: Text(
                     feature.name,
@@ -269,7 +276,8 @@ class ClassDetailPageState extends State<ClassDetailPage> {
                     );
                   },
                 ),
-                const Divider(),
+
+                if (index < features.length - 1) const Divider(),
               ],
             );
           }).toList(),

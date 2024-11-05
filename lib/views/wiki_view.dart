@@ -265,6 +265,7 @@ class WikiPageState extends State<WikiPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ExpansionTile(
+          shape: const Border(),
           title: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
@@ -274,9 +275,13 @@ class WikiPageState extends State<WikiPage> {
           ),
           children: filteredItems.isEmpty
               ? [const ListTile(title: Text('Keine Ergebnisse gefunden'))]
-              : filteredItems.map((item) {
+              : filteredItems.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  T item = entry.value;
+
                   return Column(
                     children: [
+                      if (index == 0) const Divider(),
                       ListTile(
                         title: Text(item.name),
                         onTap: () {
@@ -309,7 +314,7 @@ class WikiPageState extends State<WikiPage> {
                           );
                         },
                       ),
-                      const Divider(),
+                      if (index < filteredItems.length - 1) const Divider(),
                     ],
                   );
                 }).toList(),
@@ -337,6 +342,7 @@ class WikiPageState extends State<WikiPage> {
         groupedSpells.keys.where((name) => name.isNotEmpty).toList()..sort();
 
     return ExpansionTile(
+      shape: const Border(),
       title: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Text(
@@ -345,6 +351,7 @@ class WikiPageState extends State<WikiPage> {
         ),
       ),
       children: [
+        const Divider(),
         ListTile(
           title: const Text('Alle Zauber'),
           onTap: () {
@@ -356,18 +363,28 @@ class WikiPageState extends State<WikiPage> {
             );
           },
         ),
-        ...sortedClassNames.map((className) {
-          return ListTile(
-            title: Text(className),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ClassSpellsPage(
-                      className: className, spells: groupedSpells[className]!),
-                ),
-              );
-            },
+        ...sortedClassNames.asMap().entries.map((entry) {
+          int index = entry.key;
+          String className = entry.value;
+
+          return Column(
+            children: [
+              if (index == 0) const Divider(),
+              ListTile(
+                title: Text(className),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClassSpellsPage(
+                          className: className,
+                          spells: groupedSpells[className]!),
+                    ),
+                  );
+                },
+              ),
+              if (index < sortedClassNames.length - 1) const Divider(),
+            ],
           );
         }),
       ],

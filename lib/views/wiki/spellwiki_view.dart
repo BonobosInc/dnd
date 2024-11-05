@@ -263,6 +263,7 @@ Widget buildCollapsibleSectionForSpells(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       ExpansionTile(
+        shape: const Border(),
         title: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Text(
@@ -270,31 +271,37 @@ Widget buildCollapsibleSectionForSpells(
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
-        children: spells.map((spell) {
+        children: spells.asMap().entries.map((entry) {
+          int index = entry.key;
+          SpellData spell = entry.value;
+
           return Column(
             children: [
+              if (index == 0) const Divider(),
+
               ListTile(
-                  title: Text(spell.name),
-                  leading: importSpell
-                      ? Checkbox(
-                          value: selectedSpells.contains(spell),
-                          onChanged: (isSelected) {
-                            onSpellSelected(spell, isSelected ?? false);
-                          },
-                        )
-                      : null,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpellDetailPage(
-                          spellData: spell,
-                          importspell: importSpell,
-                        ),
+                title: Text(spell.name),
+                leading: importSpell
+                    ? Checkbox(
+                        value: selectedSpells.contains(spell),
+                        onChanged: (isSelected) {
+                          onSpellSelected(spell, isSelected ?? false);
+                        },
+                      )
+                    : null,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SpellDetailPage(
+                        spellData: spell,
+                        importspell: importSpell,
                       ),
-                    );
-                  }),
-              const Divider(),
+                    ),
+                  );
+                },
+              ),
+              if (index < spells.length - 1) const Divider(),
             ],
           );
         }).toList(),
