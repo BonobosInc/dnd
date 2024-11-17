@@ -82,9 +82,13 @@ class SpellEditingPageState extends State<SpellEditingPage> {
 
     return ListView(
       children: sortedLevels.map((level) {
+        String titleText = level == 0 ? 'Zaubertrick' : 'Level $level';
+
         return ExpansionTile(
-          title:
-              Text('Level $level', style: const TextStyle(color: Colors.white)),
+          title: Text(
+            titleText,
+            style: const TextStyle(color: Colors.white),
+          ),
           children: groupedSpells[level]!.map((spell) {
             return _buildSpellTile(spell);
           }).toList(),
@@ -139,7 +143,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     } catch (e) {
       level = Defines.spellZero;
     }
-  
+
     return Spell(
       name: name,
       description: description,

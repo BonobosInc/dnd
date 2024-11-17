@@ -3,194 +3,373 @@ import 'package:dnd/classes/wiki_classes.dart';
 
 class ClassDetailPage extends StatefulWidget {
   final ClassData classData;
+  final bool importFeat;
 
-  const ClassDetailPage({super.key, required this.classData});
+  const ClassDetailPage({
+    super.key,
+    required this.classData,
+    this.importFeat = false,
+  });
 
   @override
   ClassDetailPageState createState() => ClassDetailPageState();
 }
 
-class ClassDetailPageState extends State<ClassDetailPage>
-    with SingleTickerProviderStateMixin {
-  final ScrollController _scrollController = ScrollController();
-  final Map<String, bool> _expandedLevels = {};
+class ClassDetailPageState extends State<ClassDetailPage> {
   final Map<String, GlobalKey> _tileKeys = {};
   final GlobalKey _firstExpansionTileKey = GlobalKey();
+  final Set<FeatureData> selectedFeatures = {};
+  Map<String, List<FeatureData>> featuresByLevel = {};
 
   @override
   void initState() {
     super.initState();
+    _fetchFeatures();
+  }
+
+  void _fetchFeatures() {
+    featuresByLevel.clear();
+    _groupFeaturesByLevel();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    Map<String, List<FeatureData>> featuresByLevel = {};
-
-    for (var autolevel in widget.classData.autolevels) {
-      if (featuresByLevel.containsKey(autolevel.level)) {
-        featuresByLevel[autolevel.level]!.addAll(autolevel.features);
-      } else {
-        featuresByLevel[autolevel.level] = autolevel.features;
-        _tileKeys[autolevel.level] = GlobalKey();
-        _expandedLevels[autolevel.level] = false;
-      }
-    }
-
-    bool hasNonZeroSlots = widget.classData.autolevels
-        .any((autolevel) => autolevel.slots!.slots.any((slot) => slot > 0));
+    bool hasNonZeroSlots = _hasNonZeroSlots();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.classData.name),
+        actions: widget.importFeat
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(selectedFeatures.toList());
+                  },
+                ),
+              ]
+            : null,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(8.0),
+        children: [
+          _buildClassInfo(),
+          if (hasNonZeroSlots) _buildSpellSlotsTable(),
+          buildFeatureCollapsibleSections(
+              context, widget.importFeat, selectedFeatures, onFeatureSelected),
+        ],
+      ),
+    );
+  }
+
+  void _groupFeaturesByLevel() {
+    featuresByLevel = {};
+
+    for (var autolevel in widget.classData.autolevels) {
+      final level = autolevel.level;
+      final features = autolevel.features;
+
+      featuresByLevel.putIfAbsent(level, () => []);
+      _tileKeys.putIfAbsent(level, () => GlobalKey());
+
+      final existingFeatures = featuresByLevel[level]!.toSet();
+
+      for (var feature in features) {
+        if (!existingFeatures.contains(feature)) {
+          featuresByLevel[level]!.add(feature);
+          existingFeatures.add(feature);
+        }
+      }
+    }
+  }
+
+  bool _hasNonZeroSlots() {
+    return widget.classData.autolevels.any(
+      (autolevel) =>
+          autolevel.slots?.slots != null &&
+          autolevel.slots!.slots.any((slot) => slot > 0),
+    );
+  }
+
+  Widget _buildClassInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.classData.name,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Text('Trefferwürfel: ${widget.classData.hd}'),
+        Text('Fähigkeiten: ${widget.classData.proficiency}'),
+        Text('Anzahl Skills: ${widget.classData.numSkills}'),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  Widget _buildSpellSlotsTable() {
+    return ExpansionTile(
+      shape: const Border(),
+      key: _firstExpansionTileKey,
+      title: const Text('Zauberplätze'),
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Table(
+            defaultColumnWidth: const IntrinsicColumnWidth(),
+            border: TableBorder.all(color: Colors.grey),
+            children: [
+              TableRow(
+                children: [
+                  const TableCell(
+                    child: Padding(
+                      padding: EdgeInsets.all(4.0),
+                      child: Text('Lvl',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  ...List.generate(10, (index) {
+                    return TableCell(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Text(
+                          '${index.toString()}  ',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+              ...List.generate(20, (level) {
+                String levelString = (level + 1).toString();
+                Autolevel? autolevel = widget.classData.autolevels.firstWhere(
+                  (auto) => auto.level == levelString,
+                  orElse: () => Autolevel(
+                    level: levelString,
+                    features: [],
+                    slots: Slots(slots: List.filled(10, 0)),
+                  ),
+                );
+
+                List<String> slots = autolevel.slots?.slots
+                        .map((slot) => slot.toString())
+                        .toList() ??
+                    List.filled(10, '-');
+
+                while (slots.length < 10) {
+                  slots.add('-');
+                }
+
+                return TableRow(
+                  children: [
+                    TableCell(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Text(
+                          'Lvl ${level + 1}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    ...List.generate(10, (slotIndex) {
+                      return TableCell(
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Text(
+                            slots[slotIndex],
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildFeatureCollapsibleSections(
+    BuildContext context,
+    bool importFeat,
+    Set<FeatureData> selectedFeatures,
+    void Function(FeatureData feature, bool isSelected) onFeatureSelected,
+  ) {
+    final sortedLevels =
+        featuresByLevel.keys.map((level) => int.parse(level)).toList()..sort();
+
+    final sortedLevelStrings =
+        sortedLevels.map((level) => level.toString()).toList();
+
+    return Column(
+      children: sortedLevelStrings.map((level) {
+        return buildCollapsibleSectionForFeatures(
+          level,
+          featuresByLevel[level]!,
+          context,
+          importFeat,
+          selectedFeatures,
+          onFeatureSelected,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget buildCollapsibleSectionForFeatures(
+    String level,
+    List<FeatureData> features,
+    BuildContext context,
+    bool importFeat,
+    Set<FeatureData> selectedFeatures,
+    void Function(FeatureData feature, bool isSelected) onFeatureSelected,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExpansionTile(
+          shape: const Border(),
+          title: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'Level $level',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          children: features.asMap().entries.map((entry) {
+            int index = entry.key;
+            FeatureData feature = entry.value;
+
+            return Column(
+              children: [
+                if (index == 0) const Divider(),
+
+                ListTile(
+                  title: Text(
+                    feature.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  leading: importFeat
+                      ? Checkbox(
+                          value: selectedFeatures.contains(feature),
+                          onChanged: (isSelected) {
+                            onFeatureSelected(feature, isSelected ?? false);
+                          },
+                        )
+                      : null,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FeatureDetailPage(
+                          featureData: feature,
+                          importFeat: importFeat,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                if (index < features.length - 1) const Divider(),
+              ],
+            );
+          }).toList(),
+        ),
+        const Divider(),
+      ],
+    );
+  }
+
+  Future<void> onFeatureSelected(FeatureData feat, bool isSelected) async {
+    setState(() {
+      if (isSelected) {
+        feat.type = "Klasse";
+        selectedFeatures.add(feat);
+      } else {
+        selectedFeatures.remove(feat);
+      }
+    });
+  }
+}
+
+class FeatureDetailPage extends StatelessWidget {
+  final FeatureData featureData;
+  final bool importFeat;
+
+  const FeatureDetailPage({
+    super.key,
+    required this.featureData,
+    this.importFeat = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(featureData.name),
       ),
       body: SingleChildScrollView(
-        controller: _scrollController,
         padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.classData.name,
+              featureData.name,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Text('Trefferwürfel: ${widget.classData.hd}'),
-            Text('Fähigkeiten: ${widget.classData.proficiency}'),
-            Text('Anzahl Skills: ${widget.classData.numSkills}'),
-            const SizedBox(height: 10),
-
-            // Conditional rendering of the ExpansionTile for Spell Slots
-            if (hasNonZeroSlots)
-              ExpansionTile(
-                key: _firstExpansionTileKey,
-                title: const Text('Zauberplätze'),
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Table(
-                      defaultColumnWidth: const IntrinsicColumnWidth(),
-                      border: TableBorder.all(color: Colors.grey),
-                      children: [
-                        TableRow(
-                          children: [
-                            const TableCell(
-                              child: Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Text('Lvl',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                            ...List.generate(10, (index) {
-                              return TableCell(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Text(
-                                    '${index.toString()}  ',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                        ...List.generate(20, (level) {
-                          String levelString = (level + 1).toString();
-                          Autolevel? autolevel = widget.classData.autolevels
-                              .firstWhere((auto) => auto.level == levelString,
-                                  orElse: () => Autolevel(
-                                        level: levelString,
-                                        features: [],
-                                        slots: Slots(slots: List.filled(10, 0)),
-                                      ));
-
-                          List<String> slots = autolevel.slots?.slots
-                                  .map((slot) => slot.toString())
-                                  .toList() ??
-                              List.filled(10, '-');
-
-                          while (slots.length < 10) {
-                            slots.add('-');
-                          }
-
-                          return TableRow(
-                            children: [
-                              TableCell(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Text(
-                                    'Lvl ${level + 1}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                              ...List.generate(10, (slotIndex) {
-                                return TableCell(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: Text(
-                                      slots[slotIndex],
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-            // The rest of your features
-            ...featuresByLevel.entries.map((entry) {
-              String level = entry.key;
-              List<FeatureData> features = entry.value;
-
-              return StatefulBuilder(
-                builder: (context, setState) {
-                  return ExpansionTile(
-                    key: _tileKeys[level],
-                    title: Text('Level $level'),
-                    initiallyExpanded: _expandedLevels[level] ?? false,
-                    onExpansionChanged: (expanded) {
-                      setState(() {
-                        _expandedLevels[level] =
-                            expanded; // Update the individual level's expanded state
-                      });
-
-                      // Scroll to the tile if expanded
-                      if (expanded) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Scrollable.ensureVisible(
-                            _tileKeys[level]!.currentContext!,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        });
-                      }
-                    },
-                    children: features.map((feature) {
-                      return ListTile(
-                        title: Text(
-                          feature.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(feature.description),
-                      );
-                    }).toList(),
-                  );
-                },
-              );
-            }),
+            const Text(
+              'Beschreibung:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 5),
+            Text(featureData.description),
           ],
         ),
       ),
+      floatingActionButton: importFeat
+          ? FloatingActionButton(
+              onPressed: () async {
+                final newFeature =
+                    await _showAddFeatureDialog(context, featureData);
+                if (newFeature != null && context.mounted) {
+                  newFeature.type = "Klasse";
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(newFeature);
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+
+  Future<FeatureData?> _showAddFeatureDialog(
+      BuildContext context, FeatureData featureData) async {
+    return showDialog<FeatureData?>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Feature hinzufügen'),
+          content: Text('Feature ${featureData.name} erfolgreich hinzugefügt!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(featureData);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

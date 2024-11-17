@@ -105,6 +105,7 @@ class CharacterView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => NotesPage(
                           profileManager: profileManager,
+                          wikiParser: wikiParser,
                         ),
                       ),
                     );

@@ -4,8 +4,6 @@ import 'package:dnd/views/spell_editing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 
-final Set<SpellData> _selectedSpells = {};
-
 class SpellDetailPage extends StatelessWidget {
   final SpellData spellData;
   final bool importspell;
@@ -191,6 +189,7 @@ class AllSpellsPageState extends State<AllSpellsPage> {
                 IconButton(
                   icon: const Icon(Icons.check),
                   onPressed: () {
+                    Navigator.of(context).pop();
                     Navigator.of(context).pop(_selectedSpells.toList());
                   },
                 ),
@@ -218,10 +217,12 @@ Widget buildSpellCollapsibleSections(
   final groupedSpells = <String, List<SpellData>>{};
 
   for (var spell in spells) {
-    if (!groupedSpells.containsKey(spell.level)) {
-      groupedSpells[spell.level] = [];
+    final levelKey = spell.level == "0" ? "Zaubertrick" : spell.level;
+
+    if (!groupedSpells.containsKey(levelKey)) {
+      groupedSpells[levelKey] = [];
     }
-    groupedSpells[spell.level]!.add(spell);
+    groupedSpells[levelKey]!.add(spell);
   }
 
   final sortedLevels = <String>[];
@@ -262,6 +263,7 @@ Widget buildCollapsibleSectionForSpells(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       ExpansionTile(
+        shape: const Border(),
         title: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Text(
@@ -269,9 +271,14 @@ Widget buildCollapsibleSectionForSpells(
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
-        children: spells.map((spell) {
+        children: spells.asMap().entries.map((entry) {
+          int index = entry.key;
+          SpellData spell = entry.value;
+
           return Column(
             children: [
+              if (index == 0) const Divider(),
+
               ListTile(
                 title: Text(spell.name),
                 leading: importSpell
@@ -283,18 +290,18 @@ Widget buildCollapsibleSectionForSpells(
                       )
                     : null,
                 onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpellDetailPage(
-                          spellData: spell,
-                          importspell: importSpell,
-                        ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SpellDetailPage(
+                        spellData: spell,
+                        importspell: importSpell,
                       ),
-                    );
-                  }
+                    ),
+                  );
+                },
               ),
-              const Divider(),
+              if (index < spells.length - 1) const Divider(),
             ],
           );
         }).toList(),

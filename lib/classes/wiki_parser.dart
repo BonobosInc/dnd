@@ -224,7 +224,7 @@ class WikiParser {
         final traitDescription = traitElement.findElements('text').isNotEmpty
             ? traitElement.findElements('text').first.innerText
             : 'Keine Beschreibung vorhanden.';
-        return Trait(name: traitName, description: traitDescription);
+        return FeatureData(name: traitName, description: traitDescription);
       }).toList();
 
       return RaceData(
@@ -285,7 +285,7 @@ class WikiParser {
         final traitDescription = traitElement.findElements('text').isNotEmpty
             ? traitElement.findElements('text').first.innerText
             : 'Keine Beschreibung vorhanden.';
-        return Trait(name: traitName, description: traitDescription);
+        return FeatureData(name: traitName, description: traitDescription);
       }).toList();
 
       return BackgroundData(
