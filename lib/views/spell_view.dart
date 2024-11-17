@@ -435,7 +435,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Zauberplätze gesamt:'),
+                      const Text('Gesamt:'),
                       Row(
                         children: [
                           IconButton(
@@ -462,7 +462,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Verfügbare Zauberplätze:'),
+                      const Text('Aktuell:'),
                       Row(
                         children: [
                           IconButton(

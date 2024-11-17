@@ -100,7 +100,7 @@ class BagPageState extends State<BagPage> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _showAddItemDialog,
-            tooltip: 'Add Item',
+            tooltip: 'Gegenstand hinzufügen',
           ),
         ],
       ),
@@ -207,7 +207,7 @@ class BagPageState extends State<BagPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Item bearbeiten'),
+          title: const Text('Gegenstand bearbeiten'),
           content: SingleChildScrollView(
             child: Column(
               children: [
@@ -217,9 +217,9 @@ class BagPageState extends State<BagPage> {
                 DropdownButtonFormField<String>(
                   value: selectedType,
                   items: const [
-                    DropdownMenuItem(value: 'Item', child: Text('Item')),
+                    DropdownMenuItem(value: 'Gegenstände', child: Text('Gegenstände')),
                     DropdownMenuItem(
-                        value: 'Equipment', child: Text('Equipment')),
+                        value: 'Ausrüstung', child: Text('Ausrüstung')),
                     DropdownMenuItem(
                         value: 'Sonstige', child: Text('Sonstige')),
                   ],
@@ -332,7 +332,7 @@ class BagPageState extends State<BagPage> {
   Widget _buildDescriptionTextField(TextEditingController controller) {
     return TextField(
       controller: controller,
-      maxLines: 15,
+      maxLines: 10,
       decoration: const InputDecoration(
         labelText: 'Beschreibung',
         border: OutlineInputBorder(),
@@ -344,19 +344,19 @@ class BagPageState extends State<BagPage> {
     items.sort((a, b) => a.uuid!.compareTo(b.uuid!));
 
     Map<String, List<Item>> groupedItems = {
-      'Item': [],
-      'Equipment': [],
+      'Gegenstände': [],
+      'Ausrüstung': [],
       'Sonstige': [],
     };
 
     for (var item in items) {
       String groupKey;
       switch (item.type) {
-        case 'Item':
-          groupKey = 'Item';
+        case 'Gegenstände':
+          groupKey = 'Gegenstände';
           break;
-        case 'Equipment':
-          groupKey = 'Equipment';
+        case 'Ausrüstung':
+          groupKey = 'Ausrüstung';
           break;
         default:
           groupKey = 'Sonstige';
