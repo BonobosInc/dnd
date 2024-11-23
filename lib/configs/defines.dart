@@ -66,7 +66,9 @@ class Defines {
   static const String statMaxHP = "maxhp";
   static const String statCurrentHP = "currenthp";
   static const String statTempHP = "temphp";
-  static const String statHitDice = "hitdice";
+  static const String statCurrentHitDice = "currenthitdice";
+  static const String statMaxHitDice = "maxhitdice";
+  static const String statHitDiceFactor = "hitdicefactor";
   static const String statSTR = "STR";
   static const String statDEX = "DEX";
   static const String statCON = "CON";

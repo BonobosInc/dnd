@@ -223,16 +223,17 @@ class ProfileManager {
       var initialStats = {
         'charId': insertedCharId,
         Defines.statArmor: 10,
-        Defines.statLevel: 1,
+        Defines.statLevel: 0,
         Defines.statXP: 0,
-        Defines.statInspiration: 1,
-        Defines.statProficiencyBonus: 1,
-        Defines.statInitiative: 1,
-        Defines.statMovement: 1,
-        Defines.statMaxHP: 1,
-        Defines.statCurrentHP: 1,
-        Defines.statTempHP: 1,
-        Defines.statHitDice: 1,
+        Defines.statInspiration: 0,
+        Defines.statProficiencyBonus: 0,
+        Defines.statInitiative: 0,
+        Defines.statMovement: 0,
+        Defines.statMaxHP: 0,
+        Defines.statCurrentHP: 0,
+        Defines.statTempHP: 0,
+        Defines.statCurrentHitDice: 0,
+        Defines.statMaxHitDice: 0,
         Defines.statSTR: 0,
         Defines.statDEX: 0,
         Defines.statCON: 0,
@@ -379,7 +380,9 @@ class ProfileManager {
         '${Defines.statMaxHP} INTEGER, '
         '${Defines.statCurrentHP} INTEGER, '
         '${Defines.statTempHP} INTEGER, '
-        '${Defines.statHitDice} INTEGER, '
+        '${Defines.statCurrentHitDice} INTEGER, '
+        '${Defines.statMaxHitDice} INTEGER, '
+        '${Defines.statHitDiceFactor} STRING, '
         '${Defines.statSTR} INTEGER, '
         '${Defines.statDEX} INTEGER, '
         '${Defines.statCON} INTEGER, '
@@ -436,6 +439,8 @@ class ProfileManager {
         'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     await initializeDatabase(currentDb!, profileName);
 
     await loadProfiles();
@@ -1164,6 +1169,94 @@ class ProfileManager {
       where: 'charId = ? AND ID = ?',
       whereArgs: [selectedID, uuid],
     );
+  }
+
+  Future<void> updateTracker({
+    required uuid,
+    String? tracker,
+    int? value,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingTrackerList = await currentDb!.query(
+      'tracker',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'trackername': tracker,
+      'value': value,
+    };
+
+    if (existingTrackerList.isNotEmpty) {
+      final Map<String, dynamic> existingTracker = existingTrackerList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingTracker[key];
+        }
+      });
+      await currentDb!.update(
+        'tracker',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'tracker',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addTracker({
+    required String tracker,
+    int? value,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> trackerData = {
+      'charId': selectedID,
+      'trackername': tracker,
+      'value': value,
+    };
+
+    try {
+      await currentDb!.insert(
+        'tracker',
+        trackerData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding item: $e');
+      }
+    }
+  }
+
+  Future<void> removeTracker(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'tracker',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getTracker() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'tracker',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getStats() async {
