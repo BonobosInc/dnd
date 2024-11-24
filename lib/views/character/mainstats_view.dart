@@ -1,15 +1,17 @@
+import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/configs/colours.dart';
+import 'package:dnd/views/wiki/creatures_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
 
 class MainStatsPage extends StatefulWidget {
   final ProfileManager profileManager;
+  final WikiParser wikiParser;
 
-  const MainStatsPage({
-    super.key,
-    required this.profileManager,
-  });
+  const MainStatsPage(
+      {super.key, required this.profileManager, required this.wikiParser});
 
   @override
   MainStatsPageState createState() => MainStatsPageState();
@@ -32,11 +34,14 @@ class MainStatsPageState extends State<MainStatsPage> {
 
   List<Tracker> trackers = [];
 
+  List<Creature> creatures = [];
+
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
     _loadTrackers();
+    _fetchCreatures();
   }
 
   Future<void> _loadCharacterData() async {
@@ -52,7 +57,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         inspiration = characterData[Defines.statInspiration];
         proficiencyBonus = characterData[Defines.statProficiencyBonus];
         initiative = characterData[Defines.statInitiative];
-        movement = characterData[Defines.statMovement];
+        movement = characterData[Defines.statMovement].toString();
         currentHitDice = characterData[Defines.statCurrentHitDice];
         maxHitDice = characterData[Defines.statMaxHitDice];
         healFactor = characterData[Defines.statHitDiceFactor];
@@ -119,6 +124,30 @@ class MainStatsPageState extends State<MainStatsPage> {
     });
   }
 
+  void _incrementCreatureHP(int index) {
+    setState(() {
+      if (creatures[index].currentHP < creatures[index].maxHP) {
+        creatures[index].currentHP =
+            (creatures[index].currentHP + 1).clamp(0, creatures[index].maxHP);
+        _updateCreatureHP(index);
+      }
+    });
+  }
+
+  void _decrementCreatureHP(int index) {
+    setState(() {
+      if (creatures[index].currentHP > 0) {
+        creatures[index].currentHP =
+            (creatures[index].currentHP - 1).clamp(0, creatures[index].maxHP);
+        _updateCreatureHP(index);
+      }
+    });
+  }
+
+  Future<void> _updateCreatureHP(int index) async {
+    await widget.profileManager.updateCreature(creatures[index]);
+  }
+
   Future<void> _updateStat(String field, dynamic value) async {
     await widget.profileManager.updateStats(field: field, value: value);
   }
@@ -165,14 +194,72 @@ class MainStatsPageState extends State<MainStatsPage> {
                     initiative = int.tryParse(newValue)!;
                   }
                   if (field == Defines.statMovement) {
-                    movement =
-                        newValue;
+                    movement = newValue;
                   }
                 });
 
                 if (context.mounted) Navigator.of(context).pop();
               },
               child: const Text("Speichern"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditCreatureHPDialog(int index) {
+    TextEditingController hpController = TextEditingController(
+      text: creatures[index].currentHP.toString(),
+    );
+    TextEditingController maxHpController = TextEditingController(
+      text: creatures[index].maxHP.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Bearbeite HP für ${creatures[index].name}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: hpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Aktuelle HP'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: maxHpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Maximale HP'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Abbrechen'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  int newHP = int.tryParse(hpController.text) ??
+                      creatures[index].currentHP;
+                  int newMaxHP = int.tryParse(maxHpController.text) ??
+                      creatures[index].maxHP;
+
+                  creatures[index].currentHP = newHP.clamp(0, newMaxHP);
+                  creatures[index].maxHP = newMaxHP.clamp(0, 9999);
+
+                  _updateCreatureHP(index);
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Speichern'),
             ),
           ],
         );
@@ -251,7 +338,7 @@ class MainStatsPageState extends State<MainStatsPage> {
 
   Future<void> _addNewTracker() async {
     String newTrackerName = '';
-    int newTrackerValue = 0; // Change to an integer
+    int newTrackerValue = 0;
     String newTrackerType = '';
 
     await showDialog(
@@ -271,7 +358,6 @@ class MainStatsPageState extends State<MainStatsPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Row for Value with Increment and Decrement
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -414,6 +500,76 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  void _addCreature() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllCreaturesPage(
+          importCreature: true,
+          creatures: widget.wikiParser.creatures,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      if (result is Creature) {
+        _addCreatureToList(result);
+      } else if (result is List<Creature>) {
+        for (var creature in result) {
+          _addCreatureToList(creature);
+        }
+      }
+    }
+  }
+
+  void _editCreature(Creature creature) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreatureDetailPage(
+          creature: creature,
+          statsMenu: true,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      if (result is Creature) {
+        _updateCreatureToList(result);
+      } else if (result is List<Creature>) {
+        for (var creature in result) {
+          _updateCreatureToList(creature);
+        }
+      }
+    }
+  }
+
+  void _updateCreatureToList(Creature creature) {
+    widget.profileManager.updateCreature(creature).then((_) {
+      _fetchCreatures();
+    });
+  }
+
+  void _addCreatureToList(Creature creature) {
+    widget.profileManager.addCreature(creature).then((_) {
+      _fetchCreatures();
+    });
+  }
+
+  Future<void> _fetchCreatures() async {
+    List<Creature> fetchedCreatures =
+        await widget.profileManager.getCreatures();
+
+    setState(() {
+      creatures.clear();
+      for (var creature in fetchedCreatures) {
+        creatures.add(creature);
+      }
+
+      creatures.sort((a, b) => a.name.compareTo(b.name));
+    });
+  }
+
   Future<void> _showEditHitDiceDialog() async {
     int newCurrentHitDice = currentHitDice;
     int newMaxHitDice = maxHitDice;
@@ -490,6 +646,11 @@ class MainStatsPageState extends State<MainStatsPage> {
     _loadTrackers();
   }
 
+  Future<void> _removeCreature(int? creatureID) async {
+    await widget.profileManager.removeCreature(creatureID!);
+    _fetchCreatures();
+  }
+
   @override
   Widget build(BuildContext context) {
     double healthBarWidth = MediaQuery.of(context).size.width - 32;
@@ -529,7 +690,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Health',
+            'Lebenspunkte',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const Divider(color: AppColors.textColorLight, thickness: 1.5),
@@ -560,7 +721,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 Container(
                   height: 20,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFB71C1C),
+                    color: const Color(0xFF581B10),
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -570,7 +731,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                     height: 20,
                     width: currentHPWidth,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF388E3C),
+                      color: const Color(0xFF1B6533),
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(5),
                         bottomLeft: const Radius.circular(5),
@@ -665,7 +826,7 @@ class MainStatsPageState extends State<MainStatsPage> {
 
           // Stats Section
           const Text(
-            'Stats',
+            'Statistik',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const Divider(color: AppColors.textColorLight, thickness: 1.5),
@@ -695,11 +856,13 @@ class MainStatsPageState extends State<MainStatsPage> {
             ],
           ),
           const SizedBox(height: 25),
+
+          // Trackers Section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Trackers',
+                'Tracker',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               IconButton(
@@ -708,8 +871,6 @@ class MainStatsPageState extends State<MainStatsPage> {
               ),
             ],
           ),
-
-          // Trackers Section
           const Divider(color: AppColors.textColorLight, thickness: 1.5),
           Column(
             children: [
@@ -776,6 +937,127 @@ class MainStatsPageState extends State<MainStatsPage> {
                 ),
             ],
           ),
+
+          // Creatures Section
+          const SizedBox(height: 25),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Begleiter',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _addCreature,
+              ),
+            ],
+          ),
+          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Column(
+            children: [
+              for (int i = 0; i < creatures.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: GestureDetector(
+                    onLongPress: () {
+                      _showDeleteConfirmationDialogC(creatures[i]);
+                    },
+                    onTap: () {
+                      _editCreature(creatures[i]);
+                    },
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      elevation: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${creatures[i].name} ${creatures[i].currentHP} / ${creatures[i].maxHP}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.remove),
+                                      onPressed: () {
+                                        _decrementCreatureHP(i);
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.add),
+                                      onPressed: () {
+                                        _incrementCreatureHP(i);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                _showEditCreatureHPDialog(i);
+                              },
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  double cardWidth = constraints.maxWidth;
+                                  double greenBarWidth = 0;
+
+                                  if (creatures[i].maxHP > 0) {
+                                    greenBarWidth = (creatures[i].currentHP /
+                                            creatures[i].maxHP) *
+                                        cardWidth;
+                                    greenBarWidth =
+                                        greenBarWidth.clamp(0.0, cardWidth);
+                                  }
+
+                                  return Stack(
+                                    children: [
+                                      Container(
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF581B10),
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: 0,
+                                        child: Container(
+                                          height: 20,
+                                          width: greenBarWidth,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF1B6533),
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
           const SizedBox(height: 8),
         ],
       ),
@@ -842,6 +1124,34 @@ class MainStatsPageState extends State<MainStatsPage> {
               child: const Text('Löschen'),
               onPressed: () {
                 _removeTracker(tracker.uuid);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialogC(Creature creature) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Begleiter löschen'),
+          content: Text(
+              'Bist du sicher, dass du "${creature.name} löschen willst"?'),
+          actions: [
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Löschen'),
+              onPressed: () {
+                _removeCreature(creature.uuid);
                 Navigator.of(context).pop();
               },
             ),

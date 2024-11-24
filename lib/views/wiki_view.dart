@@ -1,5 +1,6 @@
 import 'package:dnd/views/wiki/background_view.dart';
 import 'package:dnd/views/wiki/classes_view.dart';
+import 'package:dnd/views/wiki/creatures_view.dart';
 import 'package:dnd/views/wiki/feat_view.dart';
 import 'package:dnd/views/wiki/races_view.dart';
 import 'package:dnd/views/wiki/spellwiki_view.dart';
@@ -25,6 +26,7 @@ class WikiPageState extends State<WikiPage> {
   List<BackgroundData> backgrounds = [];
   List<FeatData> feats = [];
   List<SpellData> spells = [];
+  List<Creature> creatures = [];
 
   String searchQuery = '';
   bool isSearchVisible = false;
@@ -51,6 +53,7 @@ class WikiPageState extends State<WikiPage> {
       backgrounds = widget.wikiParser.backgrounds;
       feats = widget.wikiParser.feats;
       spells = widget.wikiParser.spells;
+      creatures = widget.wikiParser.creatures;
     });
   }
 
@@ -247,6 +250,8 @@ class WikiPageState extends State<WikiPage> {
                 buildCollapsibleSection('Talente', feats),
                 if (widget.importFeat == false)
                   buildSpellCollapsibleSection('Zauber', spells),
+                  const Divider(),
+                buildCreatureCollapsibleSection('Monster', creatures),
               ],
       ),
     );
@@ -387,6 +392,33 @@ class WikiPageState extends State<WikiPage> {
             ],
           );
         }),
+      ],
+    );
+  }
+
+    Widget buildCreatureCollapsibleSection(String title, List<Creature> creatures) {
+    return ExpansionTile(
+      shape: const Border(),
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ),
+      children: [
+        const Divider(),
+        ListTile(
+          title: const Text('All Creatures'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AllCreaturesPage(creatures: creatures),
+              ),
+            );
+          },
+        ),
       ],
     );
   }

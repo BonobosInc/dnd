@@ -11,6 +11,7 @@ class WikiParser {
   List<BackgroundData> backgrounds = [];
   List<FeatData> feats = [];
   List<SpellData> spells = [];
+  List<Creature> creatures = [];
   String? savedXmlFilePath;
 
   WikiParser();
@@ -28,11 +29,9 @@ class WikiParser {
     File file = File(savedFilePath);
 
     if (await file.exists()) {
-      savedXmlFilePath =
-          savedFilePath;
+      savedXmlFilePath = savedFilePath;
       String xmlData = await file.readAsString();
-      await parseXmlInIsolate(
-          xmlData);
+      await parseXmlInIsolate(xmlData);
     } else {
       String initialXmlContent = '''<?xml version="1.0" encoding="UTF-8"?>
 <compendium version="5" auto_indent="NO">
@@ -100,6 +99,7 @@ class WikiParser {
     backgrounds = (parsedData['backgrounds'] as List<BackgroundData>? ?? []);
     feats = (parsedData['feats'] as List<FeatData>? ?? []);
     spells = (parsedData['spells'] as List<SpellData>? ?? []);
+    creatures = (parsedData['creatures'] as List<Creature>? ?? []);
   }
 
   static void _parseXml(SendPort sendPort) {
@@ -123,6 +123,7 @@ class WikiParser {
     List<BackgroundData> backgrounds = parseBackgrounds(document);
     List<FeatData> feats = parseFeats(document);
     List<SpellData> spells = parseSpells(document);
+    List<Creature> creatures = parseCreatures(document);
 
     return {
       'classes': classes,
@@ -130,6 +131,7 @@ class WikiParser {
       'backgrounds': backgrounds,
       'feats': feats,
       'spells': spells,
+      'creatures': creatures,
     };
   }
 
@@ -354,6 +356,173 @@ class WikiParser {
         components: components,
         duration: duration,
         text: text,
+      );
+    }).toList();
+  }
+
+  static List<Creature> parseCreatures(xml.XmlDocument document) {
+    final monsterElements = document.findAllElements('monster');
+
+    return monsterElements.map((monsterElement) {
+      final name = monsterElement.findElements('name').isNotEmpty
+          ? monsterElement.findElements('name').first.innerText
+          : 'N/A';
+
+      final size = monsterElement.findElements('size').isNotEmpty
+          ? monsterElement.findElements('size').first.innerText
+          : 'N/A';
+
+      final type = monsterElement.findElements('type').isNotEmpty
+          ? monsterElement.findElements('type').first.innerText
+          : 'N/A';
+
+      final alignment = monsterElement.findElements('alignment').isNotEmpty
+          ? monsterElement.findElements('alignment').first.innerText
+          : 'N/A';
+
+      final ac = monsterElement.findElements('ac').isNotEmpty
+          ? int.tryParse(monsterElement.findElements('ac').first.innerText) ?? 0
+          : 0;
+
+      // Parse hp and set maxHP and currentHP
+      final hp = monsterElement.findElements('hp').isNotEmpty
+          ? monsterElement.findElements('hp').first.innerText
+          : 'N/A';
+
+      int maxHP = 0;
+      int currentHP = 0;
+
+      // Check if hp contains a numeric value before the space (e.g., '135' in '135 (18d10 + 36)')
+      final hpParts = hp.split(' ');
+      if (hpParts.isNotEmpty) {
+        maxHP = int.tryParse(hpParts[0]) ?? 0;
+        currentHP = maxHP; // Initially set currentHP to maxHP
+      }
+
+      final speed = monsterElement.findElements('speed').isNotEmpty
+          ? monsterElement.findElements('speed').first.innerText
+          : 'N/A';
+
+      final str =
+          int.tryParse(monsterElement.findElements('str').first.innerText) ?? 0;
+      final dex =
+          int.tryParse(monsterElement.findElements('dex').first.innerText) ?? 0;
+      final con =
+          int.tryParse(monsterElement.findElements('con').first.innerText) ?? 0;
+      final intScore =
+          int.tryParse(monsterElement.findElements('int').first.innerText) ?? 0;
+      final wis =
+          int.tryParse(monsterElement.findElements('wis').first.innerText) ?? 0;
+      final cha =
+          int.tryParse(monsterElement.findElements('cha').first.innerText) ?? 0;
+
+      final saves = monsterElement.findElements('save').isNotEmpty
+          ? monsterElement.findElements('save').first.innerText
+          : '';
+
+      final skills = monsterElement.findElements('skill').isNotEmpty
+          ? monsterElement.findElements('skill').first.innerText
+          : '';
+
+      final immunities = monsterElement.findElements('immune').isNotEmpty
+          ? monsterElement.findElements('immune').first.innerText
+          : '';
+
+      final conditionImmunities =
+          monsterElement.findElements('conditionImmune').isNotEmpty
+              ? monsterElement.findElements('conditionImmune').first.innerText
+              : '';
+
+      final senses = monsterElement.findElements('senses').isNotEmpty
+          ? monsterElement.findElements('senses').first.innerText
+          : '';
+
+      final passivePerception =
+          monsterElement.findElements('passive').isNotEmpty
+              ? int.tryParse(
+                      monsterElement.findElements('passive').first.innerText) ??
+                  0
+              : 0;
+
+      final languages = monsterElement.findElements('languages').isNotEmpty
+          ? monsterElement.findElements('languages').first.innerText
+          : '';
+
+      final cr = monsterElement.findElements('cr').isNotEmpty
+          ? monsterElement.findElements('cr').first.innerText
+          : '';
+
+      // Parse traits
+      final traits =
+          monsterElement.findAllElements('trait').map((traitElement) {
+        final traitName = traitElement.findElements('name').isNotEmpty
+            ? traitElement.findElements('name').first.innerText
+            : 'N/A';
+        final traitDescription = traitElement.findElements('text').isNotEmpty
+            ? traitElement.findElements('text').first.innerText
+            : '';
+        return Trait(name: traitName, description: traitDescription);
+      }).toList();
+
+      // Parse actions
+      final actions =
+          monsterElement.findAllElements('action').map((actionElement) {
+        final actionName = actionElement.findElements('name').isNotEmpty
+            ? actionElement.findElements('name').first.innerText
+            : 'N/A';
+        final actionDescription = actionElement.findElements('text').isNotEmpty
+            ? actionElement.findElements('text').first.innerText
+            : '';
+        final attack = actionElement.findElements('attack').isNotEmpty
+            ? actionElement.findElements('attack').first.innerText
+            : null;
+        return CAction(
+            name: actionName, description: actionDescription, attack: attack);
+      }).toList();
+
+      // Parse legendary actions
+      final legendaryActions =
+          monsterElement.findAllElements('legendary').map((legendaryElement) {
+        final legendaryName = legendaryElement.findElements('name').isNotEmpty
+            ? legendaryElement.findElements('name').first.innerText
+            : 'N/A';
+        final legendaryDescription =
+            legendaryElement.findElements('text').isNotEmpty
+                ? legendaryElement.findElements('text').first.innerText
+                : '';
+        return Legendary(
+            name: legendaryName, description: legendaryDescription);
+      }).toList();
+
+      return Creature(
+        name: name,
+        size: size,
+        type: type,
+        alignment: alignment,
+        ac: ac,
+        hp: hp,
+        maxHP: maxHP,
+        currentHP: currentHP,
+        speed: speed,
+        str: str,
+        dex: dex,
+        con: con,
+        intScore: intScore,
+        wis: wis,
+        cha: cha,
+        saves: saves,
+        skills: skills,
+        resistances: '',
+        vulnerabilities: '',
+        immunities: immunities,
+        conditionImmunities: conditionImmunities,
+        senses: senses,
+        passivePerception: passivePerception,
+        languages: languages,
+        cr: cr,
+        traits: traits,
+        actions: actions,
+        legendaryActions: legendaryActions,
       );
     }).toList();
   }

@@ -69,7 +69,7 @@ class CharacterViewState extends State<CharacterView> {
           ),
           body: TabBarView(
             children: [
-              MainStatsPage(profileManager: widget.profileManager),
+              MainStatsPage(profileManager: widget.profileManager, wikiParser: widget.wikiParser),
               const Page2(),
             ],
           ),

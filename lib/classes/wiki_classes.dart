@@ -93,6 +93,93 @@ class Trait {
   Trait({required this.name, required this.description});
 }
 
+class CAction {
+  final String name;
+  final String description;
+  final String? attack;
+
+  CAction({
+    required this.name,
+    required this.description,
+    this.attack = "",
+  });
+}
+
+class Legendary {
+  final String name;
+  final String description;
+
+  Legendary({
+    required this.name,
+    required this.description,
+  });
+}
+
+class Creature {
+  int uuid;
+  String name;
+  String size;
+  String type;
+  String alignment;
+  int ac;
+  String hp;
+  int currentHP;
+  int maxHP;
+  String speed;
+  int str;
+  int dex;
+  int con;
+  int intScore;
+  int wis;
+  int cha;
+  String saves;
+  String skills;
+  String resistances;
+  String vulnerabilities;
+  String immunities;
+  String conditionImmunities;
+  String senses;
+  int passivePerception;
+  String languages;
+  String cr;
+  List<Trait> traits;
+  List<CAction> actions;
+  List<Legendary> legendaryActions;
+
+  Creature({
+    required this.name,
+    this.size = "",
+    this.type = "",
+    this.alignment = "",
+    this.ac = 0,
+    this.hp = "",
+    this.speed = "",
+    this.str = 0,
+    this.dex = 0,
+    this.con = 0,
+    this.intScore = 0,
+    this.wis = 0,
+    this.cha = 0,
+    this.currentHP = 0,
+    this.maxHP = 0,
+    this.saves = '',
+    this.skills = '',
+    this.resistances = '',
+    this.vulnerabilities = '',
+    this.immunities = '',
+    this.conditionImmunities = '',
+    this.senses = '',
+    this.passivePerception = 0,
+    this.languages = '',
+    this.cr = '',
+    this.traits = const [],
+    this.actions = const [],
+    this.legendaryActions = const [],
+    this.uuid = 0,
+  });
+}
+
+
 class FeatData implements Nameable {
   @override
   final String name;
