@@ -1,4 +1,4 @@
-package com.example.dnd
+package com.bonobo.dnd
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -19,15 +19,69 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
   final Set<Creature> _selectedCreatures = {};
   String _searchText = '';
   bool _sortByCr = true;
+  String? _selectedCr; // This will store the selected CR for filtering
+  late List<Creature> _filteredCreaturesCache;
+  late List<String> _uniqueCRs; // List to store unique CR values
 
-  List<Creature> get _filteredCreatures {
+  @override
+  void initState() {
+    super.initState();
+    _filteredCreaturesCache = _computeFilteredCreatures();
+    _uniqueCRs = _getUniqueCRs(); // Get unique CR values from creatures
+  }
+
+  @override
+  void didUpdateWidget(covariant AllCreaturesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.creatures != widget.creatures ||
+        _searchText != _searchText ||
+        _sortByCr != _sortByCr ||
+        _selectedCr != _selectedCr) {
+      // Also consider selected CR in comparison
+      _filteredCreaturesCache = _computeFilteredCreatures();
+    }
+  }
+
+  List<String> _getUniqueCRs() {
+    Set<String> crSet = {};
+    for (var creature in widget.creatures) {
+      crSet.add(creature.cr); // Assuming `cr` is a String field
+    }
+
+    // Sort the CRs numerically
+    List<String> crList = crSet.toList();
+    crList.sort((a, b) {
+      return parseCr(a).compareTo(parseCr(b));
+    });
+
+    return crList;
+  }
+
+  double parseCr(String cr) {
+    try {
+      if (cr.contains('/')) {
+        var parts = cr.split('/');
+        return double.parse(parts[0]) / double.parse(parts[1]);
+      } else {
+        return double.parse(cr);
+      }
+    } catch (e) {
+      return double.infinity;
+    }
+  }
+
+  List<Creature> _computeFilteredCreatures() {
     List<Creature> filteredList = widget.creatures
         .where((creature) =>
-            creature.name.toLowerCase().contains(_searchText.toLowerCase()))
+            creature.name.toLowerCase().contains(_searchText.toLowerCase()) &&
+            (_selectedCr == null ||
+                creature.cr == _selectedCr)) // Apply CR filter
         .toList();
 
     if (_sortByCr) {
-      filteredList.sort((a, b) => a.cr.compareTo(b.cr));
+      filteredList.sort((a, b) {
+        return parseCr(a.cr).compareTo(parseCr(b.cr));
+      });
     } else {
       filteredList.sort((a, b) => a.name.compareTo(b.name));
     }
@@ -46,14 +100,14 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
   }
 
   void _navigateToCreatureDetail(Creature creature) async {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CreatureDetailPage(
-            creature: creature,
-            importCreature: widget.importCreature,
-          ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CreatureDetailPage(
+          creature: creature,
+          importCreature: widget.importCreature,
         ),
-      );
+      ),
+    );
   }
 
   @override
@@ -64,6 +118,7 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
         actions: [
           if (widget.importCreature)
             IconButton(
+              tooltip: "Ausgewählte Begleiter importieren",
               icon: const Icon(Icons.check),
               onPressed: () {
                 Navigator.of(context).pop(_selectedCreatures.toList());
@@ -76,9 +131,9 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
           _buildFilterSortSection(),
           Expanded(
             child: ListView.builder(
-              itemCount: _filteredCreatures.length,
+              itemCount: _filteredCreaturesCache.length,
               itemBuilder: (context, index) {
-                final creature = _filteredCreatures[index];
+                final creature = _filteredCreaturesCache[index];
                 return ListTile(
                   title: Text(creature.name),
                   subtitle: Text('CR: ${creature.cr}'),
@@ -106,6 +161,7 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
       ),
       floatingActionButton: widget.importCreature
           ? FloatingActionButton(
+              tooltip: "Neuen Begleiter erstellen",
               onPressed: () async {
                 final newCreature = await _showAddCreatureDialog(context);
                 if (newCreature != null && context.mounted) {
@@ -126,32 +182,54 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
           Expanded(
             child: TextField(
               decoration: const InputDecoration(
-                labelText: 'Search by name',
+                labelText: 'Suchen nach Name',
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (value) {
                 setState(() {
                   _searchText = value;
+                  _filteredCreaturesCache = _computeFilteredCreatures();
                 });
               },
             ),
           ),
           const SizedBox(width: 8),
-          DropdownButton<bool>(
-            value: _sortByCr,
-            items: const [
-              DropdownMenuItem(
-                value: true,
-                child: Text('Sort by CR'),
+          DropdownButton<String>(
+            value: _selectedCr ??
+                (_sortByCr ? 'Sortieren nach CR' : 'Sortieren nach Name'),
+            hint: Text('Filter / Sortieren'),
+            items: [
+              // Sorting Options
+              const DropdownMenuItem(
+                value: 'Sortieren nach CR',
+                child: Text('Sortieren nach CR'),
               ),
-              DropdownMenuItem(
-                value: false,
-                child: Text('Sort by Name'),
+              const DropdownMenuItem(
+                value: 'Sortieren nach Name',
+                child: Text('Sortieren nach Name'),
               ),
+              // CR Values
+              ..._uniqueCRs.map((cr) {
+                return DropdownMenuItem(
+                  value: cr,
+                  child: Text('CR: $cr'),
+                );
+              }).toList(),
             ],
             onChanged: (value) {
               setState(() {
-                _sortByCr = value!;
+                if (value == 'Sortieren nach CR') {
+                  _sortByCr = true;
+                  _selectedCr = null;
+                } else if (value == 'Sortieren nach Name') {
+                  _sortByCr = false;
+                  _selectedCr = null;
+                } else if (value == 'Alle CRs') {
+                  _selectedCr = null;
+                } else {
+                  _selectedCr = value;
+                }
+                _filteredCreaturesCache = _computeFilteredCreatures();
               });
             },
           ),
@@ -172,7 +250,6 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
 class CreateCreaturePage extends StatefulWidget {
   final Creature? creature;
   final bool statsMenu;
-  
 
   const CreateCreaturePage({super.key, this.creature, this.statsMenu = false});
 
@@ -281,9 +358,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 traits: _traits,
                 actions: _actions,
                 legendaryActions: _legendaryActions,
-                uuid: widget.statsMenu ? 
-                    (widget.creature?.uuid ?? 0) 
-                    : 0,
+                uuid: widget.statsMenu ? (widget.creature?.uuid ?? 0) : 0,
               );
 
               Navigator.of(context).pop(newCreature);
@@ -599,7 +674,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                           _showDeleteConfirmationDialog(trait, 'trait');
                         },
                         icon: const Icon(Icons.delete),
-                        tooltip: 'Delete Trait',
+                        tooltip: 'Lösche ${trait.name}',
                       ),
                     ],
                   ),
@@ -668,7 +743,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                           _showDeleteConfirmationDialog(action, 'action');
                         },
                         icon: const Icon(Icons.delete),
-                        tooltip: 'Delete Action',
+                        tooltip: 'Lösche ${action.name}',
                       ),
                     ],
                   ),
@@ -697,7 +772,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 _showLegendaryActionDialog(context);
               },
               icon: const Icon(Icons.add),
-              tooltip: 'Add Legendary Action',
+              tooltip: 'Legendäre Aktion hinzufügen',
             ),
           ],
         ),
@@ -729,8 +804,6 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(legendary.description),
                           ],
                         ),
                       ),
@@ -739,7 +812,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                           _showDeleteConfirmationDialog(legendary, 'legendary');
                         },
                         icon: const Icon(Icons.delete),
-                        tooltip: 'Delete Legendary Action',
+                        tooltip: 'Lösche ${legendary.name}',
                       ),
                     ],
                   ),
@@ -752,6 +825,32 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
     );
   }
 
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDescriptionTextField(TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      maxLines: 5,
+      decoration: const InputDecoration(
+        labelText: 'Beschreibung',
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
   Future<void> _showTraitDialog(BuildContext context) async {
     final traitNameController = TextEditingController();
     final traitDescriptionController = TextEditingController();
@@ -760,19 +859,20 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Merkmale hinzufügen'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: traitNameController,
-                decoration: const InputDecoration(labelText: 'Merkmal'),
-              ),
-              TextField(
-                controller: traitDescriptionController,
-                decoration: const InputDecoration(labelText: 'Beschreibung'),
-              ),
-            ],
+          title: const Text('Merkmale bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: 'Merkmal',
+                  controller: traitNameController,
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 16),
+                _buildDescriptionTextField(traitDescriptionController),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -811,23 +911,26 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Angriff hinzufügen'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: cActionNameController,
-                decoration: const InputDecoration(labelText: 'Angriff'),
-              ),
-              TextField(
-                controller: cActionDescriptionController,
-                decoration: const InputDecoration(labelText: 'Beschreibung'),
-              ),
-              TextField(
-                controller: cActionAttackController,
-                decoration: const InputDecoration(labelText: 'Angriffswert'),
-              ),
-            ],
+          title: const Text('Angriff bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: 'Angriff',
+                  controller: cActionNameController,
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 16),
+                _buildDescriptionTextField(cActionDescriptionController),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: 'Angriffswert',
+                  controller: cActionAttackController,
+                  onChanged: (value) {},
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -868,20 +971,21 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Legendäre Aktion hinzufügen'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: legendaryActionNameController,
-                decoration:
-                    const InputDecoration(labelText: 'Legendäre Aktion'),
-              ),
-              TextField(
-                controller: legendaryActionDescriptionController,
-                decoration: const InputDecoration(labelText: 'Beschreibung'),
-              ),
-            ],
+          title: const Text('Legendäre Aktion bearbeiten'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: 'Legendäre Aktion',
+                  controller: legendaryActionNameController,
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 16),
+                _buildDescriptionTextField(
+                    legendaryActionDescriptionController),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -957,6 +1061,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
     final TextEditingController descriptionController = TextEditingController();
     String attackControllerText = '';
 
+    // Initialize controllers with the current item's values
     if (item is Trait) {
       nameController.text = item.name;
       descriptionController.text = item.description;
@@ -971,22 +1076,18 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
 
     String dialogTitle = '';
     String nameLabel = '';
-    String descriptionLabel = '';
     String attackLabel = '';
 
     if (type == 'trait') {
       dialogTitle = 'Bearbeite Merkmal';
       nameLabel = 'Merkmal';
-      descriptionLabel = 'Beschreibung';
     } else if (type == 'action') {
       dialogTitle = 'Bearbeite Angriff';
       nameLabel = 'Angriff';
-      descriptionLabel = 'Beschreibung';
       attackLabel = 'Angriffswert';
     } else if (type == 'legendary') {
       dialogTitle = 'Bearbeite Legendäre Aktion';
       nameLabel = 'Legendäre Aktion';
-      descriptionLabel = 'Beschreibung';
     }
 
     await showDialog<void>(
@@ -994,26 +1095,29 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(dialogTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: nameLabel),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(labelText: descriptionLabel),
-              ),
-              if (type == 'action')
-                TextField(
-                  controller: TextEditingController(text: attackControllerText),
-                  decoration: InputDecoration(labelText: attackLabel),
-                  onChanged: (value) {
-                    attackControllerText = value;
-                  },
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: nameLabel,
+                  controller: nameController,
+                  onChanged: (value) {},
                 ),
-            ],
+                const SizedBox(height: 16),
+                _buildDescriptionTextField(descriptionController),
+                const SizedBox(height: 16),
+                if (type == 'action')
+                  _buildTextField(
+                    label: attackLabel,
+                    controller:
+                        TextEditingController(text: attackControllerText),
+                    onChanged: (value) {
+                      attackControllerText = value;
+                    },
+                  ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -1070,28 +1174,39 @@ class CreatureDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(creature.name),
-        actions: statsMenu
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () async {
-                    final updatedCreature = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateCreaturePage(
-                          creature: creature,
-                          statsMenu: statsMenu,
-                        ),
-                      ),
-                    );
+        actions: [
+          if (statsMenu)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                final updatedCreature = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateCreaturePage(
+                      creature: creature,
+                      statsMenu: statsMenu,
+                    ),
+                  ),
+                );
 
-                    if (updatedCreature != null && context.mounted) {
-                      Navigator.of(context).pop(updatedCreature);
-                    }
-                  },
-                ),
-              ]
-            : null,
+                if (updatedCreature != null && context.mounted) {
+                  Navigator.of(context).pop(updatedCreature);
+                }
+              },
+            ),
+          if (importCreature)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                final newCreature =
+                    await _showAddCreatureDialog(context, creature);
+                if (newCreature != null && context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(newCreature);
+                }
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(8.0),
@@ -1116,19 +1231,6 @@ class CreatureDetailPage extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: importCreature
-          ? FloatingActionButton(
-              onPressed: () async {
-                final newCreature =
-                    await _showAddCreatureDialog(context, creature);
-                if (newCreature != null && context.mounted) {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(newCreature);
-                }
-              },
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 
@@ -1187,8 +1289,7 @@ class CreatureDetailPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-            'Sinne: ${creature.senses.isNotEmpty ? creature.senses : 'None'}'),
+        Text('Sinne: ${creature.senses.isNotEmpty ? creature.senses : 'None'}'),
         Text(
             'Sprachen: ${creature.languages.isNotEmpty ? creature.languages : 'None'}'),
         Text(
@@ -1292,20 +1393,19 @@ class CreatureDetailPage extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           title: const Text('Begeleiter hinzufügen'),
-          content:
-              Text('Möchtest du ${creature.name} hinzufügen?'),
+          content: Text('Möchtest du ${creature.name} hinzufügen?'),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(creature);
-              },
-              child: const Text('Ja'),
-            ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: const Text('Nein'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(creature);
+              },
+              child: const Text('Ja'),
             ),
           ],
         );

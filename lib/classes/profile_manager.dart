@@ -1736,6 +1736,18 @@ Future<void> removeCreature(int uuid) async {
     return result;
   }
 
+  Future<List<Map<String, dynamic>>> getSavingThrows() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'savingthrow',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
   Future<List<Map<String, dynamic>>> getAllSpells() async {
     if (currentDb == null) return [];
 

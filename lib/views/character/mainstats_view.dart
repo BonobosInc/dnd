@@ -80,6 +80,23 @@ class MainStatsPageState extends State<MainStatsPage> {
     });
   }
 
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+    );
+  }
+
   void _incrementHP() {
     setState(() {
       if (tempHP > 0) {
@@ -156,20 +173,23 @@ class MainStatsPageState extends State<MainStatsPage> {
       String statName, String field, dynamic currentValue) async {
     dynamic newValue = currentValue;
 
+    TextEditingController controller =
+        TextEditingController(text: currentValue.toString());
+
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Bearbeite $statName"),
-          content: TextField(
-            decoration: const InputDecoration(labelText: "Neuer Wert"),
-            keyboardType: field == Defines.statMovement
-                ? TextInputType.text
-                : TextInputType.number,
+          title: Text(statName),
+          content: _buildTextField(
+            label: "",
+            controller: controller,
             onChanged: (value) {
               newValue = value;
             },
-            controller: TextEditingController(text: currentValue.toString()),
+            keyboardType: field == Defines.statMovement
+                ? TextInputType.text
+                : TextInputType.number,
           ),
           actions: [
             TextButton(
@@ -220,20 +240,22 @@ class MainStatsPageState extends State<MainStatsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Bearbeite HP für ${creatures[index].name}"),
+          title: Text("HP für ${creatures[index].name}"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              _buildTextField(
+                label: 'Aktuelle HP',
                 controller: hpController,
+                onChanged: (value) {},
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Aktuelle HP'),
               ),
               const SizedBox(height: 10),
-              TextField(
+              _buildTextField(
+                label: 'Maximale HP',
                 controller: maxHpController,
+                onChanged: (value) {},
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Maximale HP'),
               ),
             ],
           ),
@@ -272,38 +294,44 @@ class MainStatsPageState extends State<MainStatsPage> {
     int newMaxHP = maxHP;
     int newTempHP = tempHP;
 
+    TextEditingController currentHpController =
+        TextEditingController(text: currentHP.toString());
+    TextEditingController maxHpController =
+        TextEditingController(text: maxHP.toString());
+    TextEditingController tempHpController =
+        TextEditingController(text: tempHP.toString());
+
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Bearbeite HP"),
+          title: const Text("HP"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                decoration: const InputDecoration(labelText: "Aktuelle HP"),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  newCurrentHP = int.tryParse(value) ?? currentHP;
-                },
-                controller: TextEditingController(text: currentHP.toString()),
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: "Max HP"),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  newMaxHP = int.tryParse(value) ?? maxHP;
-                },
-                controller: TextEditingController(text: maxHP.toString()),
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: "Temp HP"),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  newTempHP = int.tryParse(value) ?? tempHP;
-                },
-                controller: TextEditingController(text: tempHP.toString()),
-              ),
+              _buildTextField(
+                  label: "Aktuelle HP",
+                  controller: currentHpController,
+                  onChanged: (value) {
+                    newCurrentHP = int.tryParse(value) ?? currentHP;
+                  },
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 8),
+              _buildTextField(
+                  label: "Max HP",
+                  controller: maxHpController,
+                  onChanged: (value) {
+                    newMaxHP = int.tryParse(value) ?? maxHP;
+                  },
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 8),
+              _buildTextField(
+                  label: "Temp HP",
+                  controller: tempHpController,
+                  onChanged: (value) {
+                    newTempHP = int.tryParse(value) ?? tempHP;
+                  },
+                  keyboardType: TextInputType.number),
             ],
           ),
           actions: [
@@ -351,8 +379,9 @@ class MainStatsPageState extends State<MainStatsPage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    decoration: const InputDecoration(labelText: "Tracker"),
+                  _buildTextField(
+                    label: "Tracker",
+                    controller: TextEditingController(text: newTrackerName),
                     onChanged: (value) {
                       newTrackerName = value;
                     },
@@ -432,14 +461,13 @@ class MainStatsPageState extends State<MainStatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text("Bearbeite ${tracker.tracker}"),
+              title: Text(tracker.tracker),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
+                  _buildTextField(
+                    label: "Tracker Name",
                     controller: TextEditingController(text: editedTrackerName),
-                    decoration:
-                        const InputDecoration(labelText: "Tracker Name"),
                     onChanged: (value) {
                       editedTrackerName = value;
                     },
@@ -579,35 +607,36 @@ class MainStatsPageState extends State<MainStatsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Bearbeite Hit Dice"),
+          title: const Text("Hit Dice"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                decoration: const InputDecoration(labelText: "Heilungsfaktor"),
-                keyboardType: TextInputType.text,
+              _buildTextField(
+                label: "Heilungsfaktor",
+                controller: TextEditingController(text: healFactor),
                 onChanged: (value) {
                   newHealFactor = value;
                 },
-                controller: TextEditingController(text: healFactor),
+                keyboardType: TextInputType.text,
               ),
-              TextField(
-                decoration:
-                    const InputDecoration(labelText: "Aktuelle Hit Dice"),
-                keyboardType: TextInputType.number,
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: "Aktuelle Hit Dice",
+                controller:
+                    TextEditingController(text: currentHitDice.toString()),
                 onChanged: (value) {
                   newCurrentHitDice = int.tryParse(value) ?? currentHitDice;
                 },
-                controller:
-                    TextEditingController(text: currentHitDice.toString()),
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: "Max Hit Dice"),
                 keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: "Max Hit Dice",
+                controller: TextEditingController(text: maxHitDice.toString()),
                 onChanged: (value) {
                   newMaxHitDice = int.tryParse(value) ?? maxHitDice;
                 },
-                controller: TextEditingController(text: maxHitDice.toString()),
+                keyboardType: TextInputType.number,
               ),
             ],
           ),
@@ -982,7 +1011,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                                   child: Text(
                                     '${creatures[i].name} ${creatures[i].currentHP} / ${creatures[i].maxHP}',
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
