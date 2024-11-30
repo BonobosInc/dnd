@@ -1,5 +1,6 @@
 import 'package:dnd/views/wiki/background_view.dart';
 import 'package:dnd/views/wiki/classes_view.dart';
+import 'package:dnd/views/wiki/creatures_view.dart';
 import 'package:dnd/views/wiki/feat_view.dart';
 import 'package:dnd/views/wiki/races_view.dart';
 import 'package:dnd/views/wiki/spellwiki_view.dart';
@@ -25,6 +26,7 @@ class WikiPageState extends State<WikiPage> {
   List<BackgroundData> backgrounds = [];
   List<FeatData> feats = [];
   List<SpellData> spells = [];
+  List<Creature> creatures = [];
 
   String searchQuery = '';
   bool isSearchVisible = false;
@@ -51,34 +53,49 @@ class WikiPageState extends State<WikiPage> {
       backgrounds = widget.wikiParser.backgrounds;
       feats = widget.wikiParser.feats;
       spells = widget.wikiParser.spells;
+      creatures = widget.wikiParser.creatures;
     });
   }
 
   Future<void> importXml() async {
-    String? filePath = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xml'],
-    ).then((result) => result?.files.single.path);
+    String? filePath = await FilePicker.platform
+        .pickFiles(
+          type: FileType.any,
+        )
+        .then((result) => result?.files.single.path);
 
     if (filePath != null) {
+      if (!filePath.endsWith('.xml')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nur XML-Dateien sind erlaubt.')),
+          );
+        }
+        return;
+      }
+
       try {
         await widget.wikiParser.importXml(filePath);
         loadDataFromParser();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Import erfolgreich')));
+            const SnackBar(content: Text('Import erfolgreich')),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Import fehlgeschlagen: $e')));
+            SnackBar(content: Text('Import fehlgeschlagen: $e')),
+          );
         }
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Import abgebrochen oder fehlgeschlagen.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Import abgebrochen oder fehlgeschlagen.')),
+        );
       }
     }
   }
@@ -245,6 +262,7 @@ class WikiPageState extends State<WikiPage> {
                 buildCollapsibleSection('Klassen', classes),
                 buildCollapsibleSection('Hintergründe', backgrounds),
                 buildCollapsibleSection('Talente', feats),
+                buildCreatureCollapsibleSection('Monster', creatures),
                 if (widget.importFeat == false)
                   buildSpellCollapsibleSection('Zauber', spells),
               ],
@@ -387,6 +405,42 @@ class WikiPageState extends State<WikiPage> {
             ],
           );
         }),
+        const Divider(),
+      ],
+    );
+  }
+
+  Widget buildCreatureCollapsibleSection(
+      String title, List<Creature> creatures) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExpansionTile(
+          shape: const Border(),
+          title: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          children: [
+            const Divider(),
+            ListTile(
+              title: const Text('All Creatures'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AllCreaturesPage(creatures: creatures),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const Divider(),
       ],
     );
   }

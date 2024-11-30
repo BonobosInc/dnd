@@ -44,7 +44,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
               title: const Text('Neuer Charakter'),
               content: TextField(
                 controller: controller,
-                decoration: const InputDecoration(hintText: 'Charakternamen eingeben'),
+                decoration:
+                    const InputDecoration(hintText: 'Charakternamen eingeben'),
               ),
               actions: <Widget>[
                 TextButton(
@@ -57,7 +58,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                       : () async {
                           String profileName = controller.text;
                           if (profileName.isNotEmpty) {
-                            String lowerCaseProfileName = profileName.toLowerCase();
+                            String lowerCaseProfileName =
+                                profileName.toLowerCase();
 
                             bool profileExists = profileManager.profiles
                                 .map((profile) => profile.name.toLowerCase())
@@ -68,7 +70,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                 SnackBar(
                                   content: Text(
                                     'Der Charakter "$profileName" existiert bereits. Bitte wähle einen anderen Namen.',
-                                    style: const TextStyle(color: AppColors.textColorLight),
+                                    style: const TextStyle(
+                                        color: AppColors.textColorLight),
                                   ),
                                   backgroundColor: AppColors.warningColor,
                                 ),
@@ -104,7 +107,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Datenbank leeren'),
-          content: const Text('Möchtest du wirklich die gesamte Datenbank leeren?'),
+          content:
+              const Text('Möchtest du wirklich die gesamte Datenbank leeren?'),
           actions: <Widget>[
             TextButton(
               child: const Text('Nein'),
@@ -134,6 +138,15 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     await profileManager.dumpDatabase(profileName);
   }
 
+  void showTestBar(BuildContext context) {
+    const snackBar = SnackBar(
+      content: Text('Diese Funktion existiert aktuell noch nicht'),
+      duration: Duration(seconds: 2),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   Future<void> _renameProfile(Character oldProfile) async {
     TextEditingController controller = TextEditingController();
     await showDialog(
@@ -143,7 +156,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
           title: const Text('Charakter umbenennen'),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: 'Neuen Charakternamen eingeben'),
+            decoration: const InputDecoration(
+                hintText: 'Neuen Charakternamen eingeben'),
           ),
           actions: <Widget>[
             TextButton(
@@ -156,7 +170,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
 
                 if (newName.isNotEmpty) {
                   try {
-                    await profileManager.renameProfile(oldProfile.name, newName);
+                    await profileManager.renameProfile(
+                        oldProfile.name, newName);
                     setState(() {
                       _initializeProfiles();
                     });
@@ -164,14 +179,15 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
-                          style: const TextStyle(color: AppColors.textColorLight),
+                        SnackBar(
+                          content: Text(
+                            'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
+                            style: const TextStyle(
+                                color: AppColors.textColorLight),
+                          ),
+                          backgroundColor: AppColors.warningColor,
                         ),
-                        backgroundColor: AppColors.warningColor,
-                      ),
-                    );
+                      );
                     }
                   }
                 }
@@ -218,13 +234,14 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
           Expanded(
             child: profileManager.hasProfiles()
                 ? ListView.builder(
-                    physics:
-                        const ClampingScrollPhysics(),
+                    physics: const ClampingScrollPhysics(),
                     itemCount: profileManager.getProfiles().length,
                     itemBuilder: (context, index) {
-                      final Character profile = profileManager.getProfiles()[index];
+                      final Character profile =
+                          profileManager.getProfiles()[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 6.0),
                         child: Material(
                           elevation: 4,
                           borderRadius: BorderRadius.circular(12),
@@ -238,19 +255,22 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                             child: ListTile(
                               title: Text(
                                 profile.name,
-                                style: const TextStyle(color: AppColors.textColorLight),
+                                style: const TextStyle(
+                                    color: AppColors.textColorLight),
                               ),
                               onTap: () async {
                                 await profileManager.selectProfile(profile);
 
-                                if(context.mounted) {
+                                if (context.mounted) {
                                   Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CharacterView(
-                                        profileManager: profileManager, wikiParser: widget.wikiParser,),
-                                  ),
-                                );
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CharacterView(
+                                        profileManager: profileManager,
+                                        wikiParser: widget.wikiParser,
+                                      ),
+                                    ),
+                                  );
                                 }
                               },
                               trailing: PopupMenuButton<String>(
@@ -260,13 +280,16 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                       context: context,
                                       builder: (BuildContext context) {
                                         return AlertDialog(
-                                          title: const Text('Charakter löschen'),
-                                          content: Text('Willst du wirklich den Charakter ${profile.name} löschen?'),
+                                          title:
+                                              const Text('Charakter löschen'),
+                                          content: Text(
+                                              'Willst du wirklich den Charakter ${profile.name} löschen?'),
                                           actions: <Widget>[
                                             TextButton(
                                               child: const Text('Nein'),
                                               onPressed: () {
-                                                Navigator.of(context).pop(false);
+                                                Navigator.of(context)
+                                                    .pop(false);
                                               },
                                             ),
                                             TextButton(
@@ -280,11 +303,13 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                       },
                                     );
                                     if (confirmDelete == true) {
-                                      await profileManager.deleteProfile(profile);
+                                      await profileManager
+                                          .deleteProfile(profile);
                                       setState(() {});
                                     }
                                   } else if (value == 'dump') {
-                                    await _dumpDatabase(profile.name);
+                                    // await _dumpDatabase(profile.name);
+                                    showTestBar(context);
                                   } else if (value == 'rename') {
                                     await _renameProfile(profile);
                                   }
@@ -315,7 +340,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 : const Center(
                     child: Text(
                       'Keine Charaktere vorhanden',
-                      style: TextStyle(fontSize: 20, color: AppColors.textColorLight),
+                      style: TextStyle(
+                          fontSize: 20, color: AppColors.textColorLight),
                     ),
                   ),
           ),

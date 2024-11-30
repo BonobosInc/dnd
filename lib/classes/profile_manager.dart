@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dnd/classes/wiki_classes.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -223,16 +224,18 @@ class ProfileManager {
       var initialStats = {
         'charId': insertedCharId,
         Defines.statArmor: 10,
-        Defines.statLevel: 1,
+        Defines.statLevel: 0,
         Defines.statXP: 0,
-        Defines.statInspiration: 1,
-        Defines.statProficiencyBonus: 1,
-        Defines.statInitiative: 1,
-        Defines.statMovement: 1,
-        Defines.statMaxHP: 1,
-        Defines.statCurrentHP: 1,
-        Defines.statTempHP: 1,
-        Defines.statHitDice: 1,
+        Defines.statInspiration: 0,
+        Defines.statProficiencyBonus: 0,
+        Defines.statInitiative: 0,
+        Defines.statMovement: "0m",
+        Defines.statMaxHP: 0,
+        Defines.statCurrentHP: 0,
+        Defines.statTempHP: 0,
+        Defines.statCurrentHitDice: 0,
+        Defines.statMaxHitDice: 0,
+        Defines.statHitDiceFactor: "",
         Defines.statSTR: 0,
         Defines.statDEX: 0,
         Defines.statCON: 0,
@@ -375,11 +378,13 @@ class ProfileManager {
         '${Defines.statInspiration} INTEGER, '
         '${Defines.statProficiencyBonus} INTEGER, '
         '${Defines.statInitiative} INTEGER, '
-        '${Defines.statMovement} INTEGER, '
+        '${Defines.statMovement} TEXT, '
         '${Defines.statMaxHP} INTEGER, '
         '${Defines.statCurrentHP} INTEGER, '
         '${Defines.statTempHP} INTEGER, '
-        '${Defines.statHitDice} INTEGER, '
+        '${Defines.statCurrentHitDice} INTEGER, '
+        '${Defines.statMaxHitDice} INTEGER, '
+        '${Defines.statHitDiceFactor} TEXT, '
         '${Defines.statSTR} INTEGER, '
         '${Defines.statDEX} INTEGER, '
         '${Defines.statCON} INTEGER, '
@@ -436,6 +441,75 @@ class ProfileManager {
         'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute('''
+  CREATE TABLE IF NOT EXISTS creatures (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    charId INTEGER,
+    name TEXT,
+    size TEXT,
+    type TEXT,
+    alignment TEXT,
+    ac INTEGER,
+    hp TEXT,
+    currentHP INTEGER,
+    maxHP INTEGER,
+    speed TEXT,
+    str INTEGER,
+    dex INTEGER,
+    con INTEGER,
+    intScore INTEGER,
+    wis INTEGER,
+    cha INTEGER,
+    saves TEXT,
+    skills TEXT,
+    resistances TEXT,
+    vulnerabilities TEXT,
+    immunities TEXT,
+    conditionImmunities TEXT,
+    senses TEXT,
+    passivePerception INTEGER,
+    languages TEXT,
+    cr TEXT,
+    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
+  )
+''');
+    currentDb!.execute('''
+  CREATE TABLE IF NOT EXISTS creature_traits (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    charId INTEGER,
+    creature_id INTEGER,
+    trait_name TEXT,
+    trait_description TEXT,
+    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
+    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
+  )
+''');
+    currentDb!.execute('''
+  CREATE TABLE IF NOT EXISTS creature_actions (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    charId INTEGER,
+    creature_id INTEGER,
+    action_name TEXT,
+    action_description TEXT,
+    action TEXT,
+    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
+    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
+  )
+''');
+    currentDb!.execute('''
+  CREATE TABLE IF NOT EXISTS creature_legendary_actions (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    charId INTEGER,
+    creature_id INTEGER,
+    legendary_action_name TEXT,
+    legendary_action_description TEXT,
+    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
+    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
+  )
+''');
+
     await initializeDatabase(currentDb!, profileName);
 
     await loadProfiles();
@@ -1025,7 +1099,7 @@ class ProfileManager {
     final Map<String, dynamic> updates = {
       'featname': featName,
       'description': description,
-      'type' : type,
+      'type': type,
     };
 
     if (existingFeatList.isNotEmpty) {
@@ -1061,7 +1135,7 @@ class ProfileManager {
       'charId': selectedID,
       'featname': featName,
       'description': description,
-      'type' : type,
+      'type': type,
     };
 
     try {
@@ -1166,6 +1240,394 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateTracker({
+    required uuid,
+    String? tracker,
+    int? value,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingTrackerList =
+        await currentDb!.query(
+      'tracker',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'trackername': tracker,
+      'value': value,
+    };
+
+    if (existingTrackerList.isNotEmpty) {
+      final Map<String, dynamic> existingTracker = existingTrackerList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingTracker[key];
+        }
+      });
+      await currentDb!.update(
+        'tracker',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'tracker',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addTracker({
+    required String tracker,
+    int? value,
+    String? type,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> trackerData = {
+      'charId': selectedID,
+      'trackername': tracker,
+      'value': value,
+    };
+
+    try {
+      await currentDb!.insert(
+        'tracker',
+        trackerData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding item: $e');
+      }
+    }
+  }
+
+  Future<void> removeTracker(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'tracker',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
+  Future<void> addCreature(Creature creature) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> creatureData = {
+      'charId': selectedID,
+      'name': creature.name,
+      'size': creature.size,
+      'type': creature.type,
+      'alignment': creature.alignment,
+      'ac': creature.ac,
+      'hp': creature.hp,
+      'currentHP': creature.currentHP,
+      'maxHP': creature.maxHP,
+      'speed': creature.speed,
+      'str': creature.str,
+      'dex': creature.dex,
+      'con': creature.con,
+      'intScore': creature.intScore,
+      'wis': creature.wis,
+      'cha': creature.cha,
+      'saves': creature.saves,
+      'skills': creature.skills,
+      'resistances': creature.resistances,
+      'vulnerabilities': creature.vulnerabilities,
+      'immunities': creature.immunities,
+      'conditionImmunities': creature.conditionImmunities,
+      'senses': creature.senses,
+      'passivePerception': creature.passivePerception,
+      'languages': creature.languages,
+      'cr': creature.cr,
+    };
+
+    try {
+      final int creatureId = await currentDb!.insert(
+        'creatures',
+        creatureData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+
+      for (var trait in creature.traits) {
+        await currentDb!.insert(
+          'creature_traits',
+          {
+            'charId': selectedID,
+            'creature_id': creatureId,
+            'trait_name': trait.name,
+            'trait_description': trait.description,
+          },
+        );
+      }
+
+      for (var action in creature.actions) {
+        await currentDb!.insert(
+          'creature_actions',
+          {
+            'charId': selectedID,
+            'creature_id': creatureId,
+            'action_name': action.name,
+            'action': action.attack,
+            'action_description': action.description,
+          },
+        );
+      }
+
+      for (var legendary in creature.legendaryActions) {
+        await currentDb!.insert(
+          'creature_legendary_actions',
+          {
+            'charId': selectedID,
+            'creature_id': creatureId,
+            'legendary_action_name': legendary.name,
+            'legendary_action_description': legendary.description,
+          },
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding creature: $e');
+      }
+    }
+  }
+
+  Future<void> updateCreature(
+    Creature creature,
+  ) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingCreatureList =
+        await currentDb!.query(
+      'creatures',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, creature.uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'name': creature.name,
+      'size': creature.size,
+      'type': creature.type,
+      'alignment': creature.alignment,
+      'ac': creature.ac,
+      'hp': creature.hp,
+      'speed': creature.speed,
+      'str': creature.str,
+      'dex': creature.dex,
+      'con': creature.con,
+      'intScore': creature.intScore,
+      'wis': creature.wis,
+      'cha': creature.cha,
+      'saves': creature.saves,
+      'skills': creature.skills,
+      'resistances': creature.resistances,
+      'vulnerabilities': creature.vulnerabilities,
+      'immunities': creature.immunities,
+      'conditionImmunities': creature.conditionImmunities,
+      'senses': creature.senses,
+      'passivePerception': creature.passivePerception,
+      'languages': creature.languages,
+      'cr': creature.cr,
+    };
+
+    if (existingCreatureList.isNotEmpty) {
+      await currentDb!.update(
+        'creatures',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, creature.uuid],
+      );
+
+      await currentDb!.delete('creature_traits',
+          where: 'charId = ? AND creature_id = ?',
+          whereArgs: [selectedID, creature.uuid]);
+      await currentDb!.delete('creature_actions',
+          where: 'charId = ? AND creature_id = ?',
+          whereArgs: [selectedID, creature.uuid]);
+      await currentDb!.delete('creature_legendary_actions',
+          where: 'charId = ? AND creature_id = ?',
+          whereArgs: [selectedID, creature.uuid]);
+
+      for (var trait in creature.traits) {
+        await currentDb!.insert(
+          'creature_traits',
+          {
+            'charId': selectedID,
+            'creature_id': creature.uuid,
+            'trait_name': trait.name,
+            'trait_description': trait.description,
+          },
+        );
+      }
+
+      for (var action in creature.actions) {
+        await currentDb!.insert(
+          'creature_actions',
+          {
+            'charId': selectedID,
+            'creature_id': creature.uuid,
+            'action_name': action.name,
+            'action': action.attack,
+            'action_description': action.description,
+          },
+        );
+      }
+
+      for (var legendary in creature.legendaryActions) {
+        await currentDb!.insert(
+          'creature_legendary_actions',
+          {
+            'charId': selectedID,
+            'creature_id': creature.uuid,
+            'legendary_action_name': legendary.name,
+            'legendary_action_description': legendary.description,
+          },
+        );
+      }
+    } else {
+      await addCreature(creature);
+    }
+  }
+
+Future<void> removeCreature(int uuid) async {
+  if (currentDb == null) return;
+
+  try {
+    await currentDb!.delete(
+      'creature_traits',
+      where: 'charId = ? AND creature_id = ?',
+      whereArgs: [selectedID, uuid],
+    );
+    await currentDb!.delete(
+      'creature_actions',
+      where: 'charId = ? AND creature_id = ?',
+      whereArgs: [selectedID, uuid],
+    );
+    await currentDb!.delete(
+      'creature_legendary_actions',
+      where: 'charId = ? AND creature_id = ?',
+      whereArgs: [selectedID, uuid],
+    );
+    await currentDb!.delete(
+      'creatures',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error removing creature: $e');
+    }
+  }
+}
+
+
+  Future<List<Creature>> getCreatures() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'creatures',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    List<Creature> creatures = [];
+
+    for (var creatureData in result) {
+      final int creatureId = creatureData['ID'];
+
+      final List<Map<String, dynamic>> traitsData = await currentDb!.query(
+        'creature_traits',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, creatureId],
+      );
+      List<Trait> traits = traitsData
+          .map((trait) => Trait(
+                name: trait['trait_name'],
+                description: trait['trait_description'],
+              ))
+          .toList();
+
+      final List<Map<String, dynamic>> actionsData = await currentDb!.query(
+        'creature_actions',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, creatureId],
+      );
+      List<CAction> actions = actionsData
+          .map((action) => CAction(
+                name: action['action_name'],
+                description: action['action_description'],
+                attack: action['action'],
+              ))
+          .toList();
+
+      final List<Map<String, dynamic>> legendaryActionsData =
+          await currentDb!.query(
+        'creature_legendary_actions',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, creatureId],
+      );
+      List<Legendary> legendaryActions = legendaryActionsData
+          .map((legendary) => Legendary(
+                name: legendary['legendary_action_name'],
+                description: legendary['legendary_action_description'],
+              ))
+          .toList();
+
+      creatures.add(Creature(
+        uuid: creatureId,
+        name: creatureData['name'],
+        size: creatureData['size'],
+        type: creatureData['type'],
+        alignment: creatureData['alignment'],
+        ac: creatureData['ac'],
+        hp: creatureData['hp'],
+        currentHP: creatureData['currentHP'],
+        maxHP: creatureData['maxHP'],
+        speed: creatureData['speed'],
+        str: creatureData['str'],
+        dex: creatureData['dex'],
+        con: creatureData['con'],
+        intScore: creatureData['intScore'],
+        wis: creatureData['wis'],
+        cha: creatureData['cha'],
+        saves: creatureData['saves'],
+        skills: creatureData['skills'],
+        resistances: creatureData['resistances'],
+        vulnerabilities: creatureData['vulnerabilities'],
+        immunities: creatureData['immunities'],
+        conditionImmunities: creatureData['conditionImmunities'],
+        senses: creatureData['senses'],
+        passivePerception: creatureData['passivePerception'],
+        languages: creatureData['languages'],
+        cr: creatureData['cr'],
+        traits: traits,
+        actions: actions,
+        legendaryActions: legendaryActions,
+      ));
+    }
+
+    return creatures;
+  }
+
+  Future<List<Map<String, dynamic>>> getTracker() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'tracker',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
   Future<List<Map<String, dynamic>>> getStats() async {
     if (currentDb == null) return [];
 
@@ -1267,6 +1729,18 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'feats',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getSavingThrows() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'savingthrow',
       where: 'charId = ?',
       whereArgs: [selectedID],
     );
