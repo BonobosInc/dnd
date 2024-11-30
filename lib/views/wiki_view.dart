@@ -58,30 +58,44 @@ class WikiPageState extends State<WikiPage> {
   }
 
   Future<void> importXml() async {
-    String? filePath = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xml'],
-    ).then((result) => result?.files.single.path);
+    String? filePath = await FilePicker.platform
+        .pickFiles(
+          type: FileType.any,
+        )
+        .then((result) => result?.files.single.path);
 
     if (filePath != null) {
+      if (!filePath.endsWith('.xml')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nur XML-Dateien sind erlaubt.')),
+          );
+        }
+        return;
+      }
+
       try {
         await widget.wikiParser.importXml(filePath);
         loadDataFromParser();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Import erfolgreich')));
+            const SnackBar(content: Text('Import erfolgreich')),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Import fehlgeschlagen: $e')));
+            SnackBar(content: Text('Import fehlgeschlagen: $e')),
+          );
         }
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Import abgebrochen oder fehlgeschlagen.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Import abgebrochen oder fehlgeschlagen.')),
+        );
       }
     }
   }
@@ -248,10 +262,9 @@ class WikiPageState extends State<WikiPage> {
                 buildCollapsibleSection('Klassen', classes),
                 buildCollapsibleSection('Hintergründe', backgrounds),
                 buildCollapsibleSection('Talente', feats),
+                buildCreatureCollapsibleSection('Monster', creatures),
                 if (widget.importFeat == false)
                   buildSpellCollapsibleSection('Zauber', spells),
-                  const Divider(),
-                buildCreatureCollapsibleSection('Monster', creatures),
               ],
       ),
     );
@@ -392,33 +405,42 @@ class WikiPageState extends State<WikiPage> {
             ],
           );
         }),
+        const Divider(),
       ],
     );
   }
 
-    Widget buildCreatureCollapsibleSection(String title, List<Creature> creatures) {
-    return ExpansionTile(
-      shape: const Border(),
-      title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Text(
-          title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ),
+  Widget buildCreatureCollapsibleSection(
+      String title, List<Creature> creatures) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(),
-        ListTile(
-          title: const Text('All Creatures'),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AllCreaturesPage(creatures: creatures),
-              ),
-            );
-          },
+        ExpansionTile(
+          shape: const Border(),
+          title: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          children: [
+            const Divider(),
+            ListTile(
+              title: const Text('All Creatures'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AllCreaturesPage(creatures: creatures),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
+        const Divider(),
       ],
     );
   }

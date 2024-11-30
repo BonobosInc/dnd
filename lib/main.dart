@@ -36,6 +36,7 @@ class DNDApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           color: AppColors.appBarColor,
         ),
+        splashColor: Colors.transparent,
         cardColor: AppColors.cardColor,
         dividerColor: AppColors.dividerColor,
         textTheme: const TextTheme(

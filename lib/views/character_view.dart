@@ -64,7 +64,6 @@ class CharacterViewState extends State<CharacterView> {
         int tempLevel = level;
 
         return StatefulBuilder(
-          // Add StatefulBuilder here to trigger state updates
           builder: (BuildContext context, setStateDialog) {
             return AlertDialog(
               title: const Text("Level"),
@@ -102,13 +101,13 @@ class CharacterViewState extends State<CharacterView> {
               ),
               actions: <Widget>[
                 TextButton(
-                  child: const Text("Cancel"),
+                  child: const Text("Abbrechen"),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: const Text("Save"),
+                  child: const Text("Speichern"),
                   onPressed: () async {
                     setState(() {
                       level = tempLevel;
@@ -223,7 +222,6 @@ class CharacterViewState extends State<CharacterView> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: <Widget>[
-                  // Custom DrawerHeader with XP and Level
                   SizedBox(
                     height: 120,
                     child: DrawerHeader(
@@ -259,10 +257,9 @@ class CharacterViewState extends State<CharacterView> {
                       ),
                     ),
                   ),
-                  // Menu Items
                   ListTile(
                     title: const Text(
-                      'Spells',
+                      'Zauber',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () {
@@ -280,7 +277,7 @@ class CharacterViewState extends State<CharacterView> {
                   ),
                   ListTile(
                     title: const Text(
-                      'Weapons',
+                      'Waffen',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () {
@@ -297,7 +294,7 @@ class CharacterViewState extends State<CharacterView> {
                   ),
                   ListTile(
                     title: const Text(
-                      'Notes',
+                      'Notizen',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () {
@@ -315,7 +312,7 @@ class CharacterViewState extends State<CharacterView> {
                   ),
                   ListTile(
                     title: const Text(
-                      'Bag',
+                      'Auisrüstung',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () {
