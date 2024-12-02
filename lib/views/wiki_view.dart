@@ -427,7 +427,7 @@ class WikiPageState extends State<WikiPage> {
           children: [
             const Divider(),
             ListTile(
-              title: const Text('All Creatures'),
+              title: const Text('Alle Monster'),
               onTap: () {
                 Navigator.push(
                   context,

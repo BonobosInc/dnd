@@ -113,6 +113,28 @@ class ClassSpellsPage extends StatefulWidget {
 
 class ClassSpellsPageState extends State<ClassSpellsPage> {
   final Set<SpellData> _selectedSpells = {};
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  bool isSearchVisible = false; // Tracks the visibility of the search bar
+  String _searchText = ''; // Tracks the current search query
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   void _onSpellSelected(SpellData spell, bool isSelected) {
     setState(() {
@@ -124,25 +146,58 @@ class ClassSpellsPageState extends State<ClassSpellsPage> {
     });
   }
 
+  List<SpellData> _filterSpells(List<SpellData> spells) {
+    if (_searchText.isEmpty) {
+      return spells;
+    }
+    return spells
+        .where((spell) => spell.name.toLowerCase().contains(_searchText))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.className} Zauber'),
-        actions: widget.importspell
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.check),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(_selectedSpells.toList());
-                  },
+        title: isSearchVisible
+            ? TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                decoration: const InputDecoration(
+                  hintText: 'Zauber durchsuchen...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.white54),
                 ),
-              ]
-            : null,
+                style: const TextStyle(color: Colors.white),
+              )
+            : Text('${widget.className} Zauber'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              setState(() {
+                isSearchVisible = !isSearchVisible;
+                if (isSearchVisible) {
+                  _searchFocusNode.requestFocus();
+                } else {
+                  _searchText = '';
+                  _searchController.clear();
+                  _searchFocusNode.unfocus();
+                }
+              });
+            },
+          ),
+          if (widget.importspell)
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                Navigator.of(context).pop(_selectedSpells.toList());
+              },
+            ),
+        ],
       ),
       body: buildSpellCollapsibleSections(
-        widget.spells,
+        _filterSpells(widget.spells),
         context,
         widget.importspell,
         _selectedSpells,
@@ -168,6 +223,28 @@ class AllSpellsPage extends StatefulWidget {
 
 class AllSpellsPageState extends State<AllSpellsPage> {
   final Set<SpellData> _selectedSpells = {};
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  bool isSearchVisible = false; // Tracks the visibility of the search bar
+  String _searchText = ''; // Tracks the current search query
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   void _onSpellSelected(SpellData spell, bool isSelected) {
     setState(() {
@@ -179,25 +256,58 @@ class AllSpellsPageState extends State<AllSpellsPage> {
     });
   }
 
+  List<SpellData> _filterSpells(List<SpellData> spells) {
+    if (_searchText.isEmpty) {
+      return spells;
+    }
+    return spells
+        .where((spell) => spell.name.toLowerCase().contains(_searchText))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alle Zauber'),
-        actions: widget.importspell
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.check),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(_selectedSpells.toList());
-                  },
+        title: isSearchVisible
+            ? TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                decoration: const InputDecoration(
+                  hintText: 'Zauber durchsuchen...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.white54),
                 ),
-              ]
-            : null,
+                style: const TextStyle(color: Colors.white),
+              )
+            : const Text('Alle Zauber'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              setState(() {
+                isSearchVisible = !isSearchVisible;
+                if (isSearchVisible) {
+                  _searchFocusNode.requestFocus();
+                } else {
+                  _searchText = '';
+                  _searchController.clear();
+                  _searchFocusNode.unfocus();
+                }
+              });
+            },
+          ),
+          if (widget.importspell)
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                Navigator.of(context).pop(_selectedSpells.toList());
+              },
+            ),
+        ],
       ),
       body: buildSpellCollapsibleSections(
-        widget.spells,
+        _filterSpells(widget.spells),
         context,
         widget.importspell,
         _selectedSpells,
@@ -278,7 +388,6 @@ Widget buildCollapsibleSectionForSpells(
           return Column(
             children: [
               if (index == 0) const Divider(),
-
               ListTile(
                 title: Text(spell.name),
                 leading: importSpell
