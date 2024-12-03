@@ -312,7 +312,7 @@ class CharacterViewState extends State<CharacterView> {
                   ),
                   ListTile(
                     title: const Text(
-                      'Auisrüstung',
+                      'Ausrüstung',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () {

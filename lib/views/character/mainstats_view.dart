@@ -123,24 +123,6 @@ class MainStatsPageState extends State<MainStatsPage> {
     });
   }
 
-  void _incrementHitDice() {
-    setState(() {
-      if (currentHitDice < maxHitDice) {
-        currentHitDice++;
-        _updateStat(Defines.statCurrentHitDice, currentHitDice);
-      }
-    });
-  }
-
-  void _decrementHitDice() {
-    setState(() {
-      if (currentHitDice > 0) {
-        currentHitDice--;
-        _updateStat(Defines.statCurrentHitDice, currentHitDice);
-      }
-    });
-  }
-
   void _incrementCreatureHP(int index) {
     setState(() {
       if (creatures[index].currentHP < creatures[index].maxHP) {
@@ -170,7 +152,8 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _showEditStatDialog(
-      String statName, String field, dynamic currentValue) async {
+      String statName, String field, dynamic currentValue,
+      {bool isCount = false}) async {
     dynamic newValue = currentValue;
 
     TextEditingController controller =
@@ -179,50 +162,88 @@ class MainStatsPageState extends State<MainStatsPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(statName),
-          content: _buildTextField(
-            label: "",
-            controller: controller,
-            onChanged: (value) {
-              newValue = value;
-            },
-            keyboardType: field == Defines.statMovement
-                ? TextInputType.text
-                : TextInputType.number,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Abbrechen"),
-            ),
-            TextButton(
-              onPressed: () async {
-                await _updateStat(field, newValue);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(statName),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  isCount
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Wert:'),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove),
+                                  onPressed: () {
+                                    setState(() {
+                                      newValue--;
+                                    });
+                                  },
+                                ),
+                                Text('$newValue'),
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: () {
+                                    setState(() {
+                                      newValue++;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : _buildTextField(
+                          label: "",
+                          controller: controller,
+                          onChanged: (value) {
+                            newValue = value;
+                          },
+                          keyboardType: field == Defines.statMovement
+                              ? TextInputType.text
+                              : TextInputType.number,
+                        ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await _updateStat(field, newValue);
 
-                setState(() {
-                  if (field == Defines.statArmor) {
-                    armor = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statInspiration) {
-                    int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statProficiencyBonus) {
-                    proficiencyBonus = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statInitiative) {
-                    initiative = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statMovement) {
-                    movement = newValue;
-                  }
-                });
+                    setState(() {
+                      if (field == Defines.statArmor) {
+                        armor = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statInspiration) {
+                        inspiration = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statProficiencyBonus) {
+                        proficiencyBonus = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statInitiative) {
+                        initiative = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statMovement) {
+                        movement = newValue;
+                      }
+                    });
 
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: const Text("Speichern"),
-            ),
-          ],
+                    await _loadCharacterData();
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -606,65 +627,114 @@ class MainStatsPageState extends State<MainStatsPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text("Hit Dice"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(
-                label: "Heilungsfaktor",
-                controller: TextEditingController(text: healFactor),
-                onChanged: (value) {
-                  newHealFactor = value;
-                },
-                keyboardType: TextInputType.text,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: "Aktuelle Hit Dice",
-                controller:
-                    TextEditingController(text: currentHitDice.toString()),
-                onChanged: (value) {
-                  newCurrentHitDice = int.tryParse(value) ?? currentHitDice;
-                },
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: "Max Hit Dice",
-                controller: TextEditingController(text: maxHitDice.toString()),
-                onChanged: (value) {
-                  newMaxHitDice = int.tryParse(value) ?? maxHitDice;
-                },
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Abbrechen"),
-            ),
-            TextButton(
-              onPressed: () async {
-                newCurrentHitDice = newCurrentHitDice.clamp(0, newMaxHitDice);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Hit Dice"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTextField(
+                    label: "Heilungsfaktor",
+                    controller: TextEditingController(text: healFactor),
+                    onChanged: (value) {
+                      newHealFactor = value;
+                    },
+                    keyboardType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 16),
 
-                await _updateStat(
-                    Defines.statCurrentHitDice, newCurrentHitDice);
-                await _updateStat(Defines.statMaxHitDice, newMaxHitDice);
-                await _updateStat(Defines.statHitDiceFactor, newHealFactor);
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Aktuelle Hit Dice:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newCurrentHitDice > 0) newCurrentHitDice--;
+                              });
+                            },
+                          ),
+                          Text('$newCurrentHitDice'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                if (newCurrentHitDice < newMaxHitDice) {
+                                  newCurrentHitDice++;
+                                } else {
+                                  newCurrentHitDice = newMaxHitDice;
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-                setState(() {
-                  currentHitDice = newCurrentHitDice;
-                  maxHitDice = newMaxHitDice;
-                  _loadCharacterData();
-                });
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Max Hit Dice:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newMaxHitDice > 0) newMaxHitDice--;
+                              });
+                            },
+                          ),
+                          Text('$newMaxHitDice'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                newMaxHitDice++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    newCurrentHitDice =
+                        newCurrentHitDice.clamp(0, newMaxHitDice);
 
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: const Text("Speichern"),
-            ),
-          ],
+                    await _updateStat(
+                        Defines.statCurrentHitDice, newCurrentHitDice);
+                    await _updateStat(Defines.statMaxHitDice, newMaxHitDice);
+                    await _updateStat(Defines.statHitDiceFactor, newHealFactor);
+
+                    setState(() {
+                      currentHitDice = newCurrentHitDice;
+                      maxHitDice = newMaxHitDice;
+                      healFactor = newHealFactor;
+                      _loadCharacterData();
+                    });
+
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -691,9 +761,6 @@ class MainStatsPageState extends State<MainStatsPage> {
 
     tempHPWidth =
         tempHPWidth > remainingHPWidth ? remainingHPWidth : tempHPWidth;
-
-    double hitDiceWidth =
-        maxHitDice > 0 ? (currentHitDice / maxHitDice) * healthBarWidth : 0;
 
     final screenWidth = MediaQuery.of(context).size.width;
     int itemsPerRow = 3;
@@ -796,61 +863,6 @@ class MainStatsPageState extends State<MainStatsPage> {
               ],
             ),
           ),
-          // Hit Dice Section
-          Row(
-            children: [
-              Text(
-                '$currentHitDice$healFactor HD',
-                style: const TextStyle(fontSize: 18),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: _decrementHitDice,
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _incrementHitDice,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () {
-              _showEditHitDiceDialog();
-            },
-            child: Stack(
-              children: [
-                Container(
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  child: Container(
-                    height: 20,
-                    width: hitDiceWidth,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1976D2),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(5),
-                        bottomLeft: const Radius.circular(5),
-                        topRight: currentHitDice == maxHitDice
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                        bottomRight: currentHitDice == maxHitDice
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 25),
 
           // Stats Section
@@ -865,11 +877,14 @@ class MainStatsPageState extends State<MainStatsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatCard('Rüstungsklasse', armor, Defines.statArmor),
+                  _buildStatCard('Rüstungsklasse', armor, Defines.statArmor,
+                      isCount: true),
                   _buildStatCard(
-                      'Inspiration', inspiration, Defines.statInspiration),
+                      'Inspiration', inspiration, Defines.statInspiration,
+                      isCount: true),
                   _buildStatCard('Übungsbonus', proficiencyBonus,
-                      Defines.statProficiencyBonus),
+                      Defines.statProficiencyBonus,
+                      isCount: true),
                 ],
               ),
               const SizedBox(height: 8),
@@ -877,9 +892,11 @@ class MainStatsPageState extends State<MainStatsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildStatCard(
-                      'Initiative', initiative, Defines.statInitiative),
+                      'Initiative', initiative, Defines.statInitiative,
+                      isCount: true),
                   _buildStatCard(
                       'Bewegungsrate', movement, Defines.statMovement),
+                  _buildEditHitDiceCard(),
                 ],
               ),
             ],
@@ -1093,11 +1110,12 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
-  Widget _buildStatCard(String name, dynamic value, dynamic statType) {
+  Widget _buildStatCard(String name, dynamic value, dynamic statType,
+      {bool isCount = false}) {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          _showEditStatDialog(name, statType, value);
+          _showEditStatDialog(name, statType, value, isCount: isCount);
         },
         child: Column(
           children: [
@@ -1123,6 +1141,50 @@ class MainStatsPageState extends State<MainStatsPage> {
                       style: const TextStyle(
                         fontSize: 16,
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditHitDiceCard() {
+    return Expanded(
+      child: GestureDetector(
+        onTap: _showEditHitDiceDialog,
+        child: Column(
+          children: [
+            Text(
+              'Hit Dice $healFactor',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(
+              height: 50,
+              child: Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$currentHitDice / $maxHitDice',
+                          style: const TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

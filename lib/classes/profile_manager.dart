@@ -224,7 +224,7 @@ class ProfileManager {
       var initialStats = {
         'charId': insertedCharId,
         Defines.statArmor: 10,
-        Defines.statLevel: 0,
+        Defines.statLevel: 1,
         Defines.statXP: 0,
         Defines.statInspiration: 0,
         Defines.statProficiencyBonus: 0,
@@ -236,12 +236,12 @@ class ProfileManager {
         Defines.statCurrentHitDice: 0,
         Defines.statMaxHitDice: 0,
         Defines.statHitDiceFactor: "",
-        Defines.statSTR: 0,
-        Defines.statDEX: 0,
-        Defines.statCON: 0,
-        Defines.statINT: 0,
-        Defines.statWIS: 0,
-        Defines.statCHA: 0,
+        Defines.statSTR: 10,
+        Defines.statDEX: 10,
+        Defines.statCON: 10,
+        Defines.statINT: 10,
+        Defines.statWIS: 10,
+        Defines.statCHA: 10,
         Defines.statSpellSaveDC: 0,
         Defines.statSpellAttackBonus: 0,
       };
@@ -607,148 +607,6 @@ class ProfileManager {
         print('Error deleting database: $e');
       }
     }
-  }
-
-  Future<void> dumpDatabase(String profileName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, '$profileName.db');
-
-    Database profileDb = await openDatabase(profileDbPath);
-
-    String? selectedPath = await FilePicker.platform.getDirectoryPath();
-    if (selectedPath != null) {
-      String profileData = await getProfileData(profileDb, profileName);
-      final filePath = join(selectedPath, '$profileName.txt');
-      final File file = File(filePath);
-      await file.writeAsString(profileData);
-    }
-
-    await profileDb.close();
-  }
-
-  Future<String> getProfileData(Database profileDb, String profileName) async {
-    List<Map<String, dynamic>> infoData = await profileDb.query('info');
-    String race = 'Unknown Race';
-    String classType = 'Unknown Class';
-
-    for (var row in infoData) {
-      if (row['info'] == Defines.infoRace) {
-        race = row['text'];
-      } else if (row['info'] == Defines.infoClass) {
-        classType = row['text'];
-      }
-    }
-
-    List<Map<String, dynamic>> statsData = await profileDb.query('stats');
-    String profileStats = statsData.isNotEmpty
-        ? statsData
-            .map((row) => '${row['stat']}:\n └── ${row['value']}')
-            .join('\n')
-        : 'No stats available';
-
-    List<Map<String, dynamic>> bagData = await profileDb.query('bag');
-    String bagItems = bagData.isNotEmpty
-        ? bagData
-            .map((row) => ' └── ${row['item']}\n     └── ${row['amount']}')
-            .join('\n')
-        : 'No items in the bag';
-
-    List<Map<String, dynamic>> spellsData = await profileDb.query('spells');
-    String spellString = spellsData.isNotEmpty
-        ? spellsData.map((spell) {
-            String spellName = spell['spellname'];
-            String status = spell['status'];
-            String level = spell['level'].toString();
-            String description = spell['description'];
-            return ' └── $spellName\n     └── Status: $status\n     └── Level: $level\n     └── Description: $description';
-          }).join('\n')
-        : 'No spells available';
-
-    List<Map<String, dynamic>> weaponsData = await profileDb.query('weapons');
-    String weaponsString = weaponsData.isNotEmpty
-        ? weaponsData.map((weapon) {
-            String weaponName = weapon['weapon'];
-            String attribute = weapon['attribute'];
-            String reach = weapon['reach'];
-            String bonus = weapon['bonus'];
-            String damage = weapon['damage'];
-            String damageType = weapon['damagetype'];
-            String description = weapon['description'];
-            return ' └── $weaponName\n     └── Attribute: $attribute\n     └── Reach: $reach\n     └── Bonus: $bonus\n     └── Damage: $damage\n     └── Damage Type: $damageType\n     └── Description: $description';
-          }).join('\n')
-        : 'No weapons available';
-
-    List<Map<String, dynamic>> skillsData = await profileDb.query('skills');
-    String skillsString = skillsData.isNotEmpty
-        ? skillsData.map((skill) {
-            String skillName = skill['skill'];
-            String proficiency = skill['proficiency'].toString();
-            String expertise = skill['expertise'].toString();
-            return ' └── $skillName\n     └── Proficiency: $proficiency\n     └── Expertise: $expertise';
-          }).join('\n')
-        : 'No skills available';
-
-    List<Map<String, dynamic>> savingThrowsData =
-        await profileDb.query('savingthrow');
-    String savingThrowsString = savingThrowsData.isNotEmpty
-        ? savingThrowsData.map((savingThrow) {
-            String saveName = savingThrow['save'];
-            String bonus = savingThrow['bonus'].toString();
-            return ' └── $saveName\n     └── Bonus: $bonus';
-          }).join('\n')
-        : 'No saving throws available';
-
-    List<Map<String, dynamic>> proficienciesData =
-        await profileDb.query('proficiencies');
-    String proficienciesString = proficienciesData.isNotEmpty
-        ? proficienciesData.map((proficiency) {
-            String profName = proficiency['proficiency'];
-            String profValue = proficiency['prof'];
-            return ' └── $profName\n     └── Value: $profValue';
-          }).join('\n')
-        : 'No proficiencies available';
-
-    List<Map<String, dynamic>> spellSlotsData =
-        await profileDb.query('spellslots');
-    String spellSlotsString = spellSlotsData.isNotEmpty
-        ? spellSlotsData.map((slot) {
-            String slotName = slot['spellslot'];
-            String total = slot['total'].toString();
-            String spent = slot['spent'].toString();
-            return ' └── $slotName\n     └── Total: $total\n     └── Spent: $spent';
-          }).join('\n')
-        : 'No spell slots available';
-
-    return '''
-          Character Name: $profileName
-          Info:
-          └── Race: $race
-          └── Class: $classType
-
-          Stats:
-          $profileStats
-
-          Bag:
-          $bagItems
-
-          Spells:
-          $spellString
-
-          Weapons:
-          $weaponsString
-
-          Skills:
-          $skillsString
-
-          Saving Throws:
-          $savingThrowsString
-
-          Proficiencies:
-          $proficienciesString
-
-          Spell Slots:
-          $spellSlotsString
-          ''';
   }
 
   Future<void> updateStats({
