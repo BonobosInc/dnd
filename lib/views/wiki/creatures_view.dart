@@ -211,6 +211,14 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
               ),
             ],
           ),
+          if (widget.importCreature)
+            IconButton(
+              tooltip: "Ausgewählte Begleiter importieren",
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                Navigator.of(context).pop(_selectedCreatures.toList());
+              },
+            )
         ],
       ),
       body: Column(

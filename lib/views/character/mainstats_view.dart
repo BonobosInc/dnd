@@ -75,6 +75,7 @@ class MainStatsPageState extends State<MainStatsPage> {
           tracker: item['trackername'],
           uuid: item['ID'],
           value: item['value'],
+          max: item['max'],
         ));
       }
     });
@@ -388,7 +389,8 @@ class MainStatsPageState extends State<MainStatsPage> {
   Future<void> _addNewTracker() async {
     String newTrackerName = '';
     int newTrackerValue = 0;
-    String newTrackerType = '';
+    int newTrackerMaxValue = 0;
+    // String newTrackerType = '';
 
     await showDialog(
       context: context,
@@ -411,7 +413,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Wert:'),
+                      const Text('Aktueller Wert:'),
                       Row(
                         children: [
                           IconButton(
@@ -437,6 +439,35 @@ class MainStatsPageState extends State<MainStatsPage> {
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Maximaler Wert:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newTrackerMaxValue > 0) {
+                                  newTrackerMaxValue--;
+                                }
+                              });
+                            },
+                          ),
+                          Text('$newTrackerMaxValue'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                newTrackerMaxValue++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
               actions: [
@@ -450,7 +481,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       await widget.profileManager.addTracker(
                         tracker: newTrackerName,
                         value: newTrackerValue,
-                        type: newTrackerType,
+                        max: newTrackerMaxValue,
                       );
                       _loadTrackers();
                       if (context.mounted) Navigator.of(context).pop();
@@ -475,6 +506,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   Future<void> _editTracker(Tracker tracker) async {
     String editedTrackerName = tracker.tracker;
     int editedValue = tracker.value ?? 0;
+    int editedMaxValue = tracker.max ?? 0;
 
     await showDialog(
       context: context,
@@ -497,7 +529,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Wert:'),
+                      const Text('Aktueller Wert:'),
                       Row(
                         children: [
                           IconButton(
@@ -521,6 +553,33 @@ class MainStatsPageState extends State<MainStatsPage> {
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Maximaler Wert:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (editedMaxValue > 0) editedMaxValue--;
+                              });
+                            },
+                          ),
+                          Text('$editedMaxValue'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                editedMaxValue++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
               actions: [
@@ -534,6 +593,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       uuid: tracker.uuid,
                       tracker: editedTrackerName,
                       value: editedValue,
+                      max: editedMaxValue,
                     );
                     _loadTrackers();
 
@@ -1257,10 +1317,12 @@ class Tracker {
   String tracker;
   int? uuid;
   int? value;
+  int? max;
 
   Tracker({
     required this.tracker,
     this.uuid,
     required this.value,
+    required this.max,
   });
 }

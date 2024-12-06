@@ -43,11 +43,11 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     var initialStats = await widget.profileManager.getStats();
     var initialInfo = await widget.profileManager.getProfileInfo();
 
-    int spellAttackBonus = initialStats[0][Defines.statSpellAttackBonus];
-    int spellSaveDC = initialStats[0][Defines.statSpellSaveDC];
-    String spellcastingClass = initialInfo[0][Defines.infoSpellcastingClass];
+    int spellAttackBonus = initialStats[0][Defines.statSpellAttackBonus] ?? 0;
+    int spellSaveDC = initialStats[0][Defines.statSpellSaveDC] ?? 0;
+    String spellcastingClass = initialInfo[0][Defines.infoSpellcastingClass] ?? "";
     String spellcastingAbility =
-        initialInfo[0][Defines.infoSpellcastingAbility];
+        initialInfo[0][Defines.infoSpellcastingAbility] ?? "";
 
     _spellAttackController.text = spellAttackBonus.toString();
 

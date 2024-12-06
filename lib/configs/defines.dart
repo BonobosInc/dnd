@@ -79,6 +79,7 @@ class Defines {
   static const String statSpellAttackBonus = "spell_attack_bonus";
 
   // Proficiency Defines
+  static const String profArmor = "armors";
   static const String profLightArmor = "armor_light";
   static const String profMediumArmor = "armor_medium";
   static const String profHeavyArmor = "armor_heavy";

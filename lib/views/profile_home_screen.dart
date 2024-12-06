@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:dnd/classes/wiki_parser.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/colours.dart';
@@ -18,6 +21,7 @@ class ProfileHomeScreen extends StatefulWidget {
 
 class ProfileHomeScreenState extends State<ProfileHomeScreen> {
   ProfileManager profileManager = ProfileManager();
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -134,10 +138,6 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     }
   }
 
-  Future<void> _dumpDatabase(String profileName) async {
-    await profileManager.dumpDatabase(profileName);
-  }
-
   void showTestBar(BuildContext context) {
     const snackBar = SnackBar(
       content: Text('Diese Funktion existiert aktuell noch nicht'),
@@ -200,6 +200,95 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     );
   }
 
+  Future<void> _exportFeatsToXml(Character profile) async {
+    try {
+      String xmlString = await profileManager.exportFeatsToXml(profile);
+
+      String? filePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Speichern unter',
+        fileName: '${profile.name}.xml',
+        type: FileType.custom,
+        allowedExtensions: ['xml'],
+      );
+
+      if (filePath != null) {
+        File file = File(filePath);
+        await file.writeAsString(xmlString);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Export erfolgreich')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Kein Speicherort ausgewählt')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export fehlschlagen: $e')),
+        );
+      }
+    } finally {
+      await profileManager.closeDB();
+    }
+  }
+
+  Future<void> _importProfileFromXmlFile() async {
+    setState(() {
+      _isImporting = true;
+    });
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        String filePath = result.files.single.path!;
+
+        if (!filePath.endsWith('.xml')) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nur XML-Dateien sind erlaubt.')),
+            );
+          }
+          return;
+        }
+
+        File file = File(filePath);
+        await profileManager.createProfileFromXmlFile(file);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Import erfolgreich')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Keine Datei zum importieren ausgewählt.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import fehlschlagen: $e')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isImporting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -212,6 +301,8 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 await _addNewProfile();
               } else if (value == 'clear') {
                 await _clearDatabase();
+              } else if (value == 'import') {
+                await _importProfileFromXmlFile();
               }
             },
             itemBuilder: (BuildContext context) {
@@ -224,6 +315,10 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                   value: 'clear',
                   child: Text('Datenbank leeren'),
                 ),
+                const PopupMenuItem<String>(
+                  value: 'import',
+                  child: Text('Charakter aus Datei importieren'),
+                ),
               ];
             },
           ),
@@ -232,118 +327,119 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
       body: Column(
         children: [
           Expanded(
-            child: profileManager.hasProfiles()
-                ? ListView.builder(
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: profileManager.getProfiles().length,
-                    itemBuilder: (context, index) {
-                      final Character profile =
-                          profileManager.getProfiles()[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0, vertical: 6.0),
-                        child: Material(
-                          elevation: 4,
-                          borderRadius: BorderRadius.circular(12),
-                          shadowColor: Colors.black.withOpacity(0.5),
-                          child: Container(
-                            padding: const EdgeInsets.all(8.0),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardColor,
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            child: ListTile(
-                              title: Text(
-                                profile.name,
-                                style: const TextStyle(
-                                    color: AppColors.textColorLight),
-                              ),
-                              onTap: () async {
-                                await profileManager.selectProfile(profile);
-
-                                if (context.mounted) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CharacterView(
-                                        profileManager: profileManager,
-                                        wikiParser: widget.wikiParser,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (value) async {
-                                  if (value == 'delete') {
-                                    bool confirmDelete = await showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title:
-                                              const Text('Charakter löschen'),
-                                          content: Text(
-                                              'Willst du wirklich den Charakter ${profile.name} löschen?'),
-                                          actions: <Widget>[
-                                            TextButton(
-                                              child: const Text('Nein'),
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(false);
-                                              },
-                                            ),
-                                            TextButton(
-                                              child: const Text('Ja'),
-                                              onPressed: () {
-                                                Navigator.of(context).pop(true);
-                                              },
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                    if (confirmDelete == true) {
-                                      await profileManager
-                                          .deleteProfile(profile);
-                                      setState(() {});
+            child: _isImporting
+                ? const Center(child: CircularProgressIndicator())
+                : profileManager.hasProfiles()
+                    ? ListView.builder(
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: profileManager.getProfiles().length,
+                        itemBuilder: (context, index) {
+                          final Character profile =
+                              profileManager.getProfiles()[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 6.0),
+                            child: Material(
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(12),
+                              shadowColor: Colors.black.withOpacity(0.5),
+                              child: Container(
+                                padding: const EdgeInsets.all(8.0),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardColor,
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    profile.name,
+                                    style: const TextStyle(
+                                        color: AppColors.textColorLight),
+                                  ),
+                                  onTap: () async {
+                                    await profileManager.selectProfile(profile);
+                                    if (context.mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CharacterView(
+                                            profileManager: profileManager,
+                                            wikiParser: widget.wikiParser,
+                                          ),
+                                        ),
+                                      );
                                     }
-                                  } else if (value == 'dump') {
-                                    // await _dumpDatabase(profile.name);
-                                    showTestBar(context);
-                                  } else if (value == 'rename') {
-                                    await _renameProfile(profile);
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) {
-                                  return [
-                                    const PopupMenuItem<String>(
-                                      value: 'dump',
-                                      child: Text('Exportieren'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'delete',
-                                      child: Text('Charakter löschen'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'rename',
-                                      child: Text('Charakter umbenennen'),
-                                    ),
-                                  ];
-                                },
+                                  },
+                                  trailing: PopupMenuButton<String>(
+                                    onSelected: (value) async {
+                                      if (value == 'delete') {
+                                        bool confirmDelete = await showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text(
+                                                  'Charakter löschen'),
+                                              content: Text(
+                                                  'Willst du wirklich den Charakter ${profile.name} löschen?'),
+                                              actions: <Widget>[
+                                                TextButton(
+                                                  child: const Text('Nein'),
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pop(false);
+                                                  },
+                                                ),
+                                                TextButton(
+                                                  child: const Text('Ja'),
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pop(true);
+                                                  },
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                        if (confirmDelete == true) {
+                                          await profileManager
+                                              .deleteProfile(profile);
+                                          setState(() {});
+                                        }
+                                      } else if (value == 'dump') {
+                                        await _exportFeatsToXml(profile);
+                                      } else if (value == 'rename') {
+                                        await _renameProfile(profile);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) {
+                                      return [
+                                        const PopupMenuItem<String>(
+                                          value: 'dump',
+                                          child: Text('Exportieren'),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'delete',
+                                          child: Text('Charakter löschen'),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'rename',
+                                          child: Text('Charakter umbenennen'),
+                                        ),
+                                      ];
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          );
+                        },
+                      )
+                    : const Center(
+                        child: Text(
+                          'Keine Charaktere vorhanden',
+                          style: TextStyle(
+                              fontSize: 20, color: AppColors.textColorLight),
                         ),
-                      );
-                    },
-                  )
-                : const Center(
-                    child: Text(
-                      'Keine Charaktere vorhanden',
-                      style: TextStyle(
-                          fontSize: 20, color: AppColors.textColorLight),
-                    ),
-                  ),
+                      ),
           ),
         ],
       ),
