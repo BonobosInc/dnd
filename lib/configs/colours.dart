@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppColors {
   static bool isDarkMode = true;
+
+  static Future<void> loadThemePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    isDarkMode = prefs.getBool('isDarkMode') ?? true;
+  }
+
+  static Future<void> saveThemePreference(bool darkMode) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', darkMode);
+  }
 
   static Color get primaryColor => 
       isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF2F2F2);
@@ -19,7 +30,8 @@ class AppColors {
       isDarkMode ? Colors.white70 : const Color(0xFF424242);
   static Color get warningColor => const Color(0xFFB71C1C);
 
-  static void toggleTheme(bool darkMode) {
+  static void toggleTheme(bool darkMode) async {
     isDarkMode = darkMode;
+    await saveThemePreference(darkMode);
   }
 }

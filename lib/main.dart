@@ -7,11 +7,14 @@ import 'views/profile_home_screen.dart';
 import 'configs/colours.dart';
 import 'package:flutter/services.dart';
 
-// Create a ValueNotifier to manage dark mode state
 ValueNotifier<bool> isDarkMode = ValueNotifier(true);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await AppColors.loadThemePreference();
+
+  isDarkMode.value = AppColors.isDarkMode;
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

@@ -313,9 +313,6 @@ class CharacterViewState extends State<CharacterView> {
 
   @override
   Widget build(BuildContext context) {
-    final double appBarHeight = AppBar().preferredSize.height;
-    final double tabBarHeight = TabBar(tabs: []).preferredSize.height;
-    final double drawerHeaderHeight = appBarHeight + tabBarHeight;
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {
@@ -353,7 +350,7 @@ class CharacterViewState extends State<CharacterView> {
                 padding: EdgeInsets.zero,
                 children: <Widget>[
                   SizedBox(
-                    height: drawerHeaderHeight,
+                    height: 140,
                     child: DrawerHeader(
                       decoration: BoxDecoration(
                         color: AppColors.appBarColor,
