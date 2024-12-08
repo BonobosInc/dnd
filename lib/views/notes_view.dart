@@ -58,6 +58,11 @@ class NotesPageState extends State<NotesPage> {
   final TextEditingController backStoryController = TextEditingController();
   final TextEditingController otherNotesController = TextEditingController();
 
+  final TextEditingController armorProfController = TextEditingController();
+  final TextEditingController weaponProfController = TextEditingController();
+  final TextEditingController toolsProfController = TextEditingController();
+  final TextEditingController languageProfController = TextEditingController();
+
   String? selectedSize;
 
   List<FeatData> featsData = [];
@@ -106,6 +111,9 @@ class NotesPageState extends State<NotesPage> {
     List<Map<String, dynamic>> result =
         await widget.profileManager.getProfileInfo();
 
+    List<Map<String, dynamic>> profs =
+        await widget.profileManager.getProficiencies();
+
     if (result.isNotEmpty) {
       Map<String, dynamic> characterData = result.first;
       setState(() {
@@ -137,10 +145,24 @@ class NotesPageState extends State<NotesPage> {
     } else {
       selectedSize = sizeOptions[0];
     }
+    if (profs.isNotEmpty) {
+      Map<String, dynamic> characterData = profs.first;
+      setState(() {
+        armorProfController.text = characterData[Defines.profArmor] ?? '';
+        weaponProfController.text = characterData[Defines.profWeaponList] ?? '';
+        toolsProfController.text = characterData[Defines.profTools] ?? '';
+        languageProfController.text =
+            characterData[Defines.profLanguages] ?? '';
+      });
+    }
   }
 
   void _onFieldChanged(String field, String value) {
     widget.profileManager.updateProfileInfo(field: field, value: value);
+  }
+
+  void _onFieldChangedProfs(String field, String value) {
+    widget.profileManager.updateProficiencies(field: field, value: value);
   }
 
   @override
@@ -163,6 +185,10 @@ class NotesPageState extends State<NotesPage> {
     hairColourController.dispose();
     skinColourController.dispose();
     appearanceController.dispose();
+    armorProfController.dispose();
+    weaponProfController.dispose();
+    toolsProfController.dispose();
+    languageProfController.dispose();
     super.dispose();
   }
 
@@ -338,8 +364,7 @@ class NotesPageState extends State<NotesPage> {
                   if (newFeat) {
                     _addFeat(feat, descriptionController.text);
                   } else {
-                    _updateFeat(
-                        feat, descriptionController.text);
+                    _updateFeat(feat, descriptionController.text);
                   }
                   Navigator.of(context).pop(true);
                 },
@@ -373,7 +398,8 @@ class NotesPageState extends State<NotesPage> {
         description.isEmpty ? "Keine Beschreibung vorhanden" : description;
 
     widget.profileManager
-        .addFeat(featName: feat.name, description: finalDescription, type: feat.type)
+        .addFeat(
+            featName: feat.name, description: finalDescription, type: feat.type)
         .then((_) {
       _fetchFeats();
     });
@@ -501,8 +527,8 @@ class NotesPageState extends State<NotesPage> {
       Row(
         children: [
           Expanded(
-              child: _buildTextField('Größenkategorie', alignmentController,
-                  Defines.infoAlignment)),
+              child: _buildTextField(
+                  'Größenkategorie', sizeController, Defines.infoSize)),
           const SizedBox(width: 16),
           Expanded(
               child: _buildTextField(
@@ -527,6 +553,18 @@ class NotesPageState extends State<NotesPage> {
       const SizedBox(height: 16),
       _buildLargeTextField(
           'Sonstige Notizen', otherNotesController, Defines.infoNotes, 15),
+      const SizedBox(height: 16),
+      _buildLargeTextFieldProfs(
+          'Rüstungen', armorProfController, Defines.profArmor, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextFieldProfs(
+          'Waffen', weaponProfController, Defines.profWeaponList, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextFieldProfs(
+          'Werkzeuge', toolsProfController, Defines.profTools, 3),
+      const SizedBox(height: 16),
+      _buildLargeTextFieldProfs(
+          'Sprachen', languageProfController, Defines.profLanguages, 3),
     ];
   }
 
@@ -586,9 +624,7 @@ class NotesPageState extends State<NotesPage> {
 
         return Column(
           children: [
-            const SizedBox(
-                height:
-                    10),
+            const SizedBox(height: 10),
             ExpansionTile(
               shape: const Border(),
               title: Text(
@@ -685,6 +721,19 @@ class NotesPageState extends State<NotesPage> {
       ),
       maxLines: maxLines,
       onChanged: (value) => _onFieldChanged(field, value),
+    );
+  }
+
+  Widget _buildLargeTextFieldProfs(String label,
+      TextEditingController controller, String field, int maxLines) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      maxLines: maxLines,
+      onChanged: (value) => _onFieldChangedProfs(field, value),
     );
   }
 }

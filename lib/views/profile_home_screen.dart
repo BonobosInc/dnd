@@ -312,12 +312,12 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                   child: Text('Neuen Charakter erstellen'),
                 ),
                 const PopupMenuItem<String>(
-                  value: 'clear',
-                  child: Text('Datenbank leeren'),
-                ),
-                const PopupMenuItem<String>(
                   value: 'import',
                   child: Text('Charakter aus Datei importieren'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'clear',
+                  child: Text('Datenbank leeren'),
                 ),
               ];
             },

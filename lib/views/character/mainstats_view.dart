@@ -65,6 +65,12 @@ class MainStatsPageState extends State<MainStatsPage> {
     }
   }
 
+    void refreshContent() {
+    _loadCharacterData();
+    _loadTrackers();
+    _fetchCreatures();
+  }
+
   Future<void> _loadTrackers() async {
     List<Map<String, dynamic>> result =
         await widget.profileManager.getTracker();
@@ -72,11 +78,11 @@ class MainStatsPageState extends State<MainStatsPage> {
       trackers.clear();
       for (var item in result) {
         trackers.add(Tracker(
-          tracker: item['trackername'],
-          uuid: item['ID'],
-          value: item['value'],
-          max: item['max'],
-        ));
+            tracker: item['trackername'],
+            uuid: item['ID'],
+            value: item['value'],
+            max: item['max'],
+            type: item['type'] ?? 'Option 1'));
       }
     });
   }
@@ -390,7 +396,7 @@ class MainStatsPageState extends State<MainStatsPage> {
     String newTrackerName = '';
     int newTrackerValue = 0;
     int newTrackerMaxValue = 0;
-    // String newTrackerType = '';
+    String newTrackerType = 'never';
 
     await showDialog(
       context: context,
@@ -407,6 +413,26 @@ class MainStatsPageState extends State<MainStatsPage> {
                     controller: TextEditingController(text: newTrackerName),
                     onChanged: (value) {
                       newTrackerName = value;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: newTrackerType,
+                    items: const [
+                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
+                      DropdownMenuItem(
+                          value: 'long', child: Text('Lange Rast')),
+                      DropdownMenuItem(
+                          value: 'short', child: Text('Kurze Rast')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Zurücksetzen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        newTrackerType = value!;
+                      });
                     },
                   ),
                   const SizedBox(height: 16),
@@ -482,6 +508,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                         tracker: newTrackerName,
                         value: newTrackerValue,
                         max: newTrackerMaxValue,
+                        type: newTrackerType,
                       );
                       _loadTrackers();
                       if (context.mounted) Navigator.of(context).pop();
@@ -507,6 +534,9 @@ class MainStatsPageState extends State<MainStatsPage> {
     String editedTrackerName = tracker.tracker;
     int editedValue = tracker.value ?? 0;
     int editedMaxValue = tracker.max ?? 0;
+    String editedTrackerType = ['never', 'long', 'short'].contains(tracker.type)
+        ? tracker.type!
+        : 'never';
 
     await showDialog(
       context: context,
@@ -523,6 +553,26 @@ class MainStatsPageState extends State<MainStatsPage> {
                     controller: TextEditingController(text: editedTrackerName),
                     onChanged: (value) {
                       editedTrackerName = value;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: editedTrackerType,
+                    items: const [
+                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
+                      DropdownMenuItem(
+                          value: 'long', child: Text('Lange Rast')),
+                      DropdownMenuItem(
+                          value: 'short', child: Text('Kurze Rast')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Zurücksetzen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        editedTrackerType = value!;
+                      });
                     },
                   ),
                   const SizedBox(height: 16),
@@ -594,6 +644,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       tracker: editedTrackerName,
                       value: editedValue,
                       max: editedMaxValue,
+                      type: editedTrackerType,
                     );
                     _loadTrackers();
 
@@ -703,7 +754,6 @@ class MainStatsPageState extends State<MainStatsPage> {
                     keyboardType: TextInputType.text,
                   ),
                   const SizedBox(height: 16),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -736,7 +786,6 @@ class MainStatsPageState extends State<MainStatsPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -816,11 +865,7 @@ class MainStatsPageState extends State<MainStatsPage> {
     double currentHPWidth =
         maxHP > 0 ? (currentHP / maxHP) * healthBarWidth : 0;
 
-    double remainingHPWidth = maxHP > 0 ? healthBarWidth - currentHPWidth : 0;
-    double tempHPWidth = tempHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
-
-    tempHPWidth =
-        tempHPWidth > remainingHPWidth ? remainingHPWidth : tempHPWidth;
+    double tempHPWidth = maxHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
 
     final screenWidth = MediaQuery.of(context).size.width;
     int itemsPerRow = 3;
@@ -903,17 +948,19 @@ class MainStatsPageState extends State<MainStatsPage> {
                 ),
                 if (tempHP > 0)
                   Positioned(
-                    left: currentHPWidth,
+                    left: 0,
                     child: Container(
                       height: 20,
                       width: tempHPWidth,
                       decoration: BoxDecoration(
                         color: const Color(0xFF1976D2),
                         borderRadius: BorderRadius.only(
-                          topRight: tempHPWidth == remainingHPWidth
+                          topLeft: const Radius.circular(5),
+                          bottomLeft: const Radius.circular(5),
+                          topRight: (tempHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
-                          bottomRight: tempHPWidth == remainingHPWidth
+                          bottomRight: (tempHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
                         ),
@@ -923,6 +970,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ],
             ),
           ),
+
           const SizedBox(height: 25),
 
           // Stats Section
@@ -1318,11 +1366,13 @@ class Tracker {
   int? uuid;
   int? value;
   int? max;
+  String? type;
 
   Tracker({
     required this.tracker,
     this.uuid,
     required this.value,
     required this.max,
+    required this.type,
   });
 }

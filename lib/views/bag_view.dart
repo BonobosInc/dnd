@@ -84,6 +84,7 @@ class BagPageState extends State<BagPage> {
           description: item['description'] ?? '',
           uuid: item['ID'],
           type: item['type'] ?? 'Sonstige',
+          amount: item['amount'] ?? 1,
         ));
       }
       items.sort((a, b) => a.uuid!.compareTo(b.uuid as num));
@@ -189,7 +190,7 @@ class BagPageState extends State<BagPage> {
 
   void _showAddItemDialog() {
     var newItem = true;
-    _showItemDialog(Item(name: '', description: '', type: 'Sonstige'), newItem);
+    _showItemDialog(Item(name: '', description: '', type: 'Sonstige', amount: 1), newItem);
   }
 
   void _showItemDetails(Item item) {
@@ -202,6 +203,7 @@ class BagPageState extends State<BagPage> {
         TextEditingController(text: item.description);
 
     String? selectedType = item.type;
+    int editedAmount = item.amount ?? 1;
 
     showDialog(
       context: context,
@@ -214,10 +216,12 @@ class BagPageState extends State<BagPage> {
                 const SizedBox(height: 16),
                 _buildItemDetailForm(item, descriptionController),
                 const SizedBox(height: 16),
+                // Dropdown for type
                 DropdownButtonFormField<String>(
                   value: selectedType,
                   items: const [
-                    DropdownMenuItem(value: 'Gegenstände', child: Text('Gegenstände')),
+                    DropdownMenuItem(
+                        value: 'Gegenstände', child: Text('Gegenstände')),
                     DropdownMenuItem(
                         value: 'Ausrüstung', child: Text('Ausrüstung')),
                     DropdownMenuItem(
@@ -231,6 +235,35 @@ class BagPageState extends State<BagPage> {
                     selectedType = value;
                     item.type = selectedType;
                   },
+                ),
+                const SizedBox(height: 16),
+                // Row for editing amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Menge:'),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: () {
+                            setState(() {
+                              if (editedAmount > 1) editedAmount--;
+                            });
+                          },
+                        ),
+                        Text('$editedAmount'),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: () {
+                            setState(() {
+                              editedAmount++;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -249,6 +282,7 @@ class BagPageState extends State<BagPage> {
               height: 36,
               child: TextButton(
                 onPressed: () {
+                  item.amount = editedAmount;
                   if (newItem) {
                     _addItem(item, descriptionController.text);
                   } else {
@@ -332,7 +366,7 @@ class BagPageState extends State<BagPage> {
   Widget _buildDescriptionTextField(TextEditingController controller) {
     return TextField(
       controller: controller,
-      maxLines: 10,
+      maxLines: 8,
       decoration: const InputDecoration(
         labelText: 'Beschreibung',
         border: OutlineInputBorder(),
@@ -458,11 +492,13 @@ class Item {
   String description;
   int? uuid;
   String? type;
+  int? amount;
 
   Item({
     required this.name,
     required this.description,
     this.uuid,
     required this.type,
+    required this.amount,
   });
 }

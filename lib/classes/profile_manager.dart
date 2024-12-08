@@ -447,9 +447,9 @@ class ProfileManager {
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+        'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, max INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, max INTEGER, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute('''
   CREATE TABLE IF NOT EXISTS creatures (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -560,6 +560,12 @@ class ProfileManager {
     await currentDb!
         .delete('weapons', where: 'charId = ?', whereArgs: [charId]);
     await currentDb!.delete('feats', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('items', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('tracker', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creatures', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creature_traits', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creature_actions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creature_legendary_actions', where: 'charId = ?', whereArgs: [charId]);
 
     await loadProfiles();
   }
@@ -1031,6 +1037,7 @@ class ProfileManager {
     String? itemname,
     String? description,
     String? type,
+    int? amount,
   }) async {
     if (currentDb == null) return;
 
@@ -1044,6 +1051,7 @@ class ProfileManager {
       'itemname': itemname,
       'description': description,
       'type': type,
+      'amount': amount,
     };
 
     if (existingItemList.isNotEmpty) {
@@ -1072,14 +1080,18 @@ class ProfileManager {
     required String itemname,
     String? description,
     String? type,
+    int? amount,
   }) async {
     if (currentDb == null) return;
+
+    final itemAmount = amount ?? 1;
 
     final Map<String, dynamic> itemData = {
       'charId': selectedID,
       'itemname': itemname,
       'description': description,
       'type': type,
+      'amount': itemAmount,
     };
 
     try {
@@ -1110,6 +1122,7 @@ class ProfileManager {
     String? tracker,
     int? value,
     int? max,
+    String? type,
   }) async {
     if (currentDb == null) return;
 
@@ -1124,6 +1137,7 @@ class ProfileManager {
       'trackername': tracker,
       'value': value,
       'max': max,
+      'type': type,
     };
 
     if (existingTrackerList.isNotEmpty) {
@@ -1152,6 +1166,7 @@ class ProfileManager {
     required String tracker,
     int? value,
     int? max,
+    String? type,
   }) async {
     if (currentDb == null) return;
 
@@ -1159,7 +1174,8 @@ class ProfileManager {
       'charId': selectedID,
       'trackername': tracker,
       'value': value,
-      'max': max
+      'max': max,
+      'type': type
     };
 
     try {
@@ -1764,6 +1780,7 @@ class ProfileManager {
       Defines.statCHA: abilitiesList[5],
     };
 
+    // Helper function to parse an integer from a tag
     int? parseIntStat(String tagName) {
       final elements = document.findAllElements(tagName);
       return elements.isNotEmpty ? int.parse(elements.first.innerText) : 0;
@@ -1782,21 +1799,34 @@ class ProfileManager {
       Defines.statSpellAttackBonus: parseIntStat('spellAttackBonus'),
     };
 
-    final classElement = document.findAllElements('class').isNotEmpty
-        ? document.findAllElements('class').first
-        : null;
+    int getLevelFromDocument(XmlDocument document) {
+      int level = 0;
 
-    final level = classElement != null
-        ? int.parse(classElement.findElements('level').isNotEmpty
-            ? classElement.findElements('level').first.innerText
-            : '0')
-        : parseIntStat('level');
+      final statsElements = document.findAllElements('stats').toList();
+      if (statsElements.isNotEmpty) {
+        final statsElement = statsElements.first;
+        level = statsElement.findElements('level').isNotEmpty
+            ? int.parse(statsElement.findElements('level').first.innerText)
+            : 0;
+      }
 
-    final hdCurrent = classElement != null
-        ? parseIntStat('hdCurrent')
-        : parseIntStat('hdCurrent');
+      if (level == 0) {
+        final classElements = document.findAllElements('class').toList();
+        if (classElements.isNotEmpty) {
+          final classElement = classElements.first;
+          level = classElement.findElements('level').isNotEmpty
+              ? int.parse(classElement.findElements('level').first.innerText)
+              : 0;
+        }
+      }
 
-    final hd = classElement != null ? parseIntStat('hd') : parseIntStat('hd');
+      return level;
+    }
+
+    final level = getLevelFromDocument(document);
+
+    final hdCurrent = parseIntStat('hdCurrent');
+    final hd = parseIntStat('hd');
 
     return {
       ...abilities,
@@ -1807,18 +1837,50 @@ class ProfileManager {
     };
   }
 
-  dynamic parseToolProficiencies(String xmlString) {
+  dynamic parseProficiencies(String xmlString) {
     final document = XmlDocument.parse(xmlString);
 
-    final classElement = document.findAllElements('class').first;
-    final armor = classElement.findElements('armor').first.innerText;
-    final weapons = classElement.findElements('weapons').first.innerText;
-    final tools = classElement.findElements('tools').first.innerText;
+    if (document.findAllElements('proficiencies').isNotEmpty) {
+      final proficienciesElement =
+          document.findAllElements('proficiencies').first;
+      final armor = proficienciesElement.findElements('armor').isNotEmpty
+          ? proficienciesElement.findElements('armor').first.innerText
+          : '';
+      final weapons = proficienciesElement.findElements('weapons').isNotEmpty
+          ? proficienciesElement.findElements('weapons').first.innerText
+          : '';
+      final tools = proficienciesElement.findElements('tools').isNotEmpty
+          ? proficienciesElement.findElements('tools').first.innerText
+          : '';
+      final language = proficienciesElement.findElements('language').isNotEmpty
+          ? proficienciesElement.findElements('language').first.innerText
+          : '';
+
+      return {
+        Defines.profArmor: armor,
+        Defines.profWeaponList: weapons,
+        Defines.profTools: tools,
+        Defines.profLanguages: language,
+      };
+    }
+
+    if (document.findAllElements('class').isNotEmpty) {
+      final classElement = document.findAllElements('class').first;
+      final armor = classElement.findElements('armor').first.innerText;
+      final weapons = classElement.findElements('weapons').first.innerText;
+      final tools = classElement.findElements('tools').first.innerText;
+
+      return {
+        Defines.profArmor: armor,
+        Defines.profWeaponList: weapons,
+        Defines.profTools: tools,
+      };
+    }
 
     return {
-      Defines.profArmor: armor,
-      Defines.profWeaponList: weapons,
-      Defines.profTools: tools,
+      Defines.profArmor: '',
+      Defines.profWeaponList: '',
+      Defines.profTools: '',
     };
   }
 
@@ -1940,10 +2002,15 @@ class ProfileManager {
 
       final max = maxElement != null ? int.parse(maxElement.innerText) : 0;
 
+      final type = trackerElement.findElements('type').isNotEmpty
+          ? trackerElement.findElements('type').first.innerText
+          : 'never';
+
       trackers.add({
         'name': name,
         'value': value,
         'max': max,
+        'type': type,
       });
     }
 
@@ -1966,6 +2033,15 @@ class ProfileManager {
       slotsCurrentString =
           spellSlotsElement.findElements('slotsCurrent').isNotEmpty
               ? spellSlotsElement.findElements('slotsCurrent').first.innerText
+              : '';
+    } else if (document.findAllElements('character').isNotEmpty) {
+      final characterElement = document.findAllElements('character').first;
+      slotsString = characterElement.findElements('slots').isNotEmpty
+          ? characterElement.findElements('slots').first.innerText
+          : '';
+      slotsCurrentString =
+          characterElement.findElements('slotsCurrent').isNotEmpty
+              ? characterElement.findElements('slotsCurrent').first.innerText
               : '';
     } else {
       slotsString = document.findElements('slots').isNotEmpty
@@ -2115,23 +2191,44 @@ class ProfileManager {
   List<Map<String, String>> parseItems(String xmlString) {
     final document = XmlDocument.parse(xmlString);
 
-    final itemElements = document.findAllElements('item');
+    Iterable<XmlElement> itemElements;
+
+    if (document.findAllElements('items').isNotEmpty) {
+      itemElements =
+          document.findAllElements('items').first.findAllElements('item');
+    } else if (document.findAllElements('character').isNotEmpty) {
+      itemElements =
+          document.findAllElements('character').first.findAllElements('item');
+    } else {
+      itemElements = document.findAllElements('item');
+    }
 
     List<Map<String, String>> items = [];
 
     for (final itemElement in itemElements) {
       final name = itemElement.findElements('name').first.innerText;
+
       final detailElement = itemElement.findElements('detail').isNotEmpty
           ? itemElement.findElements('detail').first.innerText
           : null;
-      final typeElement = itemElement.findElements('type').isNotEmpty
+
+      String typeElement = itemElement.findElements('type').isNotEmpty
           ? itemElement.findElements('type').first.innerText
           : "Sonstige";
+
+      if (int.tryParse(typeElement) != null) {
+        typeElement = "Sonstige";
+      }
+
+      final amountElement = itemElement.findElements('quantity').isNotEmpty
+          ? itemElement.findElements('quantity').first.innerText
+          : '1';
 
       items.add({
         'name': name,
         if (detailElement != null) 'detail': detailElement,
         'type': typeElement,
+        'amount': amountElement,
       });
     }
 
@@ -2410,6 +2507,7 @@ class ProfileManager {
 
     final parsedStats = parseStatsData(xmlString);
     final parsedInfos = parseInfos(xmlString);
+    final parsedProf = parseProficiencies(xmlString);
     final parsedFeats =
         parseFeatureData(xmlString, parsedStats[Defines.statLevel]);
     final parsedSpells = parseSpells(xmlString);
@@ -2431,6 +2529,7 @@ class ProfileManager {
 
     await _importStats(parsedStats);
     await _importProfileInfo(parsedInfos);
+    await _importProfs(parsedProf);
     await _importSpells(parsedSpells);
     await _importFeats(parsedFeats);
     await _importWeapons(parsedWeapons);
@@ -2569,6 +2668,19 @@ class ProfileManager {
         value: parsedInfos[Defines.infoSpellcastingAbility]);
   }
 
+  Future<void> _importProfs(Map<String, dynamic> parsedProfs) async {
+    await updateProficiencies(
+        field: Defines.profArmor, value: parsedProfs[Defines.profArmor]);
+    await updateProficiencies(
+        field: Defines.profWeaponList,
+        value: parsedProfs[Defines.profWeaponList]);
+    await updateProficiencies(
+        field: Defines.profTools, value: parsedProfs[Defines.profTools]);
+    await updateProficiencies(
+        field: Defines.profLanguages,
+        value: parsedProfs[Defines.profLanguages]);
+  }
+
   Future<void> _importSpells(List<Map<String, dynamic>> parsedSpells) async {
     for (final spell in parsedSpells) {
       await addSpell(
@@ -2611,16 +2723,22 @@ class ProfileManager {
         tracker: tracker['name']!,
         value: tracker['value'],
         max: tracker['max'],
+        type: tracker['type'],
       );
     }
   }
 
   Future<void> _importItems(List<Map<String, dynamic>> parsedItems) async {
     for (final item in parsedItems) {
+      final amount = item['amount'] != null
+          ? int.tryParse(item['amount'].toString()) ?? 1
+          : 1;
+
       await addItem(
         itemname: item['name']!,
         description: item['detail'],
         type: item['type'],
+        amount: amount,
       );
     }
   }
@@ -2685,10 +2803,8 @@ class ProfileManager {
     }
   }
 
-  Future<void> _importCreatures(
-      List<Creature> parsedCreatures) async {
+  Future<void> _importCreatures(List<Creature> parsedCreatures) async {
     for (final entry in parsedCreatures) {
-
       await addCreature(entry);
     }
   }
@@ -2776,6 +2892,8 @@ class ProfileManager {
           addProficiencyElement(
               'weapons', proficiencies[Defines.profWeaponList]);
           addProficiencyElement('tools', proficiencies[Defines.profTools]);
+          addProficiencyElement(
+              'language', proficiencies[Defines.profLanguages]);
         }
       });
 
@@ -2836,6 +2954,10 @@ class ProfileManager {
             builder.element('label', nest: tracker['trackername']);
             builder.element('value', nest: tracker['value'].toString());
             builder.element('max', nest: tracker['max'].toString());
+            builder.element('type',
+                nest: tracker['type']?.toString().isNotEmpty == true
+                    ? tracker['type'].toString()
+                    : 'never');
           });
         }
       });
@@ -2886,13 +3008,23 @@ class ProfileManager {
         for (final item in items) {
           builder.element('item', nest: () {
             builder.element('name', nest: item['itemname']);
+
             if (item['description'] != null &&
                 item['description']!.isNotEmpty) {
               builder.element('detail', nest: item['description']);
             }
-            if (item['type'] != null && item['type']!.isNotEmpty) {
-              builder.element('type', nest: item['type']);
+
+            String type = item['type'] ?? '';
+            if (type.isNotEmpty && int.tryParse(type) != null) {
+              type = 'Sonstige';
             }
+
+            if (type.isNotEmpty) {
+              builder.element('type', nest: type);
+            }
+
+            final amount = item['amount'] ?? 1;
+            builder.element('quantity', nest: amount.toString());
           });
         }
       });

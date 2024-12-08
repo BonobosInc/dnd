@@ -288,9 +288,6 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: widget.profileManager.getSpellSlots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
 
         int totalSlots = 0;
         int currentSlots = 0;
@@ -324,9 +321,6 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: widget.profileManager.getSpellSlots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
 
         int totalSlots = 0;
         int currentSlots = 0;

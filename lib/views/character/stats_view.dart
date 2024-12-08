@@ -268,7 +268,7 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildStatRow(String statName, int abilityScore, String field) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),

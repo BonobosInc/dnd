@@ -31,6 +31,9 @@ class CharacterViewState extends State<CharacterView> {
   int level = 0;
   int xp = 0;
 
+  GlobalKey<MainStatsPageState> mainStatsPageKey =
+      GlobalKey<MainStatsPageState>();
+
   @override
   void initState() {
     super.initState();
@@ -170,6 +173,124 @@ class CharacterViewState extends State<CharacterView> {
     );
   }
 
+  Future<List<Map<String, dynamic>>> _getSpellSlots() async {
+    final spellSlots = await widget.profileManager.getSpellSlots();
+
+    final List<Map<String, dynamic>> updatedSlots = [];
+    for (var slot in spellSlots) {
+      final spellSlot = {
+        'spellslot': slot['spellslot'],
+        'total': slot['total'] ?? 0,
+      };
+      updatedSlots.add(spellSlot);
+    }
+    return updatedSlots;
+  }
+
+  Future<List<Map<String, dynamic>>> _getTrackers() async {
+    final trackers = await widget.profileManager.getTracker();
+
+    return trackers;
+  }
+
+  Future<void> _longRest() async {
+    final shouldProceed = await _showConfirmationDialog(
+        'Lange Rast', 'Möchtest du wirklich eine lange Rast machen?');
+
+    if (!shouldProceed) return;
+
+    final stats = await widget.profileManager.getStats();
+
+    final currentHD = stats.first[Defines.statCurrentHitDice];
+    final maxHD = stats.first[Defines.statMaxHitDice];
+
+    var hitDiceToAdd = (maxHD / 2).floor();
+
+    if (hitDiceToAdd == 0) {
+      hitDiceToAdd = 1;
+    }
+
+    final updatedHitDice = (currentHD + hitDiceToAdd).clamp(0, maxHD);
+
+    widget.profileManager.updateStats(
+        field: Defines.statCurrentHP, value: stats.first[Defines.statMaxHP]);
+    widget.profileManager.updateStats(field: Defines.statTempHP, value: 0);
+
+    widget.profileManager
+        .updateStats(field: Defines.statCurrentHitDice, value: updatedHitDice);
+
+    final spellSlots = await _getSpellSlots();
+    for (var spellSlot in spellSlots) {
+      await widget.profileManager.updateSpellSlots(
+        spellslot: spellSlot['spellslot'],
+        spent: spellSlot['total'],
+      );
+    }
+
+    final trackers = await _getTrackers();
+    for (var tracker in trackers) {
+      if (tracker['type'] == 'long' || tracker['type'] == 'short') {
+        await widget.profileManager.updateTracker(
+          uuid: tracker['ID'],
+          value: tracker['max'],
+        );
+      }
+    }
+
+    if (mainStatsPageKey.currentState != null) {
+      mainStatsPageKey.currentState!.refreshContent();
+    }
+  }
+
+  Future<void> _shortRest() async {
+    final shouldProceed = await _showConfirmationDialog(
+        'Kurze Rast', 'Möchtest du wirklich eine kurze Rast machen?');
+
+    if (!shouldProceed) return;
+
+    final trackers = await _getTrackers();
+
+    for (var tracker in trackers) {
+      if (tracker['type'] == 'short') {
+        await widget.profileManager.updateTracker(
+          uuid: tracker['ID'],
+          value: tracker['max'],
+        );
+      }
+    }
+
+    if (mainStatsPageKey.currentState != null) {
+      mainStatsPageKey.currentState!.refreshContent();
+    }
+  }
+
+  Future<bool> _showConfirmationDialog(String title, String message) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text(title),
+              content: Text(message),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Nein'),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: Text('Ja'),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -187,6 +308,9 @@ class CharacterViewState extends State<CharacterView> {
 
   @override
   Widget build(BuildContext context) {
+    final double appBarHeight = AppBar().preferredSize.height;
+    final double tabBarHeight = TabBar(tabs: []).preferredSize.height;
+    final double drawerHeaderHeight = appBarHeight + tabBarHeight;
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {
@@ -210,6 +334,7 @@ class CharacterViewState extends State<CharacterView> {
           body: TabBarView(
             children: [
               MainStatsPage(
+                  key: mainStatsPageKey,
                   profileManager: widget.profileManager,
                   wikiParser: widget.wikiParser),
               StatsPage(profileManager: widget.profileManager),
@@ -223,7 +348,7 @@ class CharacterViewState extends State<CharacterView> {
                 padding: EdgeInsets.zero,
                 children: <Widget>[
                   SizedBox(
-                    height: 120,
+                    height: drawerHeaderHeight,
                     child: DrawerHeader(
                       decoration: const BoxDecoration(
                         color: AppColors.appBarColor,
@@ -231,16 +356,45 @@ class CharacterViewState extends State<CharacterView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: _showLevelDialog,
-                            child: Text(
-                              'Level: $level',
-                              style: const TextStyle(
-                                color: AppColors.textColorLight,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: _showLevelDialog,
+                                child: Text(
+                                  'Level: $level',
+                                  style: const TextStyle(
+                                    color: AppColors.textColorLight,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
+                              PopupMenuButton<int>(
+                                icon: const Icon(Icons.settings),
+                                color: AppColors.primaryColor,
+                                iconSize: 28.0,
+                                onSelected: (value) async {
+                                  if (value == 1) {
+                                    await _longRest();
+                                  } else if (value == 2) {
+                                    await _shortRest();
+                                  }
+                                },
+                                itemBuilder: (BuildContext context) {
+                                  return [
+                                    const PopupMenuItem<int>(
+                                      value: 1,
+                                      child: Text('Lange Rast'),
+                                    ),
+                                    const PopupMenuItem<int>(
+                                      value: 2,
+                                      child: Text('Kurze Rast'),
+                                    ),
+                                  ];
+                                },
+                              ),
+                            ],
                           ),
                           GestureDetector(
                             onTap: _showXPDialog,
