@@ -182,7 +182,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
             fit: BoxFit.scaleDown,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textColorLight,
                 fontSize: 16,
               ),
@@ -205,10 +205,10 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               fillColor: AppColors.cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
-                borderSide: const BorderSide(color: AppColors.borderColor),
+                borderSide: BorderSide(color: AppColors.borderColor),
               ),
               hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textColorDark),
+              hintStyle: TextStyle(color: AppColors.textColorDark),
             ),
             onChanged: (value) {
               if (isIntegerField) {
@@ -261,7 +261,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                         ],
                         Text(
                           levelIndex == 0 ? 'Zaubertrick' : 'Level $levelIndex ',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textColorLight,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -340,7 +340,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
           children: [
             Text(
               '($currentSlots/$totalSlots)',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textColorLight,
                 fontSize: 16,
               ),
@@ -409,7 +409,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               child: Center(
                 child: Text(
                   controller.text.isNotEmpty ? controller.text : '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textColorDark,
                     fontSize: 14.0,
                     fontWeight: FontWeight.bold,

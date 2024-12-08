@@ -641,14 +641,14 @@ class NotesPageState extends State<NotesPage> {
                   child: ListTile(
                     title: Text(
                       feat.name,
-                      style: const TextStyle(color: AppColors.textColorLight),
+                      style: TextStyle(color: AppColors.textColorLight),
                     ),
                     onTap: () => _showFeatDetails(feat),
                     trailing: SizedBox(
                       width: 35,
                       height: 35,
                       child: IconButton(
-                        icon: const Icon(Icons.close,
+                        icon: Icon(Icons.close,
                             color: AppColors.textColorDark),
                         iconSize: 20.0,
                         padding: EdgeInsets.zero,

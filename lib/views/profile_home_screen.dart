@@ -74,7 +74,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                 SnackBar(
                                   content: Text(
                                     'Der Charakter "$profileName" existiert bereits. Bitte wähle einen anderen Namen.',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textColorLight),
                                   ),
                                   backgroundColor: AppColors.warningColor,
@@ -182,7 +182,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                         SnackBar(
                           content: Text(
                             'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textColorLight),
                           ),
                           backgroundColor: AppColors.warningColor,
@@ -352,7 +352,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                 child: ListTile(
                                   title: Text(
                                     profile.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textColorLight),
                                   ),
                                   onTap: () async {
@@ -433,7 +433,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                           );
                         },
                       )
-                    : const Center(
+                    : Center(
                         child: Text(
                           'Keine Charaktere vorhanden',
                           style: TextStyle(

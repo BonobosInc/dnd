@@ -243,12 +243,12 @@ class WeaponPageState extends State<WeaponPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Waffen",
+        title: Text("Waffen",
             style: TextStyle(color: AppColors.textColorLight)),
         backgroundColor: AppColors.appBarColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: AppColors.textColorLight),
+            icon: Icon(Icons.add, color: AppColors.textColorLight),
             onPressed: _showAddWeaponDialog,
           ),
         ],
@@ -383,7 +383,7 @@ class WeaponPageState extends State<WeaponPage> {
                         ),
                       ],
                     ),
-                    const Divider(color: AppColors.dividerColor),
+                    Divider(color: AppColors.dividerColor),
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Row(
@@ -410,7 +410,7 @@ class WeaponPageState extends State<WeaponPage> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textColorDark),
+          icon: Icon(Icons.close, color: AppColors.textColorDark),
           onPressed: () {
             _showDeleteConfirmationDialog(weapon);
           },

@@ -1,3 +1,4 @@
+import 'package:dnd/main.dart';
 import 'package:dnd/views/character/mainstats_view.dart';
 import 'package:dnd/views/character/stats_view.dart';
 import 'package:flutter/material.dart';
@@ -264,6 +265,10 @@ class CharacterViewState extends State<CharacterView> {
     }
   }
 
+  Future<void> _colorMode() async {
+    isDarkMode.value = !isDarkMode.value;
+  }
+
   Future<bool> _showConfirmationDialog(String title, String message) async {
     return await showDialog<bool>(
           context: context,
@@ -350,7 +355,7 @@ class CharacterViewState extends State<CharacterView> {
                   SizedBox(
                     height: drawerHeaderHeight,
                     child: DrawerHeader(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.appBarColor,
                       ),
                       child: Column(
@@ -363,7 +368,7 @@ class CharacterViewState extends State<CharacterView> {
                                 onTap: _showLevelDialog,
                                 child: Text(
                                   'Level: $level',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textColorLight,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -379,6 +384,8 @@ class CharacterViewState extends State<CharacterView> {
                                     await _longRest();
                                   } else if (value == 2) {
                                     await _shortRest();
+                                  } else if (value == 3) {
+                                    await _colorMode();
                                   }
                                 },
                                 itemBuilder: (BuildContext context) {
@@ -391,6 +398,16 @@ class CharacterViewState extends State<CharacterView> {
                                       value: 2,
                                       child: Text('Kurze Rast'),
                                     ),
+                                    PopupMenuItem<int>(
+                                      value: 3,
+                                      child: Center(
+                                        child: Icon(
+                                          isDarkMode.value
+                                              ? Icons.dark_mode
+                                              : Icons.light_mode,
+                                        ),
+                                      ),
+                                    )
                                   ];
                                 },
                               ),
@@ -400,7 +417,7 @@ class CharacterViewState extends State<CharacterView> {
                             onTap: _showXPDialog,
                             child: Text(
                               'XP: $xp',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textColorLight,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -412,7 +429,7 @@ class CharacterViewState extends State<CharacterView> {
                     ),
                   ),
                   ListTile(
-                    title: const Text(
+                    title: Text(
                       'Zauber',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
@@ -430,7 +447,7 @@ class CharacterViewState extends State<CharacterView> {
                     },
                   ),
                   ListTile(
-                    title: const Text(
+                    title: Text(
                       'Waffen',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
@@ -447,7 +464,7 @@ class CharacterViewState extends State<CharacterView> {
                     },
                   ),
                   ListTile(
-                    title: const Text(
+                    title: Text(
                       'Notizen',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
@@ -465,7 +482,7 @@ class CharacterViewState extends State<CharacterView> {
                     },
                   ),
                   ListTile(
-                    title: const Text(
+                    title: Text(
                       'Ausrüstung',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),
@@ -482,7 +499,7 @@ class CharacterViewState extends State<CharacterView> {
                     },
                   ),
                   ListTile(
-                    title: const Text(
+                    title: Text(
                       'Wiki',
                       style: TextStyle(color: AppColors.textColorLight),
                     ),

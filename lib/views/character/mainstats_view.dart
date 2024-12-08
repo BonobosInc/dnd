@@ -894,7 +894,7 @@ class MainStatsPageState extends State<MainStatsPage> {
             'Lebenspunkte',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Row(
             children: [
               Text(
@@ -978,7 +978,7 @@ class MainStatsPageState extends State<MainStatsPage> {
             'Statistik',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           const SizedBox(height: 8),
           Column(
             children: [
@@ -1025,7 +1025,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ),
             ],
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Column(
             children: [
               for (int i = 0; i < trackers.length; i += itemsPerRow)
@@ -1107,7 +1107,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ),
             ],
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Column(
             children: [
               for (int i = 0; i < creatures.length; i++)

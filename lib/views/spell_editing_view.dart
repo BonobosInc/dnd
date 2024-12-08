@@ -87,7 +87,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         return ExpansionTile(
           title: Text(
             titleText,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: AppColors.textColorDark),
           ),
           children: groupedSpells[level]!.map((spell) {
             return _buildSpellTile(spell);
@@ -105,18 +105,18 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       child: ListTile(
         title: Text(
           spell.name,
-          style: const TextStyle(color: AppColors.textColorLight),
+          style: TextStyle(color: AppColors.textColorLight),
         ),
         subtitle: Text(
           _getStatus(spell.status),
-          style: const TextStyle(color: AppColors.textColorDark),
+          style: TextStyle(color: AppColors.textColorDark),
         ),
         onTap: () => _showSpellDetails(spell),
         trailing: SizedBox(
           width: 35,
           height: 35,
           child: IconButton(
-            icon: const Icon(Icons.close, color: AppColors.textColorDark),
+            icon: Icon(Icons.close, color: AppColors.textColorDark),
             iconSize: 20.0,
             padding: EdgeInsets.zero,
             onPressed: () {

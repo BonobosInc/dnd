@@ -7,6 +7,9 @@ import 'views/profile_home_screen.dart';
 import 'configs/colours.dart';
 import 'package:flutter/services.dart';
 
+// Create a ValueNotifier to manage dark mode state
+ValueNotifier<bool> isDarkMode = ValueNotifier(true);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -32,26 +35,34 @@ class DNDApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DND App',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: AppColors.primaryColor,
-        scaffoldBackgroundColor: AppColors.primaryColor,
-        appBarTheme: const AppBarTheme(
-          color: AppColors.appBarColor,
-        ),
-        splashColor: Colors.transparent,
-        cardColor: AppColors.cardColor,
-        dividerColor: AppColors.dividerColor,
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: AppColors.textColorLight),
-          bodyMedium: TextStyle(color: AppColors.textColorDark),
-          displayLarge: TextStyle(color: AppColors.textColorLight, fontSize: 20),
-        ),
-      ),
-      home: ProfileHomeScreen(wikiParser: wikiParser),
-      debugShowCheckedModeBanner: false,
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkMode,
+      builder: (context, isDark, child) {
+        AppColors.toggleTheme(isDark);
+
+        return MaterialApp(
+          title: 'DND App',
+          theme: ThemeData(
+            brightness: isDark ? Brightness.dark : Brightness.light,
+            primaryColor: AppColors.primaryColor,
+            scaffoldBackgroundColor: AppColors.primaryColor,
+            appBarTheme: AppBarTheme(
+              color: AppColors.appBarColor,
+            ),
+            splashColor: Colors.transparent,
+            cardColor: AppColors.cardColor,
+            dividerColor: AppColors.dividerColor,
+            textTheme: TextTheme(
+              bodyLarge: TextStyle(color: AppColors.textColorLight),
+              bodyMedium: TextStyle(color: AppColors.textColorDark),
+              displayLarge:
+                  TextStyle(color: AppColors.textColorLight, fontSize: 20),
+            ),
+          ),
+          home: ProfileHomeScreen(wikiParser: wikiParser),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

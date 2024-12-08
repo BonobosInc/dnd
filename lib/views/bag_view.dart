@@ -424,14 +424,14 @@ class BagPageState extends State<BagPage> {
                 child: ListTile(
                   title: Text(
                     item.name,
-                    style: const TextStyle(color: AppColors.textColorLight),
+                    style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () => _showItemDetails(item),
                   trailing: SizedBox(
                     width: 35,
                     height: 35,
                     child: IconButton(
-                      icon: const Icon(Icons.close,
+                      icon: Icon(Icons.close,
                           color: AppColors.textColorDark),
                       iconSize: 20.0,
                       padding: EdgeInsets.zero,
