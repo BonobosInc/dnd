@@ -20,7 +20,14 @@ class WikiParser {
     String savedFilePath;
 
     if (Platform.isWindows) {
-      savedFilePath = './temp/wiki.xml';
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+
+      if (isDebugMode) {
+        savedFilePath = './temp/wiki.xml';
+      } else {
+        Directory appSupportDir = await getApplicationSupportDirectory();
+        savedFilePath = '${appSupportDir.path}/wiki.xml';
+      }
     } else {
       Directory appSupportDir = await getApplicationSupportDirectory();
       savedFilePath = '${appSupportDir.path}/wiki.xml';
@@ -53,7 +60,14 @@ class WikiParser {
     String destinationFilePath;
 
     if (Platform.isWindows) {
-      destinationFilePath = './temp/wiki.xml';
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+
+      if (isDebugMode) {
+        destinationFilePath = './temp/wiki.xml';
+      } else {
+        Directory appSupportDir = await getApplicationSupportDirectory();
+        destinationFilePath = '${appSupportDir.path}/wiki.xml';
+      }
     } else {
       Directory appSupportDir = await getApplicationSupportDirectory();
       destinationFilePath = '${appSupportDir.path}/wiki.xml';

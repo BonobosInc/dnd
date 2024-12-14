@@ -701,7 +701,7 @@ class StatsPageState extends State<StatsPage> {
             Defines.skillDeception, charisma),
         _buildSkillRow("Überlebenskunst", skillProfStea, skillExStea,
             Defines.skillSurvival, wisdom),
-        _buildSkillRow("Überredung", skillProfPers, skillExPers,
+        _buildSkillRow("Überzeugen", skillProfPers, skillExPers,
             Defines.skillPersuasion, charisma),
         _buildSkillRow("Wahrnehmung", skillProfPerc, skillExPerc,
             Defines.skillPerception, wisdom),

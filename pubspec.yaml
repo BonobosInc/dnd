@@ -44,6 +44,10 @@ dependencies:
   xml: ^6.5.0
   material_design_icons_flutter: ^7.0.7296
   shared_preferences: ^2.3.3
+  window_size:
+    git:
+      url: https://github.com/google/flutter-desktop-embedding
+      path: plugins/window_size
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +60,14 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  msix: ^3.16.8
 
+msix_config:
+  display_name: BonoDND
+  publisher_display_name: BonoDND
+  identity_name: com.bonobo.dnd
+  msix_version: 1.0.0.0
+  logo_path: assets\icon\icon.png
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

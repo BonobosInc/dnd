@@ -36,11 +36,31 @@ class MainStatsPageState extends State<MainStatsPage> {
 
   List<Creature> creatures = [];
 
+  List<Condition> statusEffects = [];
+  List<String> conditionOptions = [
+      'Blind', // Blinded
+      'Festgesetzt', // Restrained
+      'Betäubt', // Stunned
+      'Gelähmt', // Paralyzed
+      'Erschöpfung', // Exhaustion
+      'Vergiftet', // Poisoned
+      'Verängstigt', // Frightened
+      'Gepackt', // Grappled
+      'Versteinert', // Petrified
+      'Bezaubert', // Charmed
+      'Taub', // Deafened
+      'Bewusstlos', // Unconscious
+      'Liegend', // Prone
+      'Kampfunfähig', // Incapacitated
+      'Unsichtbar', // Invisible
+    ];
+
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
     _loadTrackers();
+    _loadConditions();
     _fetchCreatures();
   }
 
@@ -65,10 +85,23 @@ class MainStatsPageState extends State<MainStatsPage> {
     }
   }
 
-    void refreshContent() {
+  void refreshContent() {
     _loadCharacterData();
     _loadTrackers();
+    _loadConditions();
     _fetchCreatures();
+  }
+
+  Future<void> _loadConditions() async {
+    List<Map<String, dynamic>> result =
+        await widget.profileManager.getConditions();
+    setState(() {
+      statusEffects.clear();
+      for (var item in result) {
+        statusEffects
+            .add(Condition(condition: item['condition'], uuid: item['ID']));
+      }
+    });
   }
 
   Future<void> _loadTrackers() async {
@@ -660,6 +693,152 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  Future<void> _addCondition() async {
+    String? selectedCondition;
+    int? newConditionUUID;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Neue Bedingung hinzufügen"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCondition,
+                    items: conditionOptions.map((condition) {
+                      return DropdownMenuItem<String>(
+                        value: condition,
+                        child: Text(condition),
+                      );
+                    }).toList(),
+                    decoration: const InputDecoration(
+                      labelText: 'Bedingung auswählen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCondition = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (selectedCondition != null &&
+                        selectedCondition!.isNotEmpty) {
+                      Condition newCondition = Condition(
+                        condition: selectedCondition!,
+                        uuid: newConditionUUID,
+                      );
+                      await widget.profileManager
+                          .addCondition(condition: newCondition.condition);
+                      _loadConditions();
+                      if (context.mounted) Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("Bitte eine Bedingung auswählen.")),
+                      );
+                    }
+                  },
+                  child: const Text("Hinzufügen"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _editCondition(Condition condition) async {
+    String? selectedCondition = condition.condition;
+    int? conditionUUID = condition.uuid;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Bedingung bearbeiten"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCondition,
+                    items: conditionOptions.map((condition) {
+                      return DropdownMenuItem<String>(
+                        value: condition,
+                        child: Text(condition),
+                      );
+                    }).toList(),
+                    decoration: const InputDecoration(
+                      labelText: 'Bedingung auswählen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCondition = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (selectedCondition != null &&
+                        selectedCondition!.isNotEmpty) {
+                      Condition updatedCondition = Condition(
+                        condition: selectedCondition!,
+                        uuid: conditionUUID,
+                      );
+                      await widget.profileManager.updateCondition(
+                        uuid: conditionUUID,
+                        condition: updatedCondition.condition,
+                      );
+                      _loadConditions();
+                      if (context.mounted) Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Bitte eine Bedingung auswählen."),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _removeCondition(int? conditionID) async {
+    await widget.profileManager.removeCondition(conditionID!);
+    _loadConditions();
+  }
+
   void _addCreature() async {
     final result = await Navigator.push(
       context,
@@ -922,7 +1101,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 Container(
                   height: 20,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF581B10),
+                    color: AppColors.missingHealth,
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -932,7 +1111,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                     height: 20,
                     width: currentHPWidth,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B6533),
+                      color: AppColors.currentHealth,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(5),
                         bottomLeft: const Radius.circular(5),
@@ -953,7 +1132,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       height: 20,
                       width: tempHPWidth,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1976D2),
+                        color: AppColors.tempHealth,
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(5),
                           bottomLeft: const Radius.circular(5),
@@ -1007,6 +1186,78 @@ class MainStatsPageState extends State<MainStatsPage> {
                   _buildEditHitDiceCard(),
                 ],
               ),
+            ],
+          ),
+          const SizedBox(height: 25),
+
+          // Status Effects Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Status Effekte',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _addCondition,
+              ),
+            ],
+          ),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Column(
+            children: [
+              for (int i = 0; i < statusEffects.length; i += itemsPerRow)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        for (int j = i;
+                            j < i + itemsPerRow && j < statusEffects.length;
+                            j++)
+                          SizedBox(
+                            width: itemWidth,
+                            child: GestureDetector(
+                              onTap: () {
+                                _editCondition(statusEffects[j]);
+                              },
+                              onLongPress: () {
+                                _showDeleteConfirmationDialogCondition(
+                                    statusEffects[j]);
+                              },
+                              child: Column(
+                                children: [
+                                  SizedBox(
+                                    height: 50,
+                                    child: Card(
+                                      elevation: 3,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Center(
+                                          child: Text(
+                                            statusEffects[j].condition,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 25),
@@ -1311,7 +1562,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         return AlertDialog(
           title: const Text('Tracker löschen'),
           content: Text(
-              'Bist du sicher, dass du "${tracker.tracker} löschen willst"?'),
+              'Bist du sicher, dass du "${tracker.tracker}" löschen willst?'),
           actions: [
             TextButton(
               child: const Text('Abbrechen'),
@@ -1332,6 +1583,34 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  void _showDeleteConfirmationDialogCondition(Condition condition) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Statuseffekt löschen'),
+          content: Text(
+              'Bist du sicher, dass du "${condition.condition}" löschen willst?'),
+          actions: [
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Löschen'),
+              onPressed: () {
+                _removeCondition(condition.uuid);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showDeleteConfirmationDialogC(Creature creature) {
     showDialog(
       context: context,
@@ -1339,7 +1618,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         return AlertDialog(
           title: const Text('Begleiter löschen'),
           content: Text(
-              'Bist du sicher, dass du "${creature.name} löschen willst"?'),
+              'Bist du sicher, dass du "${creature.name}" löschen willst?'),
           actions: [
             TextButton(
               child: const Text('Abbrechen'),
@@ -1374,5 +1653,15 @@ class Tracker {
     required this.value,
     required this.max,
     required this.type,
+  });
+}
+
+class Condition {
+  String condition;
+  int? uuid;
+
+  Condition({
+    required this.condition,
+    this.uuid,
   });
 }

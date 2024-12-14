@@ -373,6 +373,7 @@ class CharacterViewState extends State<CharacterView> {
                                 ),
                               ),
                               PopupMenuButton<int>(
+                                tooltip: "",
                                 icon: const Icon(Icons.settings),
                                 color: AppColors.primaryColor,
                                 iconSize: 28.0,

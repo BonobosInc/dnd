@@ -6,11 +6,17 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'views/profile_home_screen.dart';
 import 'configs/colours.dart';
 import 'package:flutter/services.dart';
+import 'package:window_size/window_size.dart';
 
 ValueNotifier<bool> isDarkMode = ValueNotifier(true);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    setWindowTitle('BonoDND');
+    setWindowMinSize(const Size(400, 700));
+  }
 
   await AppColors.loadThemePreference();
 

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xml/xml.dart';
 import 'package:dnd/configs/defines.dart';
@@ -23,9 +24,20 @@ class ProfileManager {
     await loadProfiles();
   }
 
+  Future<String> _getPath() async {
+    if (Platform.isAndroid ||
+        (Platform.isWindows &&
+            bool.fromEnvironment('dart.vm.product') == false)) {
+      final databasesPath = await getDatabasesPath();
+      return join(databasesPath, 'characters.db');
+    } else {
+      final appSupportDir = await getApplicationSupportDirectory();
+      return join(appSupportDir.path, 'characters.db');
+    }
+  }
+
   Future<void> loadProfiles() async {
-    final databasesPath = await getDatabasesPath();
-    final dbPath = join(databasesPath, 'characters.db');
+    final dbPath = await _getPath();
 
     final dbFile = File(dbPath);
     if (!await dbFile.exists()) {
@@ -344,8 +356,7 @@ class ProfileManager {
   }
 
   Future<void> createProfile(String profileName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath, version: 1);
     currentDb!.execute(
@@ -450,6 +461,8 @@ class ProfileManager {
         'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, max INTEGER, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
+    currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS conditions (ID INTEGER PRIMARY KEY AUTOINCREMENT, condition TEXT, charId INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
     currentDb!.execute('''
   CREATE TABLE IF NOT EXISTS creatures (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -523,8 +536,7 @@ class ProfileManager {
   }
 
   Future<void> selectProfile(Character profile) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (kDebugMode) {
       print('Selecting profile: ${profile.name}');
@@ -539,8 +551,7 @@ class ProfileManager {
     selectedID = null;
     selectedProfile = null;
 
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath);
 
@@ -561,18 +572,24 @@ class ProfileManager {
         .delete('weapons', where: 'charId = ?', whereArgs: [charId]);
     await currentDb!.delete('feats', where: 'charId = ?', whereArgs: [charId]);
     await currentDb!.delete('items', where: 'charId = ?', whereArgs: [charId]);
-    await currentDb!.delete('tracker', where: 'charId = ?', whereArgs: [charId]);
-    await currentDb!.delete('creatures', where: 'charId = ?', whereArgs: [charId]);
-    await currentDb!.delete('creature_traits', where: 'charId = ?', whereArgs: [charId]);
-    await currentDb!.delete('creature_actions', where: 'charId = ?', whereArgs: [charId]);
-    await currentDb!.delete('creature_legendary_actions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('tracker', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('conditions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creatures', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creature_traits', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creature_actions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creature_legendary_actions',
+        where: 'charId = ?', whereArgs: [charId]);
 
     await loadProfiles();
   }
 
   Future<void> renameProfile(String oldName, String newName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (profiles.any((profile) => profile.name == newName)) {
       throw Exception(
@@ -602,8 +619,7 @@ class ProfileManager {
   }
 
   Future<void> clearDatabase() async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (currentDb != null) {
       await currentDb!.close();
@@ -1201,6 +1217,79 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateCondition({
+    required uuid,
+    String? condition,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingConditionList =
+        await currentDb!.query(
+      'conditions',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'condition': condition,
+    };
+
+    if (existingConditionList.isNotEmpty) {
+      final Map<String, dynamic> existingCondition =
+          existingConditionList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingCondition[key];
+        }
+      });
+      await currentDb!.update(
+        'conditions',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'conditions',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addCondition({
+    required String condition,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> conditionData = {
+      'charId': selectedID,
+      'condition': condition,
+    };
+
+    try {
+      await currentDb!.insert(
+        'conditions',
+        conditionData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding item: $e');
+      }
+    }
+  }
+
+  Future<void> removeCondition(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'conditions',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
   Future<void> addCreature(Creature creature) async {
     if (currentDb == null) return;
 
@@ -1504,6 +1593,18 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'tracker',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getConditions() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'conditions',
       where: 'charId = ?',
       whereArgs: [selectedID],
     );
