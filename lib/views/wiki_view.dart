@@ -201,11 +201,11 @@ class WikiPageState extends State<WikiPage> {
                     return [
                       const PopupMenuItem<String>(
                         value: 'import',
-                        child: Text('Import XML'),
+                        child: Text('Wiki importieren'),
                       ),
                       const PopupMenuItem<String>(
                         value: 'export',
-                        child: Text('Export XML'),
+                        child: Text('Wiki exportieren'),
                       ),
                     ];
                   },

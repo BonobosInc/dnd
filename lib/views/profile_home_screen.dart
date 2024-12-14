@@ -364,6 +364,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                           builder: (context) => CharacterView(
                                             profileManager: profileManager,
                                             wikiParser: widget.wikiParser,
+                                            profile: profile,
                                           ),
                                         ),
                                       );

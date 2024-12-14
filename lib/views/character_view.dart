@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dnd/main.dart';
 import 'package:dnd/views/character/mainstats_view.dart';
 import 'package:dnd/views/character/stats_view.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/classes/wiki_parser.dart';
@@ -12,15 +15,18 @@ import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 import 'spell_view.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CharacterView extends StatefulWidget {
   final ProfileManager profileManager;
   final WikiParser wikiParser;
+  final Character profile;
 
   const CharacterView({
     super.key,
     required this.profileManager,
     required this.wikiParser,
+    required this.profile,
   });
 
   @override
@@ -32,13 +38,17 @@ class CharacterViewState extends State<CharacterView> {
   int level = 0;
   int xp = 0;
 
+  dynamic _profileImagePath = AssetImage('assets/images/default.png');
+
   GlobalKey<MainStatsPageState> mainStatsPageKey =
       GlobalKey<MainStatsPageState>();
 
   @override
   void initState() {
     super.initState();
+    name = widget.profile.name;
     _loadCharacterData();
+    _getProfileImagePath();
   }
 
   Future<void> _loadCharacterData() async {
@@ -311,6 +321,159 @@ class CharacterViewState extends State<CharacterView> {
     );
   }
 
+  void _showProfileImageDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipOval(
+                child: _profileImagePath is AssetImage
+                    ? Image(
+                        image: _profileImagePath,
+                        width: 300,
+                        height: 300,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.file(
+                        _profileImagePath as File,
+                        width: 300,
+                        height: 300,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  final pickedFile = await FilePicker.platform.pickFiles(
+                    type: FileType.image,
+                  );
+
+                  if (pickedFile != null) {
+                    File file = File(pickedFile.files.single.path!);
+                    File savedFilePath = await _uploadImage(file);
+                    if (context.mounted) Navigator.of(context).pop();
+                    setState(() {
+                      _profileImagePath = savedFilePath;
+                    });
+
+                    if (context.mounted) {
+                      _showProfileImageDialog(context);
+                    }
+                  }
+                },
+                child: Text("Bild hinzufügen"),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _showDeleteConfirmationDialog(context);
+                },
+                child: Text("Bild entfernen"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Bild entfernen'),
+          content:
+              const Text('Bist du sicher, dass du das Bild entfernen willst?'),
+          actions: [
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Entfernen'),
+              onPressed: () async {
+                if (_profileImagePath is File) {
+                  File profileImageFile = _profileImagePath as File;
+
+                  if (await profileImageFile.exists()) {
+                    await profileImageFile.delete();
+                  }
+                }
+
+                setState(() {
+                  _profileImagePath = AssetImage('assets/images/default.png');
+                });
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  _showProfileImageDialog(context);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<File> _uploadImage(File pickedFile) async {
+    String savedFilePath = '';
+
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+      Directory directory = isDebugMode
+          ? Directory('./temp')
+          : await getApplicationSupportDirectory();
+
+      savedFilePath = '${directory.path}/$name.png';
+
+      await pickedFile.copy(savedFilePath);
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      savedFilePath = '${appSupportDir.path}/$name.png';
+
+      await pickedFile.copy(savedFilePath);
+    }
+
+    return File(savedFilePath);
+  }
+
+  Future<void> _getProfileImagePath() async {
+    String imagePath = '';
+
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+      Directory directory = isDebugMode
+          ? Directory('./temp')
+          : await getApplicationSupportDirectory();
+
+      imagePath = '${directory.path}/$name.png';
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      imagePath = '${appSupportDir.path}/$name.png';
+    }
+
+    File profileImageFile = File(imagePath);
+
+    if (profileImageFile.existsSync()) {
+      setState(() {
+        _profileImagePath = profileImageFile;
+      });
+    } else {
+      setState(() {
+        _profileImagePath = AssetImage('assets/images/default.png');
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -324,7 +487,32 @@ class CharacterViewState extends State<CharacterView> {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(name),
+            title: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    _showProfileImageDialog(context);
+                  },
+                  child: ClipOval(
+                    child: _profileImagePath is AssetImage
+                        ? Image(
+                            image: _profileImagePath as AssetImage,
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(
+                            _profileImagePath as File,
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Text(name),
+              ],
+            ),
             backgroundColor: AppColors.appBarColor,
             bottom: TabBar(
               tabs: [
