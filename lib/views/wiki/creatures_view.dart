@@ -299,7 +299,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
   late final TextEditingController _acController =
       TextEditingController(text: widget.creature?.ac.toString() ?? '');
   late final TextEditingController _hpController =
-      TextEditingController(text: widget.creature?.hp ?? '');
+      TextEditingController(text: widget.creature?.maxHP.toString() ?? '');
   late final TextEditingController _speedController =
       TextEditingController(text: widget.creature?.speed ?? '');
   late final TextEditingController _crController =
@@ -364,9 +364,10 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 type: _typeController.text,
                 alignment: _alignmentController.text,
                 ac: int.tryParse(_acController.text) ?? 0,
-                hp: _hpController.text,
                 maxHP: int.tryParse(_hpController.text) ?? 0,
-                currentHP: int.tryParse(_hpController.text) ?? 0,
+                currentHP: (widget.creature!.currentHP == 0)
+                    ? int.tryParse(_hpController.text) ?? 0
+                    : widget.creature!.currentHP,
                 speed: _speedController.text,
                 str: int.tryParse(_strController.text) ?? 0,
                 dex: int.tryParse(_dexController.text) ?? 0,
@@ -1280,7 +1281,7 @@ class CreatureDetailPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Rüstungsklasse: ${creature.ac}'),
-        Text('Lebenspunkte: ${creature.hp}'),
+        Text('Lebenspunkte: ${creature.maxHP}'),
         Text('Bewegungsrate: ${creature.speed}'),
       ],
     );

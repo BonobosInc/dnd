@@ -122,7 +122,6 @@ class Creature {
   String type;
   String alignment;
   int ac;
-  String hp;
   int currentHP;
   int maxHP;
   String speed;
@@ -152,7 +151,6 @@ class Creature {
     this.type = "",
     this.alignment = "",
     this.ac = 0,
-    this.hp = "",
     this.speed = "",
     this.str = 0,
     this.dex = 0,

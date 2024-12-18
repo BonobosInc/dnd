@@ -472,7 +472,6 @@ class ProfileManager {
     type TEXT,
     alignment TEXT,
     ac INTEGER,
-    hp TEXT,
     currentHP INTEGER,
     maxHP INTEGER,
     speed TEXT,
@@ -1300,7 +1299,6 @@ class ProfileManager {
       'type': creature.type,
       'alignment': creature.alignment,
       'ac': creature.ac,
-      'hp': creature.hp,
       'currentHP': creature.currentHP,
       'maxHP': creature.maxHP,
       'speed': creature.speed,
@@ -1390,7 +1388,8 @@ class ProfileManager {
       'type': creature.type,
       'alignment': creature.alignment,
       'ac': creature.ac,
-      'hp': creature.hp,
+      'maxHP': creature.maxHP,
+      'currentHP': creature.currentHP,
       'speed': creature.speed,
       'str': creature.str,
       'dex': creature.dex,
@@ -1559,7 +1558,6 @@ class ProfileManager {
         type: creatureData['type'],
         alignment: creatureData['alignment'],
         ac: creatureData['ac'],
-        hp: creatureData['hp'],
         currentHP: creatureData['currentHP'],
         maxHP: creatureData['maxHP'],
         speed: creatureData['speed'],
@@ -2564,7 +2562,6 @@ class ProfileManager {
         type: extractText('type'),
         alignment: extractText('alignment'),
         ac: extractInt('ac'),
-        hp: extractText('hp'),
         currentHP: extractInt('currentHP'),
         maxHP: extractInt('maxHP'),
         speed: extractText('speed'),
@@ -3183,7 +3180,6 @@ class ProfileManager {
             builder.element('type', nest: creature.type);
             builder.element('alignment', nest: creature.alignment);
             builder.element('ac', nest: creature.ac.toString());
-            builder.element('hp', nest: creature.hp);
             builder.element('currentHP', nest: creature.currentHP.toString());
             builder.element('maxHP', nest: creature.maxHP.toString());
             builder.element('speed', nest: creature.speed);

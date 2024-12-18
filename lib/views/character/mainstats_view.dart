@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/configs/colours.dart';
@@ -32,28 +34,30 @@ class MainStatsPageState extends State<MainStatsPage> {
   int initiative = 0;
   String movement = '0m';
 
+  Timer? _timer;
+
   List<Tracker> trackers = [];
 
   List<Creature> creatures = [];
 
   List<Condition> statusEffects = [];
   List<String> conditionOptions = [
-      'Blind', // Blinded
-      'Festgesetzt', // Restrained
-      'Betäubt', // Stunned
-      'Gelähmt', // Paralyzed
-      'Erschöpfung', // Exhaustion
-      'Vergiftet', // Poisoned
-      'Verängstigt', // Frightened
-      'Gepackt', // Grappled
-      'Versteinert', // Petrified
-      'Bezaubert', // Charmed
-      'Taub', // Deafened
-      'Bewusstlos', // Unconscious
-      'Liegend', // Prone
-      'Kampfunfähig', // Incapacitated
-      'Unsichtbar', // Invisible
-    ];
+    'Blind', // Blinded
+    'Festgesetzt', // Restrained
+    'Betäubt', // Stunned
+    'Gelähmt', // Paralyzed
+    'Erschöpfung', // Exhaustion
+    'Vergiftet', // Poisoned
+    'Verängstigt', // Frightened
+    'Gepackt', // Grappled
+    'Versteinert', // Petrified
+    'Bezaubert', // Charmed
+    'Taub', // Deafened
+    'Bewusstlos', // Unconscious
+    'Liegend', // Prone
+    'Kampfunfähig', // Incapacitated
+    'Unsichtbar', // Invisible
+  ];
 
   @override
   void initState() {
@@ -137,6 +141,25 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  void _startIncrementing() {
+    _incrementHP();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _incrementHP();
+    });
+  }
+
+  void _startDecrementing() {
+    _decrementHP();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _decrementHP();
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
   void _incrementHP() {
     setState(() {
       if (tempHP > 0) {
@@ -161,6 +184,25 @@ class MainStatsPageState extends State<MainStatsPage> {
         _updateStat(Defines.statCurrentHP, currentHP);
       }
     });
+  }
+
+  void _startIncrementingC(int index) {
+    _incrementCreatureHP(index);
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _incrementCreatureHP(index);
+    });
+  }
+
+  void _startDecrementingC(int index) {
+    _decrementCreatureHP(index);
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _decrementCreatureHP(index);
+    });
+  }
+
+  void _stopTimerC() {
+    _timer?.cancel();
+    _timer = null;
   }
 
   void _incrementCreatureHP(int index) {
@@ -1076,20 +1118,31 @@ class MainStatsPageState extends State<MainStatsPage> {
           Divider(color: AppColors.textColorLight, thickness: 1.5),
           Row(
             children: [
-              Text(
-                tempHP > 0
-                    ? '$currentHP/$maxHP + $tempHP Temp'
-                    : '$currentHP/$maxHP',
-                style: const TextStyle(fontSize: 18),
+              GestureDetector(
+                onTap: _showEditHpDialog,
+                child: Text(
+                  tempHP > 0
+                      ? '$currentHP/$maxHP + $tempHP Temp'
+                      : '$currentHP/$maxHP',
+                  style: const TextStyle(fontSize: 18),
+                ),
               ),
               const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: _decrementHP,
+              GestureDetector(
+                onLongPressStart: (_) => _startDecrementing(),
+                onLongPressEnd: (_) => _stopTimer(),
+                child: IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: _decrementHP,
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _incrementHP,
+              GestureDetector(
+                onLongPressStart: (_) => _startIncrementing(),
+                onLongPressEnd: (_) => _stopTimer(),
+                child: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _incrementHP,
+                ),
               ),
             ],
           ),
@@ -1394,17 +1447,27 @@ class MainStatsPageState extends State<MainStatsPage> {
                                 ),
                                 Row(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.remove),
-                                      onPressed: () {
-                                        _decrementCreatureHP(i);
-                                      },
+                                    GestureDetector(
+                                      onLongPressStart: (_) =>
+                                          _startDecrementingC(i),
+                                      onLongPressEnd: (_) => _stopTimer(),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.remove),
+                                        onPressed: () {
+                                          _decrementCreatureHP(i);
+                                        },
+                                      ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.add),
-                                      onPressed: () {
-                                        _incrementCreatureHP(i);
-                                      },
+                                    GestureDetector(
+                                      onLongPressStart: (_) =>
+                                          _startIncrementingC(i),
+                                      onLongPressEnd: (_) => _stopTimer(),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.add),
+                                        onPressed: () {
+                                          _incrementCreatureHP(i);
+                                        },
+                                      ),
                                     ),
                                   ],
                                 ),

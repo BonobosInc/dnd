@@ -514,7 +514,6 @@ class WikiParser {
         type: type,
         alignment: alignment,
         ac: ac,
-        hp: hp,
         maxHP: maxHP,
         currentHP: currentHP,
         speed: speed,
