@@ -365,9 +365,9 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 alignment: _alignmentController.text,
                 ac: int.tryParse(_acController.text) ?? 0,
                 maxHP: int.tryParse(_hpController.text) ?? 0,
-                currentHP: (widget.creature!.currentHP == 0)
+                currentHP: (widget.creature?.currentHP ?? 0) == 0
                     ? int.tryParse(_hpController.text) ?? 0
-                    : widget.creature!.currentHP,
+                    : widget.creature?.currentHP ?? 0,
                 speed: _speedController.text,
                 str: int.tryParse(_strController.text) ?? 0,
                 dex: int.tryParse(_dexController.text) ?? 0,

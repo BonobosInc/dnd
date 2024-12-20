@@ -190,7 +190,8 @@ class BagPageState extends State<BagPage> {
 
   void _showAddItemDialog() {
     var newItem = true;
-    _showItemDialog(Item(name: '', description: '', type: 'Sonstige', amount: 1), newItem);
+    _showItemDialog(
+        Item(name: '', description: '', type: 'Sonstige', amount: 1), newItem);
   }
 
   void _showItemDetails(Item item) {
@@ -208,92 +209,96 @@ class BagPageState extends State<BagPage> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Gegenstand bearbeiten'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                _buildItemDetailForm(item, descriptionController),
-                const SizedBox(height: 16),
-                // Dropdown for type
-                DropdownButtonFormField<String>(
-                  value: selectedType,
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'Gegenstände', child: Text('Gegenstände')),
-                    DropdownMenuItem(
-                        value: 'Ausrüstung', child: Text('Ausrüstung')),
-                    DropdownMenuItem(
-                        value: 'Sonstige', child: Text('Sonstige')),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Typ',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    selectedType = value;
-                    item.type = selectedType;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Row for editing amount
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Gegenstand bearbeiten'),
+              content: SingleChildScrollView(
+                child: Column(
                   children: [
-                    const Text('Menge:'),
+                    const SizedBox(height: 16),
+                    _buildItemDetailForm(item, descriptionController),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'Gegenstände', child: Text('Gegenstände')),
+                        DropdownMenuItem(
+                            value: 'Ausrüstung', child: Text('Ausrüstung')),
+                        DropdownMenuItem(
+                            value: 'Sonstige', child: Text('Sonstige')),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Typ',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value;
+                          item.type = selectedType;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: () {
-                            setState(() {
-                              if (editedAmount > 1) editedAmount--;
-                            });
-                          },
-                        ),
-                        Text('$editedAmount'),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () {
-                            setState(() {
-                              editedAmount++;
-                            });
-                          },
+                        const Text('Menge:'),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove),
+                              onPressed: () {
+                                setState(() {
+                                  if (editedAmount > 1) editedAmount--;
+                                });
+                              },
+                            ),
+                            Text('$editedAmount'),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () {
+                                setState(() {
+                                  editedAmount++;
+                                });
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ],
                 ),
+              ),
+              actions: [
+                SizedBox(
+                  height: 36,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Abbrechen'),
+                  ),
+                ),
+                SizedBox(
+                  height: 36,
+                  child: TextButton(
+                    onPressed: () {
+                      item.amount = editedAmount;
+                      if (newItem) {
+                        _addItem(item, descriptionController.text);
+                      } else {
+                        _updateItem(item, descriptionController.text);
+                      }
+                      Navigator.of(context).pop(true);
+                    },
+                    child: const Text('Speichern'),
+                  ),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            SizedBox(
-              height: 36,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Abbrechen'),
-              ),
-            ),
-            SizedBox(
-              height: 36,
-              child: TextButton(
-                onPressed: () {
-                  item.amount = editedAmount;
-                  if (newItem) {
-                    _addItem(item, descriptionController.text);
-                  } else {
-                    _updateItem(item, descriptionController.text);
-                  }
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Speichern'),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -309,6 +314,7 @@ class BagPageState extends State<BagPage> {
       description: finalDescription,
       type: item.type,
       uuid: item.uuid,
+      amount: item.amount,
     )
         .then((_) {
       _fetchItems();
@@ -321,7 +327,10 @@ class BagPageState extends State<BagPage> {
 
     widget.profileManager
         .addItem(
-            itemname: item.name, description: finalDescription, type: item.type)
+            itemname: item.name,
+            description: finalDescription,
+            type: item.type,
+            amount: item.amount)
         .then((_) {
       _fetchItems();
     });
@@ -431,8 +440,7 @@ class BagPageState extends State<BagPage> {
                     width: 35,
                     height: 35,
                     child: IconButton(
-                      icon: Icon(Icons.close,
-                          color: AppColors.textColorDark),
+                      icon: Icon(Icons.close, color: AppColors.textColorDark),
                       iconSize: 20.0,
                       padding: EdgeInsets.zero,
                       onPressed: () {

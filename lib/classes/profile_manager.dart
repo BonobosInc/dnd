@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xml/xml.dart';
 import 'package:dnd/configs/defines.dart';
+import 'package:dnd/classes/pdf_editor.dart';
 
 class Character {
   final int id;
@@ -1797,7 +1798,7 @@ class ProfileManager {
     final characterFeats = document
         .findAllElements('character')
         .expand((e) => e.findAllElements('feat'));
-    parseFeats(characterFeats, 'Charakter');
+    parseFeats(characterFeats, 'Sonstige');
 
     parseFeats(
       document.findAllElements('race').expand((e) => e.findAllElements('feat')),
@@ -3236,5 +3237,755 @@ class ProfileManager {
 
     final document = builder.buildDocument();
     return document.toXmlString(pretty: true, indent: '  ');
+  }
+
+  Future<bool> exportToPDF(Character profile) async {
+    try {
+      await selectProfile(profile);
+      final PDFBuilder pdfbuilder = PDFBuilder();
+      Map<String, String> filledValues = {};
+
+      final infos = await getProfileInfo();
+      final stats = await getStats();
+      final saves = await getSavingThrows();
+      final skills = await getSkills();
+      final weapons = await getWeapons();
+      final profs = await getProficiencies();
+      final spellslots = await getSpellSlots();
+      final spells = await getAllSpells();
+      final bag = await getBagItems();
+      final items = await getItems();
+      final feats = await getFeats();
+
+      if (infos.isNotEmpty && stats.isNotEmpty) {
+        int proficiencyBonus =
+            int.parse(stats.first[Defines.statProficiencyBonus].toString());
+
+        _updateInfoValues(filledValues, stats, infos);
+
+        _updateStatValues(filledValues, stats);
+
+        _updateWeaponValues(filledValues, weapons);
+
+        _updateProfValues(filledValues, profs);
+
+        _updateSavesValues(saves, filledValues, stats, proficiencyBonus);
+
+        _updateSkillValues(skills, filledValues, stats.first, proficiencyBonus);
+
+        _updateSpellValues(
+            filledValues, spellslots, spells, stats.first, infos.first);
+
+        _updateBagItemsValues(filledValues, bag, items);
+
+        _updateFeatValues(filledValues, feats);
+      }
+
+      await pdfbuilder.fillAndSavePdf(filledValues);
+      await closeDB();
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error exporting to PDF: $e');
+      }
+      return false;
+    }
+  }
+
+  void _updateStatValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> stats) {
+    /* Stats */
+    int strAbilityModifier = ((stats.first[Defines.statSTR] - 10) / 2).floor();
+    int dexAbilityModifier = ((stats.first[Defines.statDEX] - 10) / 2).floor();
+    int conAbilityModifier = ((stats.first[Defines.statCON] - 10) / 2).floor();
+    int intAbilityModifier = ((stats.first[Defines.statINT] - 10) / 2).floor();
+    int wisAbilityModifier = ((stats.first[Defines.statWIS] - 10) / 2).floor();
+    int chaAbilityModifier = ((stats.first[Defines.statCHA] - 10) / 2).floor();
+
+    filledValues["Str"] = stats.first[Defines.statSTR].toString();
+    filledValues["StrMod"] = strAbilityModifier.toString();
+
+    filledValues["Ges"] = stats.first[Defines.statDEX].toString();
+    filledValues["GesMod"] = dexAbilityModifier.toString();
+
+    filledValues["Kon"] = stats.first[Defines.statCON].toString();
+    filledValues["KonMod"] = conAbilityModifier.toString();
+
+    filledValues["Int"] = stats.first[Defines.statINT].toString();
+    filledValues["IntMod"] = intAbilityModifier.toString();
+
+    filledValues["Wei"] = stats.first[Defines.statWIS].toString();
+    filledValues["WeiMod"] = wisAbilityModifier.toString();
+
+    filledValues["Cha"] = stats.first[Defines.statCHA].toString();
+    filledValues["ChaMod"] = chaAbilityModifier.toString();
+  }
+
+  void _updateInfoValues(Map<String, String> filledValues,
+      List<Map<String, dynamic>> stats, List<Map<String, dynamic>> infos) {
+    /* Infos */
+    filledValues["Charaktername_page1"] = infos.first[Defines.infoName];
+    filledValues["Charaktername_page2"] = infos.first[Defines.infoName];
+    filledValues["KlasseUndStufe"] = infos.first[Defines.infoClass] +
+        " " +
+        stats.first[Defines.statLevel].toString();
+    filledValues["Hintergrund"] = infos.first[Defines.infoBackground];
+    filledValues["Volk"] = infos.first[Defines.infoRace];
+    filledValues["Erfahrungspunkte"] = stats.first[Defines.statXP].toString();
+    filledValues["Inspiration"] =
+        stats.first[Defines.statInspiration] <= 1 ? "true" : "false";
+    filledValues["Übungsbonus"] =
+        stats.first[Defines.statProficiencyBonus].toString();
+    filledValues["Rüstungsklasse"] = stats.first[Defines.statArmor].toString();
+    filledValues["Initiative"] = stats.first[Defines.statInitiative].toString();
+    filledValues["Bewegungsrate"] =
+        stats.first[Defines.statMovement].toString();
+    filledValues["TrefferpunkteMaximum"] =
+        stats.first[Defines.statMaxHP].toString();
+    filledValues["AktTrefferpunkte"] =
+        stats.first[Defines.statCurrentHP].toString();
+    filledValues["TempTrefferpunkte"] =
+        stats.first[Defines.statTempHP].toString();
+    filledValues["GesamtTW"] = stats.first[Defines.statMaxHitDice].toString() +
+        stats.first[Defines.statHitDiceFactor].toString();
+    filledValues["Trefferwürfel"] =
+        stats.first[Defines.statCurrentHitDice].toString();
+    filledValues["Alter"] = infos.first[Defines.infoAge].toString();
+    filledValues["Glaube"] = infos.first[Defines.infoGod].toString();
+    filledValues["Körpergrösse"] = infos.first[Defines.infoSize].toString();
+    filledValues["Gewicht"] = infos.first[Defines.infoWeight].toString();
+    filledValues["Geschlecht"] = infos.first[Defines.infoSex].toString();
+    filledValues["Gesinnung"] = infos.first[Defines.infoAlignment].toString();
+    filledValues["Augenfarbe"] = infos.first[Defines.infoEyeColour].toString();
+    filledValues["Haarfarbe"] = infos.first[Defines.infoHairColour].toString();
+    filledValues["Hautfarbe"] = infos.first[Defines.infoSkinColour].toString();
+    filledValues["Persönlichkeitsmerkmale"] = infos.first[Defines.infoPersonalityTraits].toString();
+    filledValues["Ideale"] = infos.first[Defines.infoIdeals].toString();
+    filledValues["Bindungen"] = infos.first[Defines.infoBonds].toString();
+    filledValues["Makel"] = infos.first[Defines.infoFlaws].toString();
+    filledValues["Hintergrundgeschichte1"] = infos.first[Defines.infoBackstory].toString();
+    filledValues["Aussehen"] = infos.first[Defines.infoAppearance].toString();
+  }
+
+  void _updateSavesValues(
+      List<Map<String, dynamic>> saves,
+      Map<String, String> filledValues,
+      List<Map<String, dynamic>> stats,
+      int proficiencyBonus) {
+    int strAbilityModifier = ((stats.first[Defines.statSTR] - 10) / 2).floor();
+    int dexAbilityModifier = ((stats.first[Defines.statDEX] - 10) / 2).floor();
+    int conAbilityModifier = ((stats.first[Defines.statCON] - 10) / 2).floor();
+    int intAbilityModifier = ((stats.first[Defines.statINT] - 10) / 2).floor();
+    int wisAbilityModifier = ((stats.first[Defines.statWIS] - 10) / 2).floor();
+    int chaAbilityModifier = ((stats.first[Defines.statCHA] - 10) / 2).floor();
+    final abilities = [
+      {
+        "save": Defines.saveStr,
+        "profKey": "StrProf",
+        "rwKey": "StrRW",
+        "modKey": strAbilityModifier
+      },
+      {
+        "save": Defines.saveDex,
+        "profKey": "GesProf",
+        "rwKey": "GesRW",
+        "modKey": dexAbilityModifier
+      },
+      {
+        "save": Defines.saveCon,
+        "profKey": "KonProf",
+        "rwKey": "KonRW",
+        "modKey": conAbilityModifier
+      },
+      {
+        "save": Defines.saveInt,
+        "profKey": "IntProf",
+        "rwKey": "IntRW",
+        "modKey": intAbilityModifier
+      },
+      {
+        "save": Defines.saveWis,
+        "profKey": "WeiProf",
+        "rwKey": "WeiRW",
+        "modKey": wisAbilityModifier
+      },
+      {
+        "save": Defines.saveCha,
+        "profKey": "ChaProf",
+        "rwKey": "ChaRW",
+        "modKey": chaAbilityModifier
+      },
+    ];
+
+    if (saves.isNotEmpty) {
+      var saveData = saves.first;
+
+      for (var ability in abilities) {
+        final isProficient = saveData[ability['save']] == 1;
+        filledValues[ability['profKey'] as String] =
+            isProficient ? "true" : "false";
+
+        filledValues[ability['rwKey'] as String] = isProficient
+            ? ((ability['modKey'] as int? ?? 0) + proficiencyBonus).toString()
+            : ability['modKey'].toString();
+      }
+    }
+  }
+
+  int _calculateSkillValue(Map<String, dynamic> skill, String skillName,
+      int abilityModifier, int proficiencyBonus, bool jack) {
+    int skillValue = abilityModifier;
+
+    if (skill['proficiency'] == 1) {
+      skillValue += proficiencyBonus;
+    }
+
+    if (skill['expertise'] == 1) {
+      skillValue += proficiencyBonus;
+    }
+
+    if (jack &&
+        skill['proficiency'] != 1 &&
+        skill['expertise'] != 1 &&
+        skillName != Defines.skillJackofAllTrades) {
+      skillValue += 1;
+    }
+
+    return skillValue;
+  }
+
+  void _updateSkillValues(
+      List<Map<String, dynamic>> skills,
+      Map<String, String> filledValues,
+      Map<String, dynamic> stats,
+      int proficiencyBonus) {
+    if (skills.isNotEmpty) {
+      final jack = skills.firstWhere(
+                  (element) => element['skill'] == Defines.skillJackofAllTrades,
+                  orElse: () => {})["proficiency"] ==
+              1
+          ? true
+          : false;
+      final dexAbilityModifier = ((stats[Defines.statDEX] - 10) / 2).floor();
+      final strAbilityModifier = ((stats[Defines.statSTR] - 10) / 2).floor();
+      final intAbilityModifier = ((stats[Defines.statINT] - 10) / 2).floor();
+      final wisAbilityModifier = ((stats[Defines.statWIS] - 10) / 2).floor();
+      final chaAbilityModifier = ((stats[Defines.statCHA] - 10) / 2).floor();
+
+      for (var skill in skills) {
+        final skillType = skill['skill'];
+
+        switch (skillType) {
+          case Defines.skillAcrobatics:
+            filledValues["AkrobatikProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AkrobatikExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AkrobatikGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAcrobatics,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillArcana:
+            filledValues["ArkaneKundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ArkaneKundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ArkaneKundeInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillArcana,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillAthletics:
+            filledValues["AthletikProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AthletikExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AthletikStr"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAthletics,
+                    strAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPerformance:
+            filledValues["AuftretenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AuftretenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AuftretenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPerformance,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillIntimidation:
+            filledValues["EinschüchternProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["EinschüchternExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["EinschüchternCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillIntimidation,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillSleightOfHand:
+            filledValues["FingerfertigkeitProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["FingerfertigkeitExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["FingerfertigkeitGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillSleightOfHand,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillHistory:
+            filledValues["GeschichteProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["GeschichteExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["GeschichteInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillHistory,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillMedicine:
+            filledValues["HeilkundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["HeilkundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["HeilkundeWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillMedicine,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillStealth:
+            filledValues["HeimlichkeitProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["HeimlichkeitExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["HeimlichkeitGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillStealth,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillAnimalHandling:
+            filledValues["MitTierenUmgehenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["MitTierenUmgehenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["MitTierenUmgehenWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAnimalHandling,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillInsight:
+            filledValues["MotivErkennenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["MotivErkennenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["MotivErkennenWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillInsight,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillInvestigation:
+            filledValues["NachforschungenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["NachforschungenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["NachforschungenInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillInvestigation,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillNature:
+            filledValues["NaturkundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["NaturkundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["NaturkundeInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillNature,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillReligion:
+            filledValues["ReligionProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ReligionExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ReligionInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillReligion,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillDeception:
+            filledValues["TäuschenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["TäuschenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["TäuschenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillDeception,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillSurvival:
+            filledValues["ÜberlebenskunstProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ÜberlebenskunstExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ÜberlebenskunstWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillDeception,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPersuasion:
+            filledValues["ÜberzeugenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ÜberzeugenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ÜberzeugenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPersuasion,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPerception:
+            filledValues["WahrnehmungProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["WahrnehmungExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["WahrnehmungWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPerception,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillJackofAllTrades:
+            filledValues["Alleskoenner"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            break;
+        }
+      }
+    }
+  }
+
+  void _updateWeaponValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> weapons) {
+    int i = 0;
+    if (weapons.isNotEmpty) {
+      for (var weapon in weapons) {
+        if (weapon['weapon'] != null && weapon['weapon']!.isNotEmpty) {
+          i++;
+          filledValues["Angriff$i"] = weapon['weapon'] ?? '';
+          filledValues["Bonus$i"] = weapon['bonus'] ?? '';
+          filledValues["Schaden$i"] = weapon['damage'] ?? '';
+          filledValues["Reichweite$i"] = weapon['reach'] ?? '';
+          filledValues["Beschreibung$i"] = weapon['description'] ?? '';
+          filledValues["Schadentyp$i"] = weapon['damagetype'] ?? '';
+        }
+      }
+    }
+  }
+
+  void _updateProfValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> profs) {
+    if (profs.isNotEmpty) {
+      filledValues["SonstigeWaffen"] =
+          profs.first[Defines.profWeaponList] ?? "";
+
+      if (profs.first.containsKey(Defines.profLanguages)) {
+        String languages = profs.first[Defines.profLanguages] ?? "";
+
+        List<String> languageList = languages
+            .split(RegExp(r'[,\s]+'))
+            .where((lang) => lang.isNotEmpty)
+            .toList();
+
+        for (int i = 0; i < languageList.length; i++) {
+          filledValues["Sprache${i + 1}"] = languageList[i];
+        }
+      }
+
+      if (profs.first.containsKey(Defines.profTools)) {
+        String tools = profs.first[Defines.profTools] ?? "";
+
+        List<String> toolList = tools
+            .split(',')
+            .map((tool) => tool.trim())
+            .where((tool) => tool.isNotEmpty)
+            .toList();
+
+        for (int i = 0; i < toolList.length; i++) {
+          filledValues["WerkzeugUndAndere${i + 1}"] = toolList[i];
+        }
+      }
+    }
+  }
+
+  void _updateSpellValues(
+      Map<String, String> filledValues,
+      List<Map<String, dynamic>> spellslots,
+      List<Map<String, dynamic>> spells,
+      Map<String, dynamic> stats,
+      Map<String, dynamic> infos) {
+    if (infos.isNotEmpty) {
+      filledValues["Zauberklasse"] = infos[Defines.infoSpellcastingClass];
+      filledValues["AttributZauberwirken"] =
+          infos[Defines.infoSpellcastingAbility];
+    }
+    if (stats.isNotEmpty) {
+      filledValues["ZauberRettungswurfSG"] =
+          stats[Defines.statSpellSaveDC].toString();
+      filledValues["ZauberAngriffsbonus"] =
+          stats[Defines.statSpellAttackBonus].toString();
+    }
+    if (spellslots.isNotEmpty) {
+      for (var spellslot in spellslots) {
+        switch (spellslot["spellslot"]) {
+          case Defines.slotOne:
+            filledValues["ZauberplätzeGesamt1"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht1"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotTwo:
+            filledValues["ZauberplätzeGesamt2"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht2"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotThree:
+            filledValues["ZauberplätzeGesamt3"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht3"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotFour:
+            filledValues["ZauberplätzeGesamt4"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht4"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotFive:
+            filledValues["ZauberplätzeGesamt5"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht5"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotSix:
+            filledValues["ZauberplätzeGesamt6"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht6"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotSeven:
+            filledValues["ZauberplätzeGesamt7"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht7"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotEight:
+            filledValues["ZauberplätzeGesamt8"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht8"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotNine:
+            filledValues["ZauberplätzeGesamt9"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht9"] =
+                spellslot["spent"].toString();
+            break;
+        }
+      }
+    }
+
+    int zaubertrick = 0;
+    Map<int, int> levelCounters = {for (int i = 1; i <= 9; i++) i: 0};
+
+    if (spells.isNotEmpty) {
+      for (var spell in spells) {
+        int level = spell["level"];
+        if (level == 0) {
+          zaubertrick++;
+          filledValues["Zaubertrick$zaubertrick"] = spell["spellname"];
+        } else if (levelCounters.containsKey(level)) {
+          levelCounters[level] = levelCounters[level]! + 1;
+          int count = levelCounters[level]!;
+          filledValues["ZauberActive${level}_$count"] =
+              spell['status'] == Defines.spellPrep ? "true" : "false";
+          filledValues["Zauber${level}_$count"] = spell["spellname"];
+        }
+      }
+    }
+  }
+
+  void _updateBagItemsValues(
+    Map<String, String> filledValues,
+    List<Map<String, dynamic>> bag,
+    List<Map<String, dynamic>> items,
+  ) {
+    if (bag.isNotEmpty) {
+      filledValues["PM"] = (bag.first[Defines.bagPlatin] ?? 0).toString();
+      filledValues["GM"] = (bag.first[Defines.bagGold] ?? 0).toString();
+      filledValues["SM"] = (bag.first[Defines.bagSilver] ?? 0).toString();
+      filledValues["KM"] = (bag.first[Defines.bagCopper] ?? 0).toString();
+      filledValues["EM"] = (bag.first[Defines.bagElectrum] ?? 0).toString();
+    }
+    if (items.isNotEmpty) {
+      int i = 0;
+      for (var item in items) {
+        if (item['itemname'] != null && item['itemname']!.isNotEmpty) {
+          i++;
+          filledValues["Inventar$i"] = item['itemname'].toString();
+          filledValues["InventarAnz$i"] = item['amount'].toString();
+        }
+      }
+    }
+  }
+
+  void _updateFeatValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> feats) {
+    if (feats.isNotEmpty) {
+      StringBuffer classFeatures = StringBuffer();
+      StringBuffer raceFeatures = StringBuffer();
+      StringBuffer backgroundFeatures = StringBuffer();
+      StringBuffer abilitiesFeatures = StringBuffer();
+      StringBuffer otherFeatures = StringBuffer();
+
+      bool hasClassFeats = false;
+      bool hasRaceFeats = false;
+      bool hasBackgroundFeats = false;
+      bool hasAbilitiesFeats = false;
+      bool hasOtherFeats = false;
+
+      for (var feat in feats) {
+        switch (feat["type"]) {
+          case "Klasse":
+            if (!hasClassFeats) {
+              classFeatures.writeln("Klasse\n");
+              hasClassFeats = true;
+            }
+            classFeatures.writeln(feat["featname"]);
+            break;
+          case "Rasse":
+            if (!hasRaceFeats) {
+              raceFeatures.writeln("");
+              raceFeatures.writeln("Rasse\n");
+              hasRaceFeats = true;
+            }
+            raceFeatures.writeln(feat["featname"]);
+            break;
+          case "Hintergrund":
+            if (!hasBackgroundFeats) {
+              backgroundFeatures.writeln("");
+              backgroundFeatures.writeln("Hintergrund\n");
+              hasBackgroundFeats = true;
+            }
+            backgroundFeatures.writeln(feat["featname"]);
+            break;
+          case "Fähigkeiten":
+            if (!hasAbilitiesFeats) {
+              abilitiesFeatures.writeln("");
+              abilitiesFeatures.writeln("Fähigkeiten\n");
+              hasAbilitiesFeats = true;
+            }
+            abilitiesFeatures.writeln(feat["featname"]);
+            break;
+          case "Sonstige":
+            if (!hasOtherFeats) {
+              otherFeatures.writeln("");
+              otherFeatures.writeln("Sonstige\n");
+              hasOtherFeats = true;
+            }
+            otherFeatures.writeln(feat["featname"]);
+            break;
+        }
+      }
+
+      StringBuffer allFeatures1 = StringBuffer();
+      if (classFeatures.isNotEmpty) {
+        allFeatures1.writeln(classFeatures.toString().trim());
+      }
+      if (raceFeatures.isNotEmpty) {
+        allFeatures1.writeln(raceFeatures.toString().trim());
+      }
+      if (allFeatures1.isNotEmpty) {
+        filledValues["Klassenmerkmale1"] = allFeatures1.toString().trim();
+      }
+
+      StringBuffer allFeatures2 = StringBuffer();
+      if (backgroundFeatures.isNotEmpty) {
+        allFeatures2.writeln(backgroundFeatures.toString().trim());
+      }
+      if (abilitiesFeatures.isNotEmpty) {
+        allFeatures2.writeln(abilitiesFeatures.toString().trim());
+      }
+      if (otherFeatures.isNotEmpty) {
+        allFeatures2.writeln(otherFeatures.toString().trim());
+      }
+      if (allFeatures2.isNotEmpty) {
+        filledValues["Klassenmerkmale2"] = allFeatures2.toString().trim();
+      }
+    }
   }
 }

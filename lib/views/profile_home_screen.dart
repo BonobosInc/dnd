@@ -182,8 +182,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                         SnackBar(
                           content: Text(
                             'Der Charakter "$newName" existiert bereits. Bitte wähle einen anderen Namen.',
-                            style: TextStyle(
-                                color: AppColors.textColorLight),
+                            style: TextStyle(color: AppColors.textColorLight),
                           ),
                           backgroundColor: AppColors.warningColor,
                         ),
@@ -236,6 +235,70 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     } finally {
       await profileManager.closeDB();
     }
+  }
+
+  Future<void> showExportDialog(BuildContext context, Character profile) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        bool isLoading = false;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Export Format'),
+              content: isLoading
+                  ? SizedBox(
+                      width: 24.0,
+                      height: 24.0,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2.0),
+                      ),
+                    )
+                  : null,
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _exportFeatsToXml(profile);
+                  },
+                  child: Text('XML'),
+                ),
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          setState(() {
+                            isLoading = true;
+                          });
+                          bool success =
+                              await profileManager.exportToPDF(profile);
+                          setState(() {
+                            isLoading = false;
+                          });
+                          if (context.mounted) {
+                            if (success) {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('PDF export successful!')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('PDF export failed!')),
+                              );
+                            }
+                          }
+                        },
+                  child: Text('PDF'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _importProfileFromXmlFile() async {
@@ -406,7 +469,7 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                           setState(() {});
                                         }
                                       } else if (value == 'dump') {
-                                        await _exportFeatsToXml(profile);
+                                        showExportDialog(context, profile);
                                       } else if (value == 'rename') {
                                         await _renameProfile(profile);
                                       }

@@ -465,7 +465,7 @@ class StatsPageState extends State<StatsPage> {
 
   Widget _buildSavingThrowRow(
       String statName, int proficiency, String field, int abilityScore) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
     int savingThrowBonus =
         proficiency == 1 ? abilityModifier + proficiencyBonus : abilityModifier;
 
@@ -596,7 +596,7 @@ class StatsPageState extends State<StatsPage> {
 
   Widget _buildSkillRow(String skillName, int proficiency, int hasExpertise,
       String field, int abilityScore) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
 
     int skillBonus = abilityModifier;
 
