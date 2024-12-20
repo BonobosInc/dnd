@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/views/appstatus.dart';
+import 'package:dnd/views/settings_view.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
@@ -91,7 +93,14 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                                 isCreatingProfile = false;
                               });
                               await _initializeProfiles();
-                              if (context.mounted) Navigator.of(context).pop();
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                                if (profileName.contains("69")) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Nice!')),
+                                  );
+                                }
+                              }
                             }
                           }
                         },
@@ -175,7 +184,14 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                     setState(() {
                       _initializeProfiles();
                     });
-                    if (context.mounted) Navigator.of(context).pop();
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      if (newName.contains("69")) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Nice!')),
+                        );
+                      }
+                    }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -366,6 +382,15 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 await _clearDatabase();
               } else if (value == 'import') {
                 await _importProfileFromXmlFile();
+              } else if (value == 'settings') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              } else if (value == 'info') {
+                showAppStatusDialog(context);
               }
             },
             itemBuilder: (BuildContext context) {
@@ -381,6 +406,14 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                 const PopupMenuItem<String>(
                   value: 'clear',
                   child: Text('Datenbank leeren'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Text('Einstellungen'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'info',
+                  child: Text('BonoDND'),
                 ),
               ];
             },

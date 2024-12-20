@@ -1,8 +1,8 @@
 import 'dart:io';
-
-import 'package:dnd/main.dart';
 import 'package:dnd/views/character/mainstats_view.dart';
 import 'package:dnd/views/character/stats_view.dart';
+import 'package:dnd/views/appstatus.dart';
+import 'package:dnd/views/settings_view.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
@@ -89,7 +89,7 @@ class CharacterViewState extends State<CharacterView> {
                     IconButton(
                       icon: const Icon(Icons.remove, size: 24),
                       onPressed: () {
-                        if (tempLevel > 0) {
+                        if (tempLevel > 1) {
                           setStateDialog(() {
                             tempLevel--;
                           });
@@ -273,10 +273,6 @@ class CharacterViewState extends State<CharacterView> {
     if (mainStatsPageKey.currentState != null) {
       mainStatsPageKey.currentState!.refreshContent();
     }
-  }
-
-  Future<void> _colorMode() async {
-    isDarkMode.value = !isDarkMode.value;
   }
 
   Future<bool> _showConfirmationDialog(String title, String message) async {
@@ -537,6 +533,7 @@ class CharacterViewState extends State<CharacterView> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: <Widget>[
+                  // Drawer header with user info
                   SizedBox(
                     height: 140,
                     child: DrawerHeader(
@@ -571,7 +568,13 @@ class CharacterViewState extends State<CharacterView> {
                                   } else if (value == 2) {
                                     await _shortRest();
                                   } else if (value == 3) {
-                                    await _colorMode();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SettingsPage(),
+                                      ),
+                                    );
                                   }
                                 },
                                 itemBuilder: (BuildContext context) {
@@ -584,16 +587,10 @@ class CharacterViewState extends State<CharacterView> {
                                       value: 2,
                                       child: Text('Kurze Rast'),
                                     ),
-                                    PopupMenuItem<int>(
+                                    const PopupMenuItem<int>(
                                       value: 3,
-                                      child: Center(
-                                        child: Icon(
-                                          isDarkMode.value
-                                              ? Icons.dark_mode
-                                              : Icons.light_mode,
-                                        ),
-                                      ),
-                                    )
+                                      child: Text('Einstellungen'),
+                                    ),
                                   ];
                                 },
                               ),
@@ -614,6 +611,7 @@ class CharacterViewState extends State<CharacterView> {
                       ),
                     ),
                   ),
+                  // Other navigation ListTiles
                   ListTile(
                     title: Text(
                       'Zauber',
@@ -701,6 +699,22 @@ class CharacterViewState extends State<CharacterView> {
                       );
                     },
                   ),
+                  SizedBox(
+                    height: 250,
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: IconButton(
+                        icon: Icon(Icons.info_outline,
+                            color: AppColors.textColorLight),
+                        onPressed: () {
+                          showAppStatusDialog(context);
+                        },
+                        highlightColor: Colors.transparent,
+                        splashColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
