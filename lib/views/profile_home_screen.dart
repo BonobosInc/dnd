@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
-
+import 'package:flutter/foundation.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/views/appstatus.dart';
 import 'package:dnd/views/settings_view.dart';
@@ -219,26 +222,44 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
     try {
       String xmlString = await profileManager.exportFeatsToXml(profile);
 
-      String? filePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Speichern unter',
-        fileName: '${profile.name}.xml',
-        type: FileType.custom,
-        allowedExtensions: ['xml'],
-      );
+      if (kIsWeb || Platform.isWindows) {
+        String? filePath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Speichern unter',
+          fileName: '${profile.name}.xml',
+          type: FileType.custom,
+          allowedExtensions: ['xml'],
+          bytes: utf8.encode(xmlString),
+        );
 
-      if (filePath != null) {
-        File file = File(filePath);
+        if (filePath != null) {
+          File file = File(filePath);
+          await file.writeAsString(xmlString);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Export erfolgreich')),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Kein Speicherort ausgewählt')),
+            );
+          }
+        }
+      } else if (Platform.isAndroid) {
+        final directory = await getExternalStorageDirectory();
+        final file = File('${directory!.path}/${profile.name}.xml');
         await file.writeAsString(xmlString);
+
+        final shareFile = XFile(file.path);
+
+        await Share.shareXFiles([shareFile],
+            text: 'Feats exportiert: ${profile.name}.xml');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Export erfolgreich')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kein Speicherort ausgewählt')),
           );
         }
       }
@@ -298,11 +319,13 @@ class ProfileHomeScreenState extends State<ProfileHomeScreen> {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text('PDF export successful!')),
+                                    content: Text('PDF export erfolgreich!')),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('PDF export failed!')),
+                                SnackBar(
+                                    content:
+                                        Text('PDF export fehlgeschlagen!')),
                               );
                             }
                           }

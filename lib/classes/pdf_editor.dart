@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class PDFBuilder {
@@ -26,11 +27,12 @@ class PDFBuilder {
       final field = form.fields[i];
 
       if (field is PdfTextBoxField && fieldValues.containsKey(field.name)) {
-        field.text = fieldValues[field.name]!;  // Fill text fields
+        field.text = fieldValues[field.name]!; // Fill text fields
         field.font = PdfStandardFont(PdfFontFamily.helvetica, 7);
       } else if (field is PdfCheckBoxField &&
           fieldValues.containsKey(field.name)) {
-        field.isChecked = fieldValues[field.name]!.toLowerCase() == 'true';  // Fill checkbox fields
+        field.isChecked = fieldValues[field.name]!.toLowerCase() ==
+            'true'; // Fill checkbox fields
       }
     }
 
@@ -52,22 +54,34 @@ class PDFBuilder {
 
       final name = fieldValues['Charaktername_page1'] ?? 'filled_template';
 
-      final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: "Speichere PDF Charaktersheet",
-        fileName: "$name.pdf",
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
+      if (Platform.isAndroid || Platform.isIOS) {
+        final shareFile = XFile(filledPdfPath);
 
-      if (savePath != null) {
-        final filledPdf = File(filledPdfPath);
-        await filledPdf.copy(savePath);
+        await Share.shareXFiles([shareFile],
+            text: 'Hier ist das ausgefüllte Charaktersheet: $name.pdf');
+
         if (kDebugMode) {
-          print("PDF saved at: $savePath");
+          print("PDF shared");
         }
       } else {
-        if (kDebugMode) {
-          print("User cancelled the save dialog.");
+        final savePath = await FilePicker.platform.saveFile(
+          dialogTitle: "Speichere PDF Charaktersheet",
+          fileName: "$name.pdf",
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+          bytes: File(filledPdfPath).readAsBytesSync(),
+        );
+
+        if (savePath != null) {
+          final filledPdf = File(filledPdfPath);
+          await filledPdf.copy(savePath);
+          if (kDebugMode) {
+            print("PDF saved at: $savePath");
+          }
+        } else {
+          if (kDebugMode) {
+            print("User cancelled the save dialog.");
+          }
         }
       }
     } catch (e) {

@@ -1,5 +1,7 @@
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:xml/xml.dart' as xml;
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:path_provider/path_provider.dart';
@@ -56,6 +58,48 @@ class WikiParser {
     }
   }
 
+  Future<void> deleteXml() async {
+    String filePath;
+
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+
+      if (isDebugMode) {
+        filePath = './temp/wiki.xml';
+      } else {
+        Directory appSupportDir = await getApplicationSupportDirectory();
+        filePath = '${appSupportDir.path}/wiki.xml';
+      }
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      filePath = '${appSupportDir.path}/wiki.xml';
+    }
+
+    File file = File(filePath);
+
+    String initialXmlContent = '''<?xml version="1.0" encoding="UTF-8"?>
+<compendium version="5" auto_indent="NO">
+    <!-- Items -->
+    <!-- Races -->
+    <!-- Classes -->
+    <!-- Feats -->
+    <!-- Backgrounds -->
+    <!-- Spells -->
+    <!-- Monsters -->
+</compendium>''';
+
+    await file.writeAsString(initialXmlContent);
+    savedXmlFilePath = filePath;
+    await parseXmlInIsolate(initialXmlContent);
+
+    classes.clear();
+    races.clear();
+    backgrounds.clear();
+    feats.clear();
+    spells.clear();
+    creatures.clear();
+  }
+
   Future<void> importXml(String sourceFilePath) async {
     String destinationFilePath;
 
@@ -84,17 +128,37 @@ class WikiParser {
       throw Exception("No XML file has been loaded to export.");
     }
 
-    final destinationPath = await FilePicker.platform.saveFile(
-      dialogTitle: 'Wiki speichern',
-      fileName: 'wiki_export.xml',
-    );
-
-    if (destinationPath != null) {
+    try {
       final sourceFile = File(savedXmlFilePath!);
-      final destinationFile = File(destinationPath);
-      await destinationFile.writeAsBytes(await sourceFile.readAsBytes());
-    } else {
-      throw Exception("Export abgebrochen.");
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        final shareFile = XFile(sourceFile.path);
+        await Share.shareXFiles([shareFile],
+            text: 'Hier ist der exportierte Wiki: wiki_export.xml');
+
+        if (kDebugMode) {
+          print("XML file shared.");
+        }
+      } else {
+        final destinationPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Wiki speichern',
+          fileName: 'wiki_export.xml',
+        );
+
+        if (destinationPath != null) {
+          final destinationFile = File(destinationPath);
+          await destinationFile.writeAsBytes(await sourceFile.readAsBytes());
+          if (kDebugMode) {
+            print("XML file saved at: $destinationPath");
+          }
+        } else {
+          throw Exception("Export abgebrochen.");
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error: $e");
+      }
     }
   }
 
@@ -538,5 +602,35 @@ class WikiParser {
         legendaryActions: legendaryActions,
       );
     }).toList();
+  }
+
+  void addClassToXml(xml.XmlDocument document, ClassData classData) {
+    final builder = xml.XmlBuilder();
+
+    builder.element('class', nest: () {
+      builder.element('name', nest: classData.name);
+      builder.element('hd', nest: classData.hd);
+      builder.element('proficiency', nest: classData.proficiency);
+      builder.element('numSkills', nest: classData.numSkills);
+
+      builder.element('autolevels', nest: () {
+        for (final autolevel in classData.autolevels) {
+          builder.element('autolevel', attributes: {'level': autolevel.level},
+              nest: () {
+            for (final feature in autolevel.features) {
+              builder.element('feature', nest: () {
+                builder.element('name', nest: feature.name);
+                builder.element('text', nest: feature.description);
+              });
+            }
+            if (autolevel.slots != null) {
+              builder.element('slots', nest: autolevel.slots!.slots.join(', '));
+            }
+          });
+        }
+      });
+    });
+
+    document.rootElement.children.add(builder.buildFragment());
   }
 }

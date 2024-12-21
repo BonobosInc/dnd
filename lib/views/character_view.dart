@@ -530,179 +530,185 @@ class CharacterViewState extends State<CharacterView> {
             width: 250,
             child: Drawer(
               backgroundColor: AppColors.primaryColor,
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: <Widget>[
-                  // Drawer header with user info
-                  SizedBox(
-                    height: 140,
-                    child: DrawerHeader(
-                      decoration: BoxDecoration(
-                        color: AppColors.appBarColor,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: _showLevelDialog,
-                                child: Text(
-                                  'Level: $level',
-                                  style: TextStyle(
-                                    color: AppColors.textColorLight,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: <Widget>[
+                        SizedBox(
+                          height: 170,
+                          child: DrawerHeader(
+                            decoration: BoxDecoration(
+                              color: AppColors.appBarColor,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _showLevelDialog,
+                                      child: Text(
+                                        'Level: $level',
+                                        style: TextStyle(
+                                          color: AppColors.textColorLight,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuButton<int>(
+                                      tooltip: "",
+                                      icon: const Icon(Icons.settings),
+                                      color: AppColors.primaryColor,
+                                      iconSize: 28.0,
+                                      onSelected: (value) async {
+                                        if (value == 1) {
+                                          await _longRest();
+                                        } else if (value == 2) {
+                                          await _shortRest();
+                                        } else if (value == 3) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const SettingsPage(),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) {
+                                        return [
+                                          const PopupMenuItem<int>(
+                                            value: 1,
+                                            child: Text('Lange Rast'),
+                                          ),
+                                          const PopupMenuItem<int>(
+                                            value: 2,
+                                            child: Text('Kurze Rast'),
+                                          ),
+                                          const PopupMenuItem<int>(
+                                            value: 3,
+                                            child: Text('Einstellungen'),
+                                          ),
+                                        ];
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                GestureDetector(
+                                  onTap: _showXPDialog,
+                                  child: Text(
+                                    'XP: $xp',
+                                    style: TextStyle(
+                                      color: AppColors.textColorLight,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              PopupMenuButton<int>(
-                                tooltip: "",
-                                icon: const Icon(Icons.settings),
-                                color: AppColors.primaryColor,
-                                iconSize: 28.0,
-                                onSelected: (value) async {
-                                  if (value == 1) {
-                                    await _longRest();
-                                  } else if (value == 2) {
-                                    await _shortRest();
-                                  } else if (value == 3) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const SettingsPage(),
-                                      ),
-                                    );
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) {
-                                  return [
-                                    const PopupMenuItem<int>(
-                                      value: 1,
-                                      child: Text('Lange Rast'),
-                                    ),
-                                    const PopupMenuItem<int>(
-                                      value: 2,
-                                      child: Text('Kurze Rast'),
-                                    ),
-                                    const PopupMenuItem<int>(
-                                      value: 3,
-                                      child: Text('Einstellungen'),
-                                    ),
-                                  ];
-                                },
-                              ),
-                            ],
-                          ),
-                          GestureDetector(
-                            onTap: _showXPDialog,
-                            child: Text(
-                              'XP: $xp',
-                              style: TextStyle(
-                                color: AppColors.textColorLight,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Other navigation ListTiles
-                  ListTile(
-                    title: Text(
-                      'Zauber',
-                      style: TextStyle(color: AppColors.textColorLight),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SpellManagementPage(
-                            profileManager: widget.profileManager,
-                            wikiParser: widget.wikiParser,
-                          ),
                         ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Waffen',
-                      style: TextStyle(color: AppColors.textColorLight),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WeaponPage(
-                            profileManager: widget.profileManager,
+                        ListTile(
+                          title: Text(
+                            'Zauber',
+                            style: TextStyle(color: AppColors.textColorLight),
                           ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SpellManagementPage(
+                                  profileManager: widget.profileManager,
+                                  wikiParser: widget.wikiParser,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Notizen',
-                      style: TextStyle(color: AppColors.textColorLight),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NotesPage(
-                            profileManager: widget.profileManager,
-                            wikiParser: widget.wikiParser,
+                        ListTile(
+                          title: Text(
+                            'Waffen',
+                            style: TextStyle(color: AppColors.textColorLight),
                           ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WeaponPage(
+                                  profileManager: widget.profileManager,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Ausrüstung',
-                      style: TextStyle(color: AppColors.textColorLight),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BagPage(
-                            profileManager: widget.profileManager,
+                        ListTile(
+                          title: Text(
+                            'Notizen',
+                            style: TextStyle(color: AppColors.textColorLight),
                           ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NotesPage(
+                                  profileManager: widget.profileManager,
+                                  wikiParser: widget.wikiParser,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Wiki',
-                      style: TextStyle(color: AppColors.textColorLight),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WikiPage(
-                            wikiParser: widget.wikiParser,
+                        ListTile(
+                          title: Text(
+                            'Ausrüstung',
+                            style: TextStyle(color: AppColors.textColorLight),
                           ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BagPage(
+                                  profileManager: widget.profileManager,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                        ListTile(
+                          title: Text(
+                            'Wiki',
+                            style: TextStyle(color: AppColors.textColorLight),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WikiPage(
+                                  wikiParser: widget.wikiParser,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(
-                    height: 250,
-                    child: Align(
-                      alignment: Alignment.bottomRight,
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
                       child: IconButton(
                         icon: Icon(Icons.info_outline,
                             color: AppColors.textColorLight),
@@ -714,7 +720,7 @@ class CharacterViewState extends State<CharacterView> {
                         hoverColor: Colors.transparent,
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
