@@ -1,4 +1,5 @@
 import 'package:dnd/configs/colours.dart';
+import 'package:dnd/configs/version.dart';
 import 'package:flutter/material.dart';
 
 class AppStatusDialog extends StatelessWidget {
@@ -39,7 +40,7 @@ class AppStatusDialog extends StatelessWidget {
 }
 
 void showAppStatusDialog(BuildContext context) {
-  String version = "1.0.0";
+  String version = appVersion;
 
   String content = "Für Bonobos, von Bonobos\nVersion: $version\n";
 

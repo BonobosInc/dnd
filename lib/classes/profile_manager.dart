@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:dnd/classes/database_schema.dart';
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/configs/version.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -23,6 +25,20 @@ class ProfileManager {
 
   Future<void> initialize() async {
     await loadProfiles();
+    await initializeAppDatabase();
+  }
+
+  Future<void> initializeAppDatabase() async {
+    final dbPath = await _getPath();
+    final db = await openDatabase(dbPath, version: 1);
+
+    if (profiles.isNotEmpty) {
+      await updateDatabaseIfOutdated(db);
+    }
+
+    if (kDebugMode) {
+      print('Database initialization completed.');
+    }
   }
 
   Future<String> _getPath() async {
@@ -69,6 +85,120 @@ class ProfileManager {
       }
     } finally {
       await db.close();
+    }
+  }
+
+  Future<bool> isDatabaseVersionOutdated(Database db) async {
+    try {
+      final versionResult =
+          await db.rawQuery('SELECT versionNumber FROM version WHERE ID = 1');
+
+      if (versionResult.isNotEmpty) {
+        final dbVersion = versionResult.first['versionNumber'] as String;
+
+        if (_compareVersions(appVersion, dbVersion) > 0) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking database version: $e');
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  int _compareVersions(String version1, String version2) {
+    final v1Parts = version1.split('.').map(int.parse).toList();
+    final v2Parts = version2.split('.').map(int.parse).toList();
+
+    for (int i = 0; i < v1Parts.length; i++) {
+      final v1Part = v1Parts[i];
+      final v2Part = i < v2Parts.length ? v2Parts[i] : 0;
+
+      if (v1Part > v2Part) return 1;
+      if (v1Part < v2Part) return -1;
+    }
+
+    return 0;
+  }
+
+  Future<void> updateDatabaseIfOutdated(Database db) async {
+    await db.execute(DatabaseSchema.versionTable());
+
+    final versionCount = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM version'));
+    if (versionCount == 0) {
+      await db.insert('version', {'versionNumber': 0});
+    }
+
+    final isOutdated = await isDatabaseVersionOutdated(db);
+
+    if (!isOutdated) {
+      if (kDebugMode) {
+        print('Database is up-to-date.');
+      }
+      return;
+    }
+
+    var columns = DatabaseSchema.getAllColumns();
+
+    for (String table in columns.keys) {
+      final tableColumns = columns[table]!;
+
+      final existingColumns = await db.rawQuery('PRAGMA table_info($table)');
+
+      final existingColumnNames =
+          existingColumns.map((col) => col['name'] as String).toList();
+
+      final missingColumns = tableColumns
+          .where((col) => !existingColumnNames.contains(col['name']))
+          .toList();
+
+      for (var column in missingColumns) {
+        await _addColumn(db, table, column);
+      }
+    }
+
+    await db.rawUpdate(
+        'UPDATE version SET versionNumber = ? WHERE ID = 1', [appVersion]);
+
+    if (kDebugMode) {
+      print('Database schema updated to appVersion: $appVersion');
+    }
+  }
+
+  Future<void> _addColumn(
+      Database db, String table, Map<String, String> column) async {
+    final columnName = column['name'];
+    final columnType = column['type'];
+
+    final result = await db.rawQuery(
+        'PRAGMA table_info($table);');
+
+    bool columnExists = false;
+    for (var row in result) {
+      if (row['name'] == columnName) {
+        columnExists = true;
+        break;
+      }
+    }
+
+    if (!columnExists) {
+      String sql = 'ALTER TABLE $table ADD COLUMN $columnName $columnType';
+      await db.execute(sql);
+
+      if (kDebugMode) {
+        print('Added missing column $columnName ($columnType) to table $table');
+      }
+    } else {
+      if (kDebugMode) {
+        print('Column $columnName already exists in table $table');
+      }
     }
   }
 
@@ -360,178 +490,25 @@ class ProfileManager {
     final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath, version: 1);
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS info (charId INTEGER PRIMARY KEY AUTOINCREMENT, '
-        '${Defines.infoName} TEXT, '
-        '${Defines.infoRace} TEXT, '
-        '${Defines.infoClass} TEXT, '
-        '${Defines.infoOrigin} TEXT, '
-        '${Defines.infoBackground} TEXT, '
-        '${Defines.infoPersonalityTraits} TEXT, '
-        '${Defines.infoIdeals} TEXT, '
-        '${Defines.infoBonds} TEXT, '
-        '${Defines.infoFlaws} TEXT, '
-        '${Defines.infoAge} TEXT, '
-        '${Defines.infoGod} TEXT, '
-        '${Defines.infoSize} TEXT, '
-        '${Defines.infoHeight} TEXT, '
-        '${Defines.infoWeight} TEXT, '
-        '${Defines.infoSex} TEXT, '
-        '${Defines.infoAlignment} TEXT, '
-        '${Defines.infoEyeColour} TEXT, '
-        '${Defines.infoHairColour} TEXT, '
-        '${Defines.infoSkinColour} TEXT, '
-        '${Defines.infoAppearance} TEXT, '
-        '${Defines.infoBackstory} TEXT, '
-        '${Defines.infoNotes} TEXT, '
-        '${Defines.infoSpellcastingClass} TEXT, '
-        '${Defines.infoSpellcastingAbility} TEXT'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS Stats (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.statArmor} INTEGER, '
-        '${Defines.statLevel} INTEGER, '
-        '${Defines.statXP} INTEGER, '
-        '${Defines.statInspiration} INTEGER, '
-        '${Defines.statProficiencyBonus} INTEGER, '
-        '${Defines.statInitiative} INTEGER, '
-        '${Defines.statMovement} TEXT, '
-        '${Defines.statMaxHP} INTEGER, '
-        '${Defines.statCurrentHP} INTEGER, '
-        '${Defines.statTempHP} INTEGER, '
-        '${Defines.statCurrentHitDice} INTEGER, '
-        '${Defines.statMaxHitDice} INTEGER, '
-        '${Defines.statHitDiceFactor} TEXT, '
-        '${Defines.statSTR} INTEGER, '
-        '${Defines.statDEX} INTEGER, '
-        '${Defines.statCON} INTEGER, '
-        '${Defines.statINT} INTEGER, '
-        '${Defines.statWIS} INTEGER, '
-        '${Defines.statCHA} INTEGER, '
-        '${Defines.statSpellSaveDC} INTEGER, '
-        '${Defines.statSpellAttackBonus} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS savingthrow (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.saveStr} INTEGER, '
-        '${Defines.saveDex} INTEGER, '
-        '${Defines.saveCon} INTEGER, '
-        '${Defines.saveInt} INTEGER, '
-        '${Defines.saveWis} INTEGER, '
-        '${Defines.saveCha} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS proficiencies (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.profArmor} TEXT, '
-        '${Defines.profLightArmor} TEXT, '
-        '${Defines.profMediumArmor} TEXT, '
-        '${Defines.profHeavyArmor} TEXT, '
-        '${Defines.profShield} TEXT, '
-        '${Defines.profSimpleWeapon} TEXT, '
-        '${Defines.profMartialWeapon} TEXT, '
-        '${Defines.profOtherWeapon} TEXT, '
-        '${Defines.profWeaponList} TEXT, '
-        '${Defines.profLanguages} TEXT, '
-        '${Defines.profTools} TEXT, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute('CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY,'
-        'charId INTEGER, '
-        '${Defines.bagPlatin} INTEGER, '
-        '${Defines.bagGold} INTEGER, '
-        '${Defines.bagElectrum} INTEGER, '
-        '${Defines.bagSilver} INTEGER, '
-        '${Defines.bagCopper} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS skills (ID INTEGER PRIMARY KEY AUTOINCREMENT, skill TEXT , charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS spells (ID INTEGER PRIMARY KEY AUTOINCREMENT, spellname TEXT, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS weapons (ID INTEGER PRIMARY KEY AUTOINCREMENT, weapon TEXT, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, amount INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, max INTEGER, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS conditions (ID INTEGER PRIMARY KEY AUTOINCREMENT, condition TEXT, charId INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creatures (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    name TEXT,
-    size TEXT,
-    type TEXT,
-    alignment TEXT,
-    ac INTEGER,
-    currentHP INTEGER,
-    maxHP INTEGER,
-    speed TEXT,
-    str INTEGER,
-    dex INTEGER,
-    con INTEGER,
-    intScore INTEGER,
-    wis INTEGER,
-    cha INTEGER,
-    saves TEXT,
-    skills TEXT,
-    resistances TEXT,
-    vulnerabilities TEXT,
-    immunities TEXT,
-    conditionImmunities TEXT,
-    senses TEXT,
-    passivePerception INTEGER,
-    languages TEXT,
-    cr TEXT,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_traits (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    trait_name TEXT,
-    trait_description TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_actions (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    action_name TEXT,
-    action_description TEXT,
-    action TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_legendary_actions (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    legendary_action_name TEXT,
-    legendary_action_description TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
+
+    await updateDatabaseIfOutdated(currentDb!);
+
+    await currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS version (ID INTEGER PRIMARY KEY, versionNumber TEXT)');
+
+    // final versionCount = Sqflite.firstIntValue(
+    //     await currentDb!.rawQuery('SELECT COUNT(*) FROM version'));
+    // if (versionCount == 0) {
+    //   await currentDb!.execute(
+    //       'INSERT INTO version (ID, versionNumber) VALUES (1, ?)',
+    //       [appVersion]);
+    // }
+
+    for (String query in DatabaseSchema.allTables) {
+      await currentDb!.execute(query);
+    }
 
     await initializeDatabase(currentDb!, profileName);
-
     await loadProfiles();
   }
 
@@ -1880,7 +1857,6 @@ class ProfileManager {
       Defines.statCHA: abilitiesList[5],
     };
 
-    // Helper function to parse an integer from a tag
     int? parseIntStat(String tagName) {
       final elements = document.findAllElements(tagName);
       return elements.isNotEmpty ? int.parse(elements.first.innerText) : 0;
@@ -3359,11 +3335,13 @@ class ProfileManager {
     filledValues["Augenfarbe"] = infos.first[Defines.infoEyeColour].toString();
     filledValues["Haarfarbe"] = infos.first[Defines.infoHairColour].toString();
     filledValues["Hautfarbe"] = infos.first[Defines.infoSkinColour].toString();
-    filledValues["Persönlichkeitsmerkmale"] = infos.first[Defines.infoPersonalityTraits].toString();
+    filledValues["Persönlichkeitsmerkmale"] =
+        infos.first[Defines.infoPersonalityTraits].toString();
     filledValues["Ideale"] = infos.first[Defines.infoIdeals].toString();
     filledValues["Bindungen"] = infos.first[Defines.infoBonds].toString();
     filledValues["Makel"] = infos.first[Defines.infoFlaws].toString();
-    filledValues["Hintergrundgeschichte1"] = infos.first[Defines.infoBackstory].toString();
+    filledValues["Hintergrundgeschichte1"] =
+        infos.first[Defines.infoBackstory].toString();
     filledValues["Aussehen"] = infos.first[Defines.infoAppearance].toString();
   }
 
