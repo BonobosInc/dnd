@@ -57,7 +57,6 @@ class DatabaseSchema {
       Defines.statCHA: 'INTEGER',
       Defines.statSpellSaveDC: 'INTEGER',
       Defines.statSpellAttackBonus: 'INTEGER',
-      Defines.profArmor: 'INTEGER',
     },
     'savingthrow': {
       'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
