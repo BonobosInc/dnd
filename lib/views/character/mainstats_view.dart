@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:dnd/classes/wiki_parser.dart';
 import 'package:dnd/configs/colours.dart';
@@ -32,15 +34,37 @@ class MainStatsPageState extends State<MainStatsPage> {
   int initiative = 0;
   String movement = '0m';
 
+  Timer? _timer;
+
   List<Tracker> trackers = [];
 
   List<Creature> creatures = [];
+
+  List<Condition> statusEffects = [];
+  List<String> conditionOptions = [
+    'Blind', // Blinded
+    'Festgesetzt', // Restrained
+    'Betäubt', // Stunned
+    'Gelähmt', // Paralyzed
+    'Erschöpfung', // Exhaustion
+    'Vergiftet', // Poisoned
+    'Verängstigt', // Frightened
+    'Gepackt', // Grappled
+    'Versteinert', // Petrified
+    'Bezaubert', // Charmed
+    'Taub', // Deafened
+    'Bewusstlos', // Unconscious
+    'Liegend', // Prone
+    'Kampfunfähig', // Incapacitated
+    'Unsichtbar', // Invisible
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
     _loadTrackers();
+    _loadConditions();
     _fetchCreatures();
   }
 
@@ -65,6 +89,25 @@ class MainStatsPageState extends State<MainStatsPage> {
     }
   }
 
+  void refreshContent() {
+    _loadCharacterData();
+    _loadTrackers();
+    _loadConditions();
+    _fetchCreatures();
+  }
+
+  Future<void> _loadConditions() async {
+    List<Map<String, dynamic>> result =
+        await widget.profileManager.getConditions();
+    setState(() {
+      statusEffects.clear();
+      for (var item in result) {
+        statusEffects
+            .add(Condition(condition: item['condition'], uuid: item['ID']));
+      }
+    });
+  }
+
   Future<void> _loadTrackers() async {
     List<Map<String, dynamic>> result =
         await widget.profileManager.getTracker();
@@ -72,10 +115,11 @@ class MainStatsPageState extends State<MainStatsPage> {
       trackers.clear();
       for (var item in result) {
         trackers.add(Tracker(
-          tracker: item['trackername'],
-          uuid: item['ID'],
-          value: item['value'],
-        ));
+            tracker: item['trackername'],
+            uuid: item['ID'],
+            value: item['value'],
+            max: item['max'],
+            type: item['type'] ?? 'Option 1'));
       }
     });
   }
@@ -95,6 +139,25 @@ class MainStatsPageState extends State<MainStatsPage> {
       onChanged: onChanged,
       keyboardType: keyboardType,
     );
+  }
+
+  void _startIncrementing() {
+    _incrementHP();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _incrementHP();
+    });
+  }
+
+  void _startDecrementing() {
+    _decrementHP();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _decrementHP();
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
   }
 
   void _incrementHP() {
@@ -123,22 +186,23 @@ class MainStatsPageState extends State<MainStatsPage> {
     });
   }
 
-  void _incrementHitDice() {
-    setState(() {
-      if (currentHitDice < maxHitDice) {
-        currentHitDice++;
-        _updateStat(Defines.statCurrentHitDice, currentHitDice);
-      }
+  void _startIncrementingC(int index) {
+    _incrementCreatureHP(index);
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _incrementCreatureHP(index);
     });
   }
 
-  void _decrementHitDice() {
-    setState(() {
-      if (currentHitDice > 0) {
-        currentHitDice--;
-        _updateStat(Defines.statCurrentHitDice, currentHitDice);
-      }
+  void _startDecrementingC(int index) {
+    _decrementCreatureHP(index);
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _decrementCreatureHP(index);
     });
+  }
+
+  void _stopTimerC() {
+    _timer?.cancel();
+    _timer = null;
   }
 
   void _incrementCreatureHP(int index) {
@@ -170,7 +234,8 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _showEditStatDialog(
-      String statName, String field, dynamic currentValue) async {
+      String statName, String field, dynamic currentValue,
+      {bool isCount = false}) async {
     dynamic newValue = currentValue;
 
     TextEditingController controller =
@@ -179,50 +244,88 @@ class MainStatsPageState extends State<MainStatsPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(statName),
-          content: _buildTextField(
-            label: "",
-            controller: controller,
-            onChanged: (value) {
-              newValue = value;
-            },
-            keyboardType: field == Defines.statMovement
-                ? TextInputType.text
-                : TextInputType.number,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Abbrechen"),
-            ),
-            TextButton(
-              onPressed: () async {
-                await _updateStat(field, newValue);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(statName),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  isCount
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Wert:'),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove),
+                                  onPressed: () {
+                                    setState(() {
+                                      newValue--;
+                                    });
+                                  },
+                                ),
+                                Text('$newValue'),
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: () {
+                                    setState(() {
+                                      newValue++;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : _buildTextField(
+                          label: "",
+                          controller: controller,
+                          onChanged: (value) {
+                            newValue = value;
+                          },
+                          keyboardType: field == Defines.statMovement
+                              ? TextInputType.text
+                              : TextInputType.number,
+                        ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await _updateStat(field, newValue);
 
-                setState(() {
-                  if (field == Defines.statArmor) {
-                    armor = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statInspiration) {
-                    int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statProficiencyBonus) {
-                    proficiencyBonus = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statInitiative) {
-                    initiative = int.tryParse(newValue)!;
-                  }
-                  if (field == Defines.statMovement) {
-                    movement = newValue;
-                  }
-                });
+                    setState(() {
+                      if (field == Defines.statArmor) {
+                        armor = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statInspiration) {
+                        inspiration = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statProficiencyBonus) {
+                        proficiencyBonus = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statInitiative) {
+                        initiative = int.tryParse(newValue.toString())!;
+                      }
+                      if (field == Defines.statMovement) {
+                        movement = newValue;
+                      }
+                    });
 
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: const Text("Speichern"),
-            ),
-          ],
+                    await _loadCharacterData();
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -367,7 +470,8 @@ class MainStatsPageState extends State<MainStatsPage> {
   Future<void> _addNewTracker() async {
     String newTrackerName = '';
     int newTrackerValue = 0;
-    String newTrackerType = '';
+    int newTrackerMaxValue = 0;
+    String newTrackerType = 'never';
 
     await showDialog(
       context: context,
@@ -387,10 +491,30 @@ class MainStatsPageState extends State<MainStatsPage> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: newTrackerType,
+                    items: const [
+                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
+                      DropdownMenuItem(
+                          value: 'long', child: Text('Lange Rast')),
+                      DropdownMenuItem(
+                          value: 'short', child: Text('Kurze Rast')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Zurücksetzen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        newTrackerType = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Wert:'),
+                      const Text('Aktueller Wert:'),
                       Row(
                         children: [
                           IconButton(
@@ -416,6 +540,35 @@ class MainStatsPageState extends State<MainStatsPage> {
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Maximaler Wert:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newTrackerMaxValue > 0) {
+                                  newTrackerMaxValue--;
+                                }
+                              });
+                            },
+                          ),
+                          Text('$newTrackerMaxValue'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                newTrackerMaxValue++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
               actions: [
@@ -429,6 +582,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       await widget.profileManager.addTracker(
                         tracker: newTrackerName,
                         value: newTrackerValue,
+                        max: newTrackerMaxValue,
                         type: newTrackerType,
                       );
                       _loadTrackers();
@@ -454,6 +608,10 @@ class MainStatsPageState extends State<MainStatsPage> {
   Future<void> _editTracker(Tracker tracker) async {
     String editedTrackerName = tracker.tracker;
     int editedValue = tracker.value ?? 0;
+    int editedMaxValue = tracker.max ?? 0;
+    String editedTrackerType = ['never', 'long', 'short'].contains(tracker.type)
+        ? tracker.type!
+        : 'never';
 
     await showDialog(
       context: context,
@@ -473,10 +631,30 @@ class MainStatsPageState extends State<MainStatsPage> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: editedTrackerType,
+                    items: const [
+                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
+                      DropdownMenuItem(
+                          value: 'long', child: Text('Lange Rast')),
+                      DropdownMenuItem(
+                          value: 'short', child: Text('Kurze Rast')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Zurücksetzen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        editedTrackerType = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Wert:'),
+                      const Text('Aktueller Wert:'),
                       Row(
                         children: [
                           IconButton(
@@ -500,6 +678,33 @@ class MainStatsPageState extends State<MainStatsPage> {
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Maximaler Wert:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (editedMaxValue > 0) editedMaxValue--;
+                              });
+                            },
+                          ),
+                          Text('$editedMaxValue'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                editedMaxValue++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
               actions: [
@@ -513,6 +718,8 @@ class MainStatsPageState extends State<MainStatsPage> {
                       uuid: tracker.uuid,
                       tracker: editedTrackerName,
                       value: editedValue,
+                      max: editedMaxValue,
+                      type: editedTrackerType,
                     );
                     _loadTrackers();
 
@@ -526,6 +733,152 @@ class MainStatsPageState extends State<MainStatsPage> {
         );
       },
     );
+  }
+
+  Future<void> _addCondition() async {
+    String? selectedCondition;
+    int? newConditionUUID;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Neue Bedingung hinzufügen"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCondition,
+                    items: conditionOptions.map((condition) {
+                      return DropdownMenuItem<String>(
+                        value: condition,
+                        child: Text(condition),
+                      );
+                    }).toList(),
+                    decoration: const InputDecoration(
+                      labelText: 'Bedingung auswählen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCondition = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (selectedCondition != null &&
+                        selectedCondition!.isNotEmpty) {
+                      Condition newCondition = Condition(
+                        condition: selectedCondition!,
+                        uuid: newConditionUUID,
+                      );
+                      await widget.profileManager
+                          .addCondition(condition: newCondition.condition);
+                      _loadConditions();
+                      if (context.mounted) Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("Bitte eine Bedingung auswählen.")),
+                      );
+                    }
+                  },
+                  child: const Text("Hinzufügen"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _editCondition(Condition condition) async {
+    String? selectedCondition = condition.condition;
+    int? conditionUUID = condition.uuid;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Bedingung bearbeiten"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCondition,
+                    items: conditionOptions.map((condition) {
+                      return DropdownMenuItem<String>(
+                        value: condition,
+                        child: Text(condition),
+                      );
+                    }).toList(),
+                    decoration: const InputDecoration(
+                      labelText: 'Bedingung auswählen',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCondition = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (selectedCondition != null &&
+                        selectedCondition!.isNotEmpty) {
+                      Condition updatedCondition = Condition(
+                        condition: selectedCondition!,
+                        uuid: conditionUUID,
+                      );
+                      await widget.profileManager.updateCondition(
+                        uuid: conditionUUID,
+                        condition: updatedCondition.condition,
+                      );
+                      _loadConditions();
+                      if (context.mounted) Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Bitte eine Bedingung auswählen."),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _removeCondition(int? conditionID) async {
+    await widget.profileManager.removeCondition(conditionID!);
+    _loadConditions();
   }
 
   void _addCreature() async {
@@ -606,65 +959,112 @@ class MainStatsPageState extends State<MainStatsPage> {
     await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text("Hit Dice"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(
-                label: "Heilungsfaktor",
-                controller: TextEditingController(text: healFactor),
-                onChanged: (value) {
-                  newHealFactor = value;
-                },
-                keyboardType: TextInputType.text,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Hit Dice"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTextField(
+                    label: "Heilungsfaktor",
+                    controller: TextEditingController(text: healFactor),
+                    onChanged: (value) {
+                      newHealFactor = value;
+                    },
+                    keyboardType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Aktuelle Hit Dice:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newCurrentHitDice > 0) newCurrentHitDice--;
+                              });
+                            },
+                          ),
+                          Text('$newCurrentHitDice'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                if (newCurrentHitDice < newMaxHitDice) {
+                                  newCurrentHitDice++;
+                                } else {
+                                  newCurrentHitDice = newMaxHitDice;
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Max Hit Dice:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newMaxHitDice > 0) newMaxHitDice--;
+                              });
+                            },
+                          ),
+                          Text('$newMaxHitDice'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                newMaxHitDice++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: "Aktuelle Hit Dice",
-                controller:
-                    TextEditingController(text: currentHitDice.toString()),
-                onChanged: (value) {
-                  newCurrentHitDice = int.tryParse(value) ?? currentHitDice;
-                },
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: "Max Hit Dice",
-                controller: TextEditingController(text: maxHitDice.toString()),
-                onChanged: (value) {
-                  newMaxHitDice = int.tryParse(value) ?? maxHitDice;
-                },
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Abbrechen"),
-            ),
-            TextButton(
-              onPressed: () async {
-                newCurrentHitDice = newCurrentHitDice.clamp(0, newMaxHitDice);
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Abbrechen"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    newCurrentHitDice =
+                        newCurrentHitDice.clamp(0, newMaxHitDice);
 
-                await _updateStat(
-                    Defines.statCurrentHitDice, newCurrentHitDice);
-                await _updateStat(Defines.statMaxHitDice, newMaxHitDice);
-                await _updateStat(Defines.statHitDiceFactor, newHealFactor);
+                    await _updateStat(
+                        Defines.statCurrentHitDice, newCurrentHitDice);
+                    await _updateStat(Defines.statMaxHitDice, newMaxHitDice);
+                    await _updateStat(Defines.statHitDiceFactor, newHealFactor);
 
-                setState(() {
-                  currentHitDice = newCurrentHitDice;
-                  maxHitDice = newMaxHitDice;
-                  _loadCharacterData();
-                });
+                    setState(() {
+                      currentHitDice = newCurrentHitDice;
+                      maxHitDice = newMaxHitDice;
+                      healFactor = newHealFactor;
+                      _loadCharacterData();
+                    });
 
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: const Text("Speichern"),
-            ),
-          ],
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text("Speichern"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -686,14 +1086,7 @@ class MainStatsPageState extends State<MainStatsPage> {
     double currentHPWidth =
         maxHP > 0 ? (currentHP / maxHP) * healthBarWidth : 0;
 
-    double remainingHPWidth = maxHP > 0 ? healthBarWidth - currentHPWidth : 0;
-    double tempHPWidth = tempHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
-
-    tempHPWidth =
-        tempHPWidth > remainingHPWidth ? remainingHPWidth : tempHPWidth;
-
-    double hitDiceWidth =
-        maxHitDice > 0 ? (currentHitDice / maxHitDice) * healthBarWidth : 0;
+    double tempHPWidth = maxHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
 
     final screenWidth = MediaQuery.of(context).size.width;
     int itemsPerRow = 3;
@@ -722,23 +1115,34 @@ class MainStatsPageState extends State<MainStatsPage> {
             'Lebenspunkte',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Row(
             children: [
-              Text(
-                tempHP > 0
-                    ? '$currentHP/$maxHP + $tempHP Temp'
-                    : '$currentHP/$maxHP',
-                style: const TextStyle(fontSize: 18),
+              GestureDetector(
+                onTap: _showEditHpDialog,
+                child: Text(
+                  tempHP > 0
+                      ? '$currentHP/$maxHP + $tempHP Temp'
+                      : '$currentHP/$maxHP',
+                  style: const TextStyle(fontSize: 18),
+                ),
               ),
               const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: _decrementHP,
+              GestureDetector(
+                onLongPressStart: (_) => _startDecrementing(),
+                onLongPressEnd: (_) => _stopTimer(),
+                child: IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: _decrementHP,
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _incrementHP,
+              GestureDetector(
+                onLongPressStart: (_) => _startIncrementing(),
+                onLongPressEnd: (_) => _stopTimer(),
+                child: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _incrementHP,
+                ),
               ),
             ],
           ),
@@ -750,7 +1154,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 Container(
                   height: 20,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF581B10),
+                    color: AppColors.missingHealth,
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -760,7 +1164,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                     height: 20,
                     width: currentHPWidth,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B6533),
+                      color: AppColors.currentHealth,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(5),
                         bottomLeft: const Radius.circular(5),
@@ -776,17 +1180,19 @@ class MainStatsPageState extends State<MainStatsPage> {
                 ),
                 if (tempHP > 0)
                   Positioned(
-                    left: currentHPWidth,
+                    left: 0,
                     child: Container(
                       height: 20,
                       width: tempHPWidth,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1976D2),
+                        color: AppColors.tempHealth,
                         borderRadius: BorderRadius.only(
-                          topRight: tempHPWidth == remainingHPWidth
+                          topLeft: const Radius.circular(5),
+                          bottomLeft: const Radius.circular(5),
+                          topRight: (tempHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
-                          bottomRight: tempHPWidth == remainingHPWidth
+                          bottomRight: (tempHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
                         ),
@@ -796,61 +1202,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ],
             ),
           ),
-          // Hit Dice Section
-          Row(
-            children: [
-              Text(
-                '$currentHitDice$healFactor HD',
-                style: const TextStyle(fontSize: 18),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: _decrementHitDice,
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _incrementHitDice,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () {
-              _showEditHitDiceDialog();
-            },
-            child: Stack(
-              children: [
-                Container(
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  child: Container(
-                    height: 20,
-                    width: hitDiceWidth,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1976D2),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(5),
-                        bottomLeft: const Radius.circular(5),
-                        topRight: currentHitDice == maxHitDice
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                        bottomRight: currentHitDice == maxHitDice
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+
           const SizedBox(height: 25),
 
           // Stats Section
@@ -858,18 +1210,21 @@ class MainStatsPageState extends State<MainStatsPage> {
             'Statistik',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           const SizedBox(height: 8),
           Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatCard('Rüstungsklasse', armor, Defines.statArmor),
+                  _buildStatCard('Rüstungsklasse', armor, Defines.statArmor,
+                      isCount: true),
                   _buildStatCard(
-                      'Inspiration', inspiration, Defines.statInspiration),
+                      'Inspiration', inspiration, Defines.statInspiration,
+                      isCount: true),
                   _buildStatCard('Übungsbonus', proficiencyBonus,
-                      Defines.statProficiencyBonus),
+                      Defines.statProficiencyBonus,
+                      isCount: true),
                 ],
               ),
               const SizedBox(height: 8),
@@ -877,11 +1232,85 @@ class MainStatsPageState extends State<MainStatsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildStatCard(
-                      'Initiative', initiative, Defines.statInitiative),
+                      'Initiative', initiative, Defines.statInitiative,
+                      isCount: true),
                   _buildStatCard(
                       'Bewegungsrate', movement, Defines.statMovement),
+                  _buildEditHitDiceCard(),
                 ],
               ),
+            ],
+          ),
+          const SizedBox(height: 25),
+
+          // Status Effects Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Status Effekte',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _addCondition,
+              ),
+            ],
+          ),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Column(
+            children: [
+              for (int i = 0; i < statusEffects.length; i += itemsPerRow)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        for (int j = i;
+                            j < i + itemsPerRow && j < statusEffects.length;
+                            j++)
+                          SizedBox(
+                            width: itemWidth,
+                            child: GestureDetector(
+                              onTap: () {
+                                _editCondition(statusEffects[j]);
+                              },
+                              onLongPress: () {
+                                _showDeleteConfirmationDialogCondition(
+                                    statusEffects[j]);
+                              },
+                              child: Column(
+                                children: [
+                                  SizedBox(
+                                    height: 50,
+                                    child: Card(
+                                      elevation: 3,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Center(
+                                          child: Text(
+                                            statusEffects[j].condition,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 25),
@@ -900,7 +1329,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ),
             ],
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Column(
             children: [
               for (int i = 0; i < trackers.length; i += itemsPerRow)
@@ -982,7 +1411,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               ),
             ],
           ),
-          const Divider(color: AppColors.textColorLight, thickness: 1.5),
+          Divider(color: AppColors.textColorLight, thickness: 1.5),
           Column(
             children: [
               for (int i = 0; i < creatures.length; i++)
@@ -1018,17 +1447,27 @@ class MainStatsPageState extends State<MainStatsPage> {
                                 ),
                                 Row(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.remove),
-                                      onPressed: () {
-                                        _decrementCreatureHP(i);
-                                      },
+                                    GestureDetector(
+                                      onLongPressStart: (_) =>
+                                          _startDecrementingC(i),
+                                      onLongPressEnd: (_) => _stopTimer(),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.remove),
+                                        onPressed: () {
+                                          _decrementCreatureHP(i);
+                                        },
+                                      ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.add),
-                                      onPressed: () {
-                                        _incrementCreatureHP(i);
-                                      },
+                                    GestureDetector(
+                                      onLongPressStart: (_) =>
+                                          _startIncrementingC(i),
+                                      onLongPressEnd: (_) => _stopTimer(),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.add),
+                                        onPressed: () {
+                                          _incrementCreatureHP(i);
+                                        },
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1093,11 +1532,12 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
-  Widget _buildStatCard(String name, dynamic value, dynamic statType) {
+  Widget _buildStatCard(String name, dynamic value, dynamic statType,
+      {bool isCount = false}) {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          _showEditStatDialog(name, statType, value);
+          _showEditStatDialog(name, statType, value, isCount: isCount);
         },
         child: Column(
           children: [
@@ -1134,6 +1574,50 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  Widget _buildEditHitDiceCard() {
+    return Expanded(
+      child: GestureDetector(
+        onTap: _showEditHitDiceDialog,
+        child: Column(
+          children: [
+            Text(
+              'Hit Dice $healFactor',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(
+              height: 50,
+              child: Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$currentHitDice / $maxHitDice',
+                          style: const TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showDeleteConfirmationDialog(Tracker tracker) {
     showDialog(
       context: context,
@@ -1141,7 +1625,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         return AlertDialog(
           title: const Text('Tracker löschen'),
           content: Text(
-              'Bist du sicher, dass du "${tracker.tracker} löschen willst"?'),
+              'Bist du sicher, dass du "${tracker.tracker}" löschen willst?'),
           actions: [
             TextButton(
               child: const Text('Abbrechen'),
@@ -1162,6 +1646,34 @@ class MainStatsPageState extends State<MainStatsPage> {
     );
   }
 
+  void _showDeleteConfirmationDialogCondition(Condition condition) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Statuseffekt löschen'),
+          content: Text(
+              'Bist du sicher, dass du "${condition.condition}" löschen willst?'),
+          actions: [
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Löschen'),
+              onPressed: () {
+                _removeCondition(condition.uuid);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showDeleteConfirmationDialogC(Creature creature) {
     showDialog(
       context: context,
@@ -1169,7 +1681,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         return AlertDialog(
           title: const Text('Begleiter löschen'),
           content: Text(
-              'Bist du sicher, dass du "${creature.name} löschen willst"?'),
+              'Bist du sicher, dass du "${creature.name}" löschen willst?'),
           actions: [
             TextButton(
               child: const Text('Abbrechen'),
@@ -1195,10 +1707,24 @@ class Tracker {
   String tracker;
   int? uuid;
   int? value;
+  int? max;
+  String? type;
 
   Tracker({
     required this.tracker,
     this.uuid,
     required this.value,
+    required this.max,
+    required this.type,
+  });
+}
+
+class Condition {
+  String condition;
+  int? uuid;
+
+  Condition({
+    required this.condition,
+    this.uuid,
   });
 }

@@ -43,11 +43,11 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     var initialStats = await widget.profileManager.getStats();
     var initialInfo = await widget.profileManager.getProfileInfo();
 
-    int spellAttackBonus = initialStats[0][Defines.statSpellAttackBonus];
-    int spellSaveDC = initialStats[0][Defines.statSpellSaveDC];
-    String spellcastingClass = initialInfo[0][Defines.infoSpellcastingClass];
+    int spellAttackBonus = initialStats[0][Defines.statSpellAttackBonus] ?? 0;
+    int spellSaveDC = initialStats[0][Defines.statSpellSaveDC] ?? 0;
+    String spellcastingClass = initialInfo[0][Defines.infoSpellcastingClass] ?? "";
     String spellcastingAbility =
-        initialInfo[0][Defines.infoSpellcastingAbility];
+        initialInfo[0][Defines.infoSpellcastingAbility] ?? "";
 
     _spellAttackController.text = spellAttackBonus.toString();
 
@@ -182,7 +182,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
             fit: BoxFit.scaleDown,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textColorLight,
                 fontSize: 16,
               ),
@@ -205,10 +205,10 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               fillColor: AppColors.cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
-                borderSide: const BorderSide(color: AppColors.borderColor),
+                borderSide: BorderSide(color: AppColors.borderColor),
               ),
               hintText: hint,
-              hintStyle: const TextStyle(color: AppColors.textColorDark),
+              hintStyle: TextStyle(color: AppColors.textColorDark),
             ),
             onChanged: (value) {
               if (isIntegerField) {
@@ -237,85 +237,145 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   }
 
   Widget _buildSpellLevelFields() {
-    return Center(
-      child: ListView.builder(
-        itemCount: spellLevels.where((spells) => spells.isNotEmpty).length,
-        itemBuilder: (context, levelIndex) {
-          // Get the filtered index that corresponds to the level with spells
-          int filteredLevelIndex = spellLevels
-              .asMap()
-              .entries
-              .where((entry) => entry.value.isNotEmpty)
-              .map((entry) => entry.key)
-              .elementAt(levelIndex);
-
-          return Center(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (filteredLevelIndex > 0) {
-                      _editSpellSlots(filteredLevelIndex);
-                    }
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        filteredLevelIndex == 0
-                            ? 'Zaubertrick'
-                            : 'Level $filteredLevelIndex',
-                        style: const TextStyle(
-                          color: AppColors.textColorLight,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          for (int levelIndex = 0;
+              levelIndex < spellLevels.length;
+              levelIndex++)
+            Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (levelIndex > 0) {
+                        _editSpellSlots(levelIndex);
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (levelIndex > 0) ...[
+                          _buildDecrementButton(levelIndex),
+                        ],
+                        Text(
+                          levelIndex == 0 ? 'Zaubertrick' : 'Level $levelIndex ',
+                          style: TextStyle(
+                            color: AppColors.textColorLight,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      if (filteredLevelIndex > 0) ...[
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: widget.profileManager.getSpellSlots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const CircularProgressIndicator();
-                            }
-                            int totalSlots = 0;
-                            int currentSlots = 0;
-
-                            if (snapshot.hasData) {
-                              String spellSlotKey =
-                                  _getSpellSlotKey(filteredLevelIndex);
-
-                              for (var slot in snapshot.data!) {
-                                if (slot['spellslot'] == spellSlotKey) {
-                                  totalSlots = slot['total'] ?? 0;
-                                  currentSlots = slot['spent'] ?? 0;
-                                }
-                              }
-                            }
-
-                            return Text(
-                              ' ($currentSlots/$totalSlots)',
-                              style: const TextStyle(
-                                  color: AppColors.textColorLight,
-                                  fontSize: 16),
-                            );
-                          },
-                        ),
+                        if (levelIndex > 0) ...[
+                          _buildSpellSlotControls(levelIndex),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                ..._buildSpellNames(filteredLevelIndex),
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 14),
+                  ..._buildSpellNames(levelIndex),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-          );
-        },
+        ],
       ),
     );
+  }
+
+  Widget _buildDecrementButton(int levelIndex) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: widget.profileManager.getSpellSlots(),
+      builder: (context, snapshot) {
+
+        int totalSlots = 0;
+        int currentSlots = 0;
+        if (snapshot.hasData) {
+          String spellSlotKey = _getSpellSlotKey(levelIndex);
+
+          for (var slot in snapshot.data!) {
+            if (slot['spellslot'] == spellSlotKey) {
+              totalSlots = slot['total'] ?? 0;
+              currentSlots = slot['spent'] ?? 0;
+            }
+          }
+        }
+
+        return IconButton(
+          icon: const Icon(Icons.remove),
+          onPressed: () {
+            if (currentSlots > 0) {
+              setState(() {
+                currentSlots--;
+              });
+              _updateCurrentSlots(levelIndex, currentSlots, totalSlots);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSpellSlotControls(int levelIndex) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: widget.profileManager.getSpellSlots(),
+      builder: (context, snapshot) {
+
+        int totalSlots = 0;
+        int currentSlots = 0;
+
+        if (snapshot.hasData) {
+          String spellSlotKey = _getSpellSlotKey(levelIndex);
+
+          for (var slot in snapshot.data!) {
+            if (slot['spellslot'] == spellSlotKey) {
+              totalSlots = slot['total'] ?? 0;
+              currentSlots = slot['spent'] ?? 0;
+            }
+          }
+        }
+
+        return Row(
+          children: [
+            Text(
+              '($currentSlots/$totalSlots)',
+              style: TextStyle(
+                color: AppColors.textColorLight,
+                fontSize: 16,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                if (currentSlots < totalSlots) {
+                  setState(() {
+                    currentSlots++;
+                  });
+                  _updateCurrentSlots(levelIndex, currentSlots, totalSlots);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateCurrentSlots(int levelIndex, int currentSlots, int totalSlots) async {
+    String spellSlotKey = _getSpellSlotKey(levelIndex);
+
+    await widget.profileManager.updateSpellSlots(
+      spellslot: spellSlotKey,
+      total: totalSlots,
+      spent: currentSlots,
+    );
+
+    if (mounted) {
+      setState(() {
+        _fetchAndUpdateSlots();
+      });
+    }
   }
 
   List<Widget> _buildSpellNames(int levelIndex) {
@@ -349,7 +409,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               child: Center(
                 child: Text(
                   controller.text.isNotEmpty ? controller.text : '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textColorDark,
                     fontSize: 14.0,
                     fontWeight: FontWeight.bold,
@@ -427,7 +487,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Bearbeite Zauberplätze für ${levelIndex == 0 ? "Zaubertricks" : levelIndex}',
+                'Zauberplätze für Level ${levelIndex == 0 ? "Zaubertricks" : levelIndex}',
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,

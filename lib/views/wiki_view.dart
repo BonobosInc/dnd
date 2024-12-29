@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:xml/xml.dart' as xml;
 import 'package:dnd/views/wiki/background_view.dart';
 import 'package:dnd/views/wiki/classes_view.dart';
 import 'package:dnd/views/wiki/creatures_view.dart';
@@ -5,9 +8,11 @@ import 'package:dnd/views/wiki/feat_view.dart';
 import 'package:dnd/views/wiki/races_view.dart';
 import 'package:dnd/views/wiki/spellwiki_view.dart';
 import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/views/wiki/wiki_editor/class_editor_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class WikiPage extends StatefulWidget {
   final WikiParser wikiParser;
@@ -46,6 +51,24 @@ class WikiPageState extends State<WikiPage> {
     super.dispose();
   }
 
+  Future<String> getDir() async {
+    String savedFilePath;
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+
+      if (isDebugMode) {
+        savedFilePath = './temp/wiki.xml';
+      } else {
+        Directory appSupportDir = await getApplicationSupportDirectory();
+        savedFilePath = '${appSupportDir.path}/wiki.xml';
+      }
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      savedFilePath = '${appSupportDir.path}/wiki.xml';
+    }
+    return savedFilePath;
+  }
+
   void loadDataFromParser() {
     setState(() {
       classes = widget.wikiParser.classes;
@@ -55,6 +78,16 @@ class WikiPageState extends State<WikiPage> {
       spells = widget.wikiParser.spells;
       creatures = widget.wikiParser.creatures;
     });
+  }
+
+  Future<void> _deleteXml() async {
+    widget.wikiParser.deleteXml();
+    widget.wikiParser.classes.clear();
+    widget.wikiParser.races.clear();
+    widget.wikiParser.backgrounds.clear();
+    widget.wikiParser.feats.clear();
+    widget.wikiParser.spells.clear();
+    widget.wikiParser.creatures.clear();
   }
 
   Future<void> importXml() async {
@@ -107,31 +140,17 @@ class WikiPageState extends State<WikiPage> {
       return;
     }
 
-    String? filePath = await FilePicker.platform.saveFile(
-      dialogTitle: 'Wiki exportieren',
-      fileName: 'exported_wiki.xml',
-      type: FileType.custom,
-      allowedExtensions: ['xml'],
-    );
+    try {
+      await widget.wikiParser.exportXml();
 
-    if (filePath != null) {
-      try {
-        await widget.wikiParser.exportXml();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Export erfolgreich!')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Export fehlgeschlagen: $e')));
-        }
-      }
-    } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Export abgebrochen oder fehlgeschlagen.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Export erfolgreich!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: $e')));
       }
     }
   }
@@ -195,18 +214,56 @@ class WikiPageState extends State<WikiPage> {
                       importXml();
                     } else if (value == 'export') {
                       exportXml();
+                    } else if (value == 'delete') {
+                      _deleteXml();
+                      loadDataFromParser();
+                    } else if (value == 'class') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddClassPage(
+                            onSave: (newClass) async {
+                              final xmlFilePath = await getDir();
+                              final xmlFile = File(xmlFilePath);
+                              if (!xmlFile.existsSync()) {
+                                throw Exception(
+                                    "XML file not found at $xmlFilePath");
+                              }
+                              final document = xml.XmlDocument.parse(
+                                  await xmlFile.readAsString());
+
+                              widget.wikiParser
+                                  .addClassToXml(document, newClass);
+
+                              await xmlFile.writeAsString(
+                                  document.toXmlString(pretty: true));
+                              if (kDebugMode) {
+                                print("Class added successfully to XML.");
+                              }
+                            },
+                          ),
+                        ),
+                      );
                     }
                   },
                   itemBuilder: (BuildContext context) {
                     return [
                       const PopupMenuItem<String>(
                         value: 'import',
-                        child: Text('Import XML'),
+                        child: Text('Wiki importieren'),
                       ),
                       const PopupMenuItem<String>(
                         value: 'export',
-                        child: Text('Export XML'),
+                        child: Text('Wiki exportieren'),
                       ),
+                      const PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Text('Wiki löschen'),
+                      ),
+                      // const PopupMenuItem<String>(
+                      //   value: 'class',
+                      //   child: Text('Klasse hinzufügen'),
+                      // ),
                     ];
                   },
                 ),
@@ -427,7 +484,7 @@ class WikiPageState extends State<WikiPage> {
           children: [
             const Divider(),
             ListTile(
-              title: const Text('All Creatures'),
+              title: const Text('Alle Monster'),
               onTap: () {
                 Navigator.push(
                   context,

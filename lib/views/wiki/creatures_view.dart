@@ -19,15 +19,26 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
   final Set<Creature> _selectedCreatures = {};
   String _searchText = '';
   bool _sortByCr = true;
-  String? _selectedCr; // This will store the selected CR for filtering
+  String? _selectedCr;
   late List<Creature> _filteredCreaturesCache;
-  late List<String> _uniqueCRs; // List to store unique CR values
+  late List<String> _uniqueCRs;
+
+  bool isSearchVisible = false;
+  String _activeFilter = 'Sortieren nach CR';
+  FocusNode searchFocusNode = FocusNode();
+  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _filteredCreaturesCache = _computeFilteredCreatures();
-    _uniqueCRs = _getUniqueCRs(); // Get unique CR values from creatures
+    _uniqueCRs = _getUniqueCRs();
+  }
+
+  @override
+  void dispose() {
+    searchFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,7 +48,6 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
         _searchText != _searchText ||
         _sortByCr != _sortByCr ||
         _selectedCr != _selectedCr) {
-      // Also consider selected CR in comparison
       _filteredCreaturesCache = _computeFilteredCreatures();
     }
   }
@@ -45,10 +55,9 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
   List<String> _getUniqueCRs() {
     Set<String> crSet = {};
     for (var creature in widget.creatures) {
-      crSet.add(creature.cr); // Assuming `cr` is a String field
+      crSet.add(creature.cr);
     }
 
-    // Sort the CRs numerically
     List<String> crList = crSet.toList();
     crList.sort((a, b) {
       return parseCr(a).compareTo(parseCr(b));
@@ -74,8 +83,7 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
     List<Creature> filteredList = widget.creatures
         .where((creature) =>
             creature.name.toLowerCase().contains(_searchText.toLowerCase()) &&
-            (_selectedCr == null ||
-                creature.cr == _selectedCr)) // Apply CR filter
+            (_selectedCr == null || creature.cr == _selectedCr))
         .toList();
 
     if (_sortByCr) {
@@ -114,8 +122,95 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Creatures'),
+        title: isSearchVisible
+            ? TextField(
+                controller: searchController,
+                focusNode: searchFocusNode,
+                decoration: const InputDecoration(
+                  hintText: 'Suchen...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (value) {
+                  setState(() {
+                    _searchText = value;
+                    _filteredCreaturesCache = _computeFilteredCreatures();
+                  });
+                },
+              )
+            : const Text('Alle Monster'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              setState(() {
+                isSearchVisible = !isSearchVisible;
+                if (isSearchVisible) {
+                  searchFocusNode.requestFocus();
+                } else {
+                  _searchText = '';
+                  searchController.clear();
+                  searchFocusNode.unfocus();
+                  _filteredCreaturesCache = _computeFilteredCreatures();
+                }
+              });
+            },
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filter und Sortieren',
+            onSelected: (value) {
+              setState(() {
+                _activeFilter = value;
+                if (_activeFilter == 'Sortieren nach CR') {
+                  _sortByCr = true;
+                  _selectedCr = null;
+                } else if (_activeFilter == 'Sortieren nach Name') {
+                  _sortByCr = false;
+                  _selectedCr = null;
+                } else {
+                  _sortByCr = true;
+                  _selectedCr = _activeFilter;
+                }
+                _filteredCreaturesCache = _computeFilteredCreatures();
+              });
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'Sortieren nach CR',
+                child: Row(
+                  children: [
+                    if (_activeFilter == 'Sortieren nach CR')
+                      const Icon(Icons.check, size: 18, color: Colors.blue),
+                    const Text('Sortieren nach CR'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'Sortieren nach Name',
+                child: Row(
+                  children: [
+                    if (_activeFilter == 'Sortieren nach Name')
+                      const Icon(Icons.check, size: 18, color: Colors.blue),
+                    const Text('Sortieren nach Name'),
+                  ],
+                ),
+              ),
+              ..._uniqueCRs.map(
+                (cr) => PopupMenuItem(
+                  value: cr,
+                  child: Row(
+                    children: [
+                      if (_activeFilter == cr)
+                        const Icon(Icons.check, size: 18, color: Colors.blue),
+                      Text('CR: $cr'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (widget.importCreature)
             IconButton(
               tooltip: "Ausgewählte Begleiter importieren",
@@ -123,12 +218,11 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
               onPressed: () {
                 Navigator.of(context).pop(_selectedCreatures.toList());
               },
-            ),
+            )
         ],
       ),
       body: Column(
         children: [
-          _buildFilterSortSection(),
           Expanded(
             child: ListView.builder(
               itemCount: _filteredCreaturesCache.length,
@@ -161,7 +255,7 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
       ),
       floatingActionButton: widget.importCreature
           ? FloatingActionButton(
-              tooltip: "Neuen Begleiter erstellen",
+              tooltip: 'Neuen Begleiter erstellen',
               onPressed: () async {
                 final newCreature = await _showAddCreatureDialog(context);
                 if (newCreature != null && context.mounted) {
@@ -171,70 +265,6 @@ class AllCreaturesPageState extends State<AllCreaturesPage> {
               child: const Icon(Icons.add),
             )
           : null,
-    );
-  }
-
-  Widget _buildFilterSortSection() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Suchen nach Name',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchText = value;
-                  _filteredCreaturesCache = _computeFilteredCreatures();
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          DropdownButton<String>(
-            value: _selectedCr ??
-                (_sortByCr ? 'Sortieren nach CR' : 'Sortieren nach Name'),
-            hint: Text('Filter / Sortieren'),
-            items: [
-              // Sorting Options
-              const DropdownMenuItem(
-                value: 'Sortieren nach CR',
-                child: Text('Sortieren nach CR'),
-              ),
-              const DropdownMenuItem(
-                value: 'Sortieren nach Name',
-                child: Text('Sortieren nach Name'),
-              ),
-              // CR Values
-              ..._uniqueCRs.map((cr) {
-                return DropdownMenuItem(
-                  value: cr,
-                  child: Text('CR: $cr'),
-                );
-              }).toList(),
-            ],
-            onChanged: (value) {
-              setState(() {
-                if (value == 'Sortieren nach CR') {
-                  _sortByCr = true;
-                  _selectedCr = null;
-                } else if (value == 'Sortieren nach Name') {
-                  _sortByCr = false;
-                  _selectedCr = null;
-                } else if (value == 'Alle CRs') {
-                  _selectedCr = null;
-                } else {
-                  _selectedCr = value;
-                }
-                _filteredCreaturesCache = _computeFilteredCreatures();
-              });
-            },
-          ),
-        ],
-      ),
     );
   }
 
@@ -269,7 +299,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
   late final TextEditingController _acController =
       TextEditingController(text: widget.creature?.ac.toString() ?? '');
   late final TextEditingController _hpController =
-      TextEditingController(text: widget.creature?.hp ?? '');
+      TextEditingController(text: widget.creature?.maxHP.toString() ?? '');
   late final TextEditingController _speedController =
       TextEditingController(text: widget.creature?.speed ?? '');
   late final TextEditingController _crController =
@@ -334,9 +364,10 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 type: _typeController.text,
                 alignment: _alignmentController.text,
                 ac: int.tryParse(_acController.text) ?? 0,
-                hp: _hpController.text,
                 maxHP: int.tryParse(_hpController.text) ?? 0,
-                currentHP: int.tryParse(_hpController.text) ?? 0,
+                currentHP: (widget.creature?.currentHP ?? 0) == 0
+                    ? int.tryParse(_hpController.text) ?? 0
+                    : widget.creature?.currentHP ?? 0,
                 speed: _speedController.text,
                 str: int.tryParse(_strController.text) ?? 0,
                 dex: int.tryParse(_dexController.text) ?? 0,
@@ -1250,7 +1281,7 @@ class CreatureDetailPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Rüstungsklasse: ${creature.ac}'),
-        Text('Lebenspunkte: ${creature.hp}'),
+        Text('Lebenspunkte: ${creature.maxHP}'),
         Text('Bewegungsrate: ${creature.speed}'),
       ],
     );

@@ -12,7 +12,6 @@ class StatsPage extends StatefulWidget {
 }
 
 class StatsPageState extends State<StatsPage> {
-  final TextEditingController _scoreController = TextEditingController();
 
   int strength = 10;
   int dexterity = 10;
@@ -243,8 +242,7 @@ class StatsPageState extends State<StatsPage> {
             break;
           case Defines.skillJackofAllTrades:
             setState(() {
-              skillJack = skill['proficiency'] ??
-                  0;
+              skillJack = skill['proficiency'] ?? 0;
             });
             break;
         }
@@ -270,7 +268,7 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildStatRow(String statName, int abilityScore, String field) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
@@ -359,51 +357,65 @@ class StatsPageState extends State<StatsPage> {
 
   Future<void> _showEditDialog(
       String statName, int currentScore, String field) async {
-    _scoreController.text = currentScore.toString();
+    int newScore = currentScore;
+
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Bearbeite $statName'),
-        content: _buildTextField(
-          label: 'Wert',
-          controller: _scoreController,
-          keyboardType: TextInputType.number,
-          onChanged: (value) {},
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Abbrechen'),
-          ),
-          TextButton(
-            onPressed: () async {
-              int? newScore = int.tryParse(_scoreController.text);
-              if (newScore != null) {
-                updateStats(field, newScore);
-                if (context.mounted) Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Speichern'),
-          ),
-        ],
-      ),
-    );
-  }
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Bearbeite $statName'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Wert:'),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () {
+                              setState(() {
+                                if (newScore > 0) newScore--;
+                              });
+                            },
+                          ),
+                          Text('$newScore'),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              setState(() {
+                                newScore++;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Abbrechen'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    updateStats(field, newScore);
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required ValueChanged<String> onChanged,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: onChanged,
-      keyboardType: keyboardType,
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: const Text('Speichern'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -453,7 +465,7 @@ class StatsPageState extends State<StatsPage> {
 
   Widget _buildSavingThrowRow(
       String statName, int proficiency, String field, int abilityScore) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
     int savingThrowBonus =
         proficiency == 1 ? abilityModifier + proficiencyBonus : abilityModifier;
 
@@ -528,6 +540,9 @@ class StatsPageState extends State<StatsPage> {
                   onChanged: (bool? value) {
                     setState(() {
                       proficiency = value == true ? 1 : 0;
+                      if (proficiency == 0) {
+                        hasExpertise = 0;
+                      }
                     });
                   },
                 ),
@@ -535,10 +550,15 @@ class StatsPageState extends State<StatsPage> {
                   title: const Text("Expertise"),
                   value: hasExpertise == 1,
                   onChanged: (bool? value) {
-                    setState(() {
-                      hasExpertise = value == true ? 1 : 0;
-                    });
+                    if (proficiency == 1) {
+                      setState(() {
+                        hasExpertise = value == true ? 1 : 0;
+                      });
+                    }
                   },
+                  enabled: proficiency == 1,
+                  activeColor: proficiency == 1 ? null : Colors.grey,
+                  checkColor: proficiency == 1 ? null : Colors.grey[700],
                 ),
                 CheckboxListTile(
                   title: const Text("Alleskönner"),
@@ -576,13 +596,11 @@ class StatsPageState extends State<StatsPage> {
 
   Widget _buildSkillRow(String skillName, int proficiency, int hasExpertise,
       String field, int abilityScore) {
-    int abilityModifier = (abilityScore - 10) ~/ 2;
+    int abilityModifier = ((abilityScore - 10) / 2).floor();
 
     int skillBonus = abilityModifier;
 
-    if (skillJack == 1 &&
-        proficiency != 1 &&
-        hasExpertise != 1) {
+    if (skillJack == 1 && proficiency != 1 && hasExpertise != 1) {
       skillBonus += 1;
     } else {
       if (proficiency == 1) {
@@ -683,7 +701,7 @@ class StatsPageState extends State<StatsPage> {
             Defines.skillDeception, charisma),
         _buildSkillRow("Überlebenskunst", skillProfStea, skillExStea,
             Defines.skillSurvival, wisdom),
-        _buildSkillRow("Überredung", skillProfPers, skillExPers,
+        _buildSkillRow("Überzeugen", skillProfPers, skillExPers,
             Defines.skillPersuasion, charisma),
         _buildSkillRow("Wahrnehmung", skillProfPerc, skillExPerc,
             Defines.skillPerception, wisdom),

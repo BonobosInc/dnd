@@ -84,6 +84,7 @@ class BagPageState extends State<BagPage> {
           description: item['description'] ?? '',
           uuid: item['ID'],
           type: item['type'] ?? 'Sonstige',
+          amount: item['amount'] ?? 1,
         ));
       }
       items.sort((a, b) => a.uuid!.compareTo(b.uuid as num));
@@ -189,7 +190,8 @@ class BagPageState extends State<BagPage> {
 
   void _showAddItemDialog() {
     var newItem = true;
-    _showItemDialog(Item(name: '', description: '', type: 'Sonstige'), newItem);
+    _showItemDialog(
+        Item(name: '', description: '', type: 'Sonstige', amount: 1), newItem);
   }
 
   void _showItemDetails(Item item) {
@@ -202,64 +204,101 @@ class BagPageState extends State<BagPage> {
         TextEditingController(text: item.description);
 
     String? selectedType = item.type;
+    int editedAmount = item.amount ?? 1;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Gegenstand bearbeiten'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                _buildItemDetailForm(item, descriptionController),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: selectedType,
-                  items: const [
-                    DropdownMenuItem(value: 'Gegenstände', child: Text('Gegenstände')),
-                    DropdownMenuItem(
-                        value: 'Ausrüstung', child: Text('Ausrüstung')),
-                    DropdownMenuItem(
-                        value: 'Sonstige', child: Text('Sonstige')),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Gegenstand bearbeiten'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    _buildItemDetailForm(item, descriptionController),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'Gegenstände', child: Text('Gegenstände')),
+                        DropdownMenuItem(
+                            value: 'Ausrüstung', child: Text('Ausrüstung')),
+                        DropdownMenuItem(
+                            value: 'Sonstige', child: Text('Sonstige')),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Typ',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value;
+                          item.type = selectedType;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Menge:'),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove),
+                              onPressed: () {
+                                setState(() {
+                                  if (editedAmount > 1) editedAmount--;
+                                });
+                              },
+                            ),
+                            Text('$editedAmount'),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () {
+                                setState(() {
+                                  editedAmount++;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ],
-                  decoration: const InputDecoration(
-                    labelText: 'Typ',
-                    border: OutlineInputBorder(),
+                ),
+              ),
+              actions: [
+                SizedBox(
+                  height: 36,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Abbrechen'),
                   ),
-                  onChanged: (value) {
-                    selectedType = value;
-                    item.type = selectedType;
-                  },
+                ),
+                SizedBox(
+                  height: 36,
+                  child: TextButton(
+                    onPressed: () {
+                      item.amount = editedAmount;
+                      if (newItem) {
+                        _addItem(item, descriptionController.text);
+                      } else {
+                        _updateItem(item, descriptionController.text);
+                      }
+                      Navigator.of(context).pop(true);
+                    },
+                    child: const Text('Speichern'),
+                  ),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            SizedBox(
-              height: 36,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Abbrechen'),
-              ),
-            ),
-            SizedBox(
-              height: 36,
-              child: TextButton(
-                onPressed: () {
-                  if (newItem) {
-                    _addItem(item, descriptionController.text);
-                  } else {
-                    _updateItem(item, descriptionController.text);
-                  }
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Speichern'),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -275,6 +314,7 @@ class BagPageState extends State<BagPage> {
       description: finalDescription,
       type: item.type,
       uuid: item.uuid,
+      amount: item.amount,
     )
         .then((_) {
       _fetchItems();
@@ -287,7 +327,10 @@ class BagPageState extends State<BagPage> {
 
     widget.profileManager
         .addItem(
-            itemname: item.name, description: finalDescription, type: item.type)
+            itemname: item.name,
+            description: finalDescription,
+            type: item.type,
+            amount: item.amount)
         .then((_) {
       _fetchItems();
     });
@@ -332,7 +375,7 @@ class BagPageState extends State<BagPage> {
   Widget _buildDescriptionTextField(TextEditingController controller) {
     return TextField(
       controller: controller,
-      maxLines: 10,
+      maxLines: 8,
       decoration: const InputDecoration(
         labelText: 'Beschreibung',
         border: OutlineInputBorder(),
@@ -390,15 +433,14 @@ class BagPageState extends State<BagPage> {
                 child: ListTile(
                   title: Text(
                     item.name,
-                    style: const TextStyle(color: AppColors.textColorLight),
+                    style: TextStyle(color: AppColors.textColorLight),
                   ),
                   onTap: () => _showItemDetails(item),
                   trailing: SizedBox(
                     width: 35,
                     height: 35,
                     child: IconButton(
-                      icon: const Icon(Icons.close,
-                          color: AppColors.textColorDark),
+                      icon: Icon(Icons.close, color: AppColors.textColorDark),
                       iconSize: 20.0,
                       padding: EdgeInsets.zero,
                       onPressed: () {
@@ -458,11 +500,13 @@ class Item {
   String description;
   int? uuid;
   String? type;
+  int? amount;
 
   Item({
     required this.name,
     required this.description,
     this.uuid,
     required this.type,
+    required this.amount,
   });
 }

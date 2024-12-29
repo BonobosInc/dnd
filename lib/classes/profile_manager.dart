@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'package:dnd/classes/database_schema.dart';
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/configs/version.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:xml/xml.dart';
 import 'package:dnd/configs/defines.dart';
+import 'package:dnd/classes/pdf_editor.dart';
 
 class Character {
   final int id;
@@ -21,11 +25,36 @@ class ProfileManager {
 
   Future<void> initialize() async {
     await loadProfiles();
+    await initializeAppDatabase();
+  }
+
+  Future<void> initializeAppDatabase() async {
+    final dbPath = await _getPath();
+    final db = await openDatabase(dbPath, version: 1);
+
+    if (profiles.isNotEmpty) {
+      await updateDatabaseIfOutdated(db);
+    }
+
+    if (kDebugMode) {
+      print('Database initialization completed.');
+    }
+  }
+
+  Future<String> _getPath() async {
+    if (Platform.isAndroid ||
+        (Platform.isWindows &&
+            bool.fromEnvironment('dart.vm.product') == false)) {
+      final databasesPath = await getDatabasesPath();
+      return join(databasesPath, 'characters.db');
+    } else {
+      final appSupportDir = await getApplicationSupportDirectory();
+      return join(appSupportDir.path, 'characters.db');
+    }
   }
 
   Future<void> loadProfiles() async {
-    final databasesPath = await getDatabasesPath();
-    final dbPath = join(databasesPath, 'characters.db');
+    final dbPath = await _getPath();
 
     final dbFile = File(dbPath);
     if (!await dbFile.exists()) {
@@ -56,6 +85,120 @@ class ProfileManager {
       }
     } finally {
       await db.close();
+    }
+  }
+
+  Future<bool> isDatabaseVersionOutdated(Database db) async {
+    try {
+      final versionResult =
+          await db.rawQuery('SELECT versionNumber FROM version WHERE ID = 1');
+
+      if (versionResult.isNotEmpty) {
+        final dbVersion = versionResult.first['versionNumber'] as String;
+
+        if (_compareVersions(appVersion, dbVersion) > 0) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking database version: $e');
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  int _compareVersions(String version1, String version2) {
+    final v1Parts = version1.split('.').map(int.parse).toList();
+    final v2Parts = version2.split('.').map(int.parse).toList();
+
+    for (int i = 0; i < v1Parts.length; i++) {
+      final v1Part = v1Parts[i];
+      final v2Part = i < v2Parts.length ? v2Parts[i] : 0;
+
+      if (v1Part > v2Part) return 1;
+      if (v1Part < v2Part) return -1;
+    }
+
+    return 0;
+  }
+
+  Future<void> updateDatabaseIfOutdated(Database db) async {
+    await db.execute(DatabaseSchema.versionTable());
+
+    final versionCount = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM version'));
+    if (versionCount == 0) {
+      await db.insert('version', {'versionNumber': 0});
+    }
+
+    final isOutdated = await isDatabaseVersionOutdated(db);
+
+    if (!isOutdated) {
+      if (kDebugMode) {
+        print('Database is up-to-date.');
+      }
+      return;
+    }
+
+    var columns = DatabaseSchema.getAllColumns();
+
+    for (String table in columns.keys) {
+      final tableColumns = columns[table]!;
+
+      final existingColumns = await db.rawQuery('PRAGMA table_info($table)');
+
+      final existingColumnNames =
+          existingColumns.map((col) => col['name'] as String).toList();
+
+      final missingColumns = tableColumns
+          .where((col) => !existingColumnNames.contains(col['name']))
+          .toList();
+
+      for (var column in missingColumns) {
+        await _addColumn(db, table, column);
+      }
+    }
+
+    await db.rawUpdate(
+        'UPDATE version SET versionNumber = ? WHERE ID = 1', [appVersion]);
+
+    if (kDebugMode) {
+      print('Database schema updated to appVersion: $appVersion');
+    }
+  }
+
+  Future<void> _addColumn(
+      Database db, String table, Map<String, String> column) async {
+    final columnName = column['name'];
+    final columnType = column['type'];
+
+    final result = await db.rawQuery(
+        'PRAGMA table_info($table);');
+
+    bool columnExists = false;
+    for (var row in result) {
+      if (row['name'] == columnName) {
+        columnExists = true;
+        break;
+      }
+    }
+
+    if (!columnExists) {
+      String sql = 'ALTER TABLE $table ADD COLUMN $columnName $columnType';
+      await db.execute(sql);
+
+      if (kDebugMode) {
+        print('Added missing column $columnName ($columnType) to table $table');
+      }
+    } else {
+      if (kDebugMode) {
+        print('Column $columnName already exists in table $table');
+      }
     }
   }
 
@@ -224,7 +367,7 @@ class ProfileManager {
       var initialStats = {
         'charId': insertedCharId,
         Defines.statArmor: 10,
-        Defines.statLevel: 0,
+        Defines.statLevel: 1,
         Defines.statXP: 0,
         Defines.statInspiration: 0,
         Defines.statProficiencyBonus: 0,
@@ -236,12 +379,12 @@ class ProfileManager {
         Defines.statCurrentHitDice: 0,
         Defines.statMaxHitDice: 0,
         Defines.statHitDiceFactor: "",
-        Defines.statSTR: 0,
-        Defines.statDEX: 0,
-        Defines.statCON: 0,
-        Defines.statINT: 0,
-        Defines.statWIS: 0,
-        Defines.statCHA: 0,
+        Defines.statSTR: 10,
+        Defines.statDEX: 10,
+        Defines.statCON: 10,
+        Defines.statINT: 10,
+        Defines.statWIS: 10,
+        Defines.statCHA: 10,
         Defines.statSpellSaveDC: 0,
         Defines.statSpellAttackBonus: 0,
       };
@@ -273,6 +416,12 @@ class ProfileManager {
       await txn.insert('bag', initialBag);
 
       var initialSpellSlots = [
+        {
+          'charId': insertedCharId,
+          'spellslot': Defines.slotZero,
+          'total': 0,
+          'spent': 0
+        },
         {
           'charId': insertedCharId,
           'spellslot': Defines.slotOne,
@@ -338,186 +487,26 @@ class ProfileManager {
   }
 
   Future<void> createProfile(String profileName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath, version: 1);
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS info (charId INTEGER PRIMARY KEY AUTOINCREMENT, '
-        '${Defines.infoName} TEXT, '
-        '${Defines.infoRace} TEXT, '
-        '${Defines.infoClass} TEXT, '
-        '${Defines.infoOrigin} TEXT, '
-        '${Defines.infoBackground} TEXT, '
-        '${Defines.infoPersonalityTraits} TEXT, '
-        '${Defines.infoIdeals} TEXT, '
-        '${Defines.infoBonds} TEXT, '
-        '${Defines.infoFlaws} TEXT, '
-        '${Defines.infoAge} TEXT, '
-        '${Defines.infoGod} TEXT, '
-        '${Defines.infoSize} TEXT, '
-        '${Defines.infoHeight} TEXT, '
-        '${Defines.infoWeight} TEXT, '
-        '${Defines.infoSex} TEXT, '
-        '${Defines.infoAlignment} TEXT, '
-        '${Defines.infoEyeColour} TEXT, '
-        '${Defines.infoHairColour} TEXT, '
-        '${Defines.infoSkinColour} TEXT, '
-        '${Defines.infoAppearance} TEXT, '
-        '${Defines.infoBackstory} TEXT, '
-        '${Defines.infoNotes} TEXT, '
-        '${Defines.infoSpellcastingClass} TEXT, '
-        '${Defines.infoSpellcastingAbility} TEXT'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS Stats (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.statArmor} INTEGER, '
-        '${Defines.statLevel} INTEGER, '
-        '${Defines.statXP} INTEGER, '
-        '${Defines.statInspiration} INTEGER, '
-        '${Defines.statProficiencyBonus} INTEGER, '
-        '${Defines.statInitiative} INTEGER, '
-        '${Defines.statMovement} TEXT, '
-        '${Defines.statMaxHP} INTEGER, '
-        '${Defines.statCurrentHP} INTEGER, '
-        '${Defines.statTempHP} INTEGER, '
-        '${Defines.statCurrentHitDice} INTEGER, '
-        '${Defines.statMaxHitDice} INTEGER, '
-        '${Defines.statHitDiceFactor} TEXT, '
-        '${Defines.statSTR} INTEGER, '
-        '${Defines.statDEX} INTEGER, '
-        '${Defines.statCON} INTEGER, '
-        '${Defines.statINT} INTEGER, '
-        '${Defines.statWIS} INTEGER, '
-        '${Defines.statCHA} INTEGER, '
-        '${Defines.statSpellSaveDC} INTEGER, '
-        '${Defines.statSpellAttackBonus} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS savingthrow (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.saveStr} INTEGER, '
-        '${Defines.saveDex} INTEGER, '
-        '${Defines.saveCon} INTEGER, '
-        '${Defines.saveInt} INTEGER, '
-        '${Defines.saveWis} INTEGER, '
-        '${Defines.saveCha} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS proficiencies (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'charId INTEGER, '
-        '${Defines.profLightArmor} TEXT, '
-        '${Defines.profMediumArmor} TEXT, '
-        '${Defines.profHeavyArmor} TEXT, '
-        '${Defines.profShield} TEXT, '
-        '${Defines.profSimpleWeapon} TEXT, '
-        '${Defines.profMartialWeapon} TEXT, '
-        '${Defines.profOtherWeapon} TEXT, '
-        '${Defines.profWeaponList} TEXT, '
-        '${Defines.profLanguages} TEXT, '
-        '${Defines.profTools} TEXT, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE'
-        ')');
-    currentDb!.execute('CREATE TABLE IF NOT EXISTS bag (ID INTEGER PRIMARY KEY,'
-        'charId INTEGER, '
-        '${Defines.bagPlatin} INTEGER, '
-        '${Defines.bagGold} INTEGER, '
-        '${Defines.bagElectrum} INTEGER, '
-        '${Defines.bagSilver} INTEGER, '
-        '${Defines.bagCopper} INTEGER, '
-        'FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS skills (ID INTEGER PRIMARY KEY AUTOINCREMENT, skill TEXT , charId INTEGER, proficiency INTEGER, expertise INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS spellslots (ID INTEGER PRIMARY KEY AUTOINCREMENT, charId INTEGER, spellslot TEXT, total INTEGER, spent INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS spells (ID INTEGER PRIMARY KEY AUTOINCREMENT, spellname TEXT, charId INTEGER, status TEXT, level INTEGER, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS weapons (ID INTEGER PRIMARY KEY AUTOINCREMENT, weapon TEXT, charId INTEGER, attribute TEXT, reach TEXT, bonus TEXT, damage TEXT, damagetype TEXT, description TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS feats (ID INTEGER PRIMARY KEY AUTOINCREMENT, featname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS items (ID INTEGER PRIMARY KEY AUTOINCREMENT, itemname TEXT, charId INTEGER, description TEXT, type TEXT, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute(
-        'CREATE TABLE IF NOT EXISTS tracker (ID INTEGER PRIMARY KEY AUTOINCREMENT, trackername TEXT, charId INTEGER, value INTEGER, FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE)');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creatures (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    name TEXT,
-    size TEXT,
-    type TEXT,
-    alignment TEXT,
-    ac INTEGER,
-    hp TEXT,
-    currentHP INTEGER,
-    maxHP INTEGER,
-    speed TEXT,
-    str INTEGER,
-    dex INTEGER,
-    con INTEGER,
-    intScore INTEGER,
-    wis INTEGER,
-    cha INTEGER,
-    saves TEXT,
-    skills TEXT,
-    resistances TEXT,
-    vulnerabilities TEXT,
-    immunities TEXT,
-    conditionImmunities TEXT,
-    senses TEXT,
-    passivePerception INTEGER,
-    languages TEXT,
-    cr TEXT,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_traits (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    trait_name TEXT,
-    trait_description TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_actions (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    action_name TEXT,
-    action_description TEXT,
-    action TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
-    currentDb!.execute('''
-  CREATE TABLE IF NOT EXISTS creature_legendary_actions (
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    charId INTEGER,
-    creature_id INTEGER,
-    legendary_action_name TEXT,
-    legendary_action_description TEXT,
-    FOREIGN KEY (creature_id) REFERENCES creatures(ID) ON DELETE CASCADE,
-    FOREIGN KEY (charId) REFERENCES info(charId) ON DELETE CASCADE
-  )
-''');
+
+
+    await currentDb!.execute(
+        'CREATE TABLE IF NOT EXISTS version (ID INTEGER PRIMARY KEY, versionNumber TEXT)');
+
+    for (String query in DatabaseSchema.allTables) {
+      await currentDb!.execute(query);
+    }
+
+    await updateDatabaseIfOutdated(currentDb!);
 
     await initializeDatabase(currentDb!, profileName);
-
     await loadProfiles();
   }
 
   Future<void> selectProfile(Character profile) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (kDebugMode) {
       print('Selecting profile: ${profile.name}');
@@ -532,8 +521,7 @@ class ProfileManager {
     selectedID = null;
     selectedProfile = null;
 
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath);
 
@@ -553,13 +541,25 @@ class ProfileManager {
     await currentDb!
         .delete('weapons', where: 'charId = ?', whereArgs: [charId]);
     await currentDb!.delete('feats', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('items', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('tracker', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('conditions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creatures', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creature_traits', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!
+        .delete('creature_actions', where: 'charId = ?', whereArgs: [charId]);
+    await currentDb!.delete('creature_legendary_actions',
+        where: 'charId = ?', whereArgs: [charId]);
 
     await loadProfiles();
   }
 
   Future<void> renameProfile(String oldName, String newName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (profiles.any((profile) => profile.name == newName)) {
       throw Exception(
@@ -589,8 +589,7 @@ class ProfileManager {
   }
 
   Future<void> clearDatabase() async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, 'characters.db');
+    final profileDbPath = await _getPath();
 
     if (currentDb != null) {
       await currentDb!.close();
@@ -607,148 +606,6 @@ class ProfileManager {
         print('Error deleting database: $e');
       }
     }
-  }
-
-  Future<void> dumpDatabase(String profileName) async {
-    final databasesPath = await getDatabasesPath();
-    final profileDbPath = join(databasesPath, '$profileName.db');
-
-    Database profileDb = await openDatabase(profileDbPath);
-
-    String? selectedPath = await FilePicker.platform.getDirectoryPath();
-    if (selectedPath != null) {
-      String profileData = await getProfileData(profileDb, profileName);
-      final filePath = join(selectedPath, '$profileName.txt');
-      final File file = File(filePath);
-      await file.writeAsString(profileData);
-    }
-
-    await profileDb.close();
-  }
-
-  Future<String> getProfileData(Database profileDb, String profileName) async {
-    List<Map<String, dynamic>> infoData = await profileDb.query('info');
-    String race = 'Unknown Race';
-    String classType = 'Unknown Class';
-
-    for (var row in infoData) {
-      if (row['info'] == Defines.infoRace) {
-        race = row['text'];
-      } else if (row['info'] == Defines.infoClass) {
-        classType = row['text'];
-      }
-    }
-
-    List<Map<String, dynamic>> statsData = await profileDb.query('stats');
-    String profileStats = statsData.isNotEmpty
-        ? statsData
-            .map((row) => '${row['stat']}:\n └── ${row['value']}')
-            .join('\n')
-        : 'No stats available';
-
-    List<Map<String, dynamic>> bagData = await profileDb.query('bag');
-    String bagItems = bagData.isNotEmpty
-        ? bagData
-            .map((row) => ' └── ${row['item']}\n     └── ${row['amount']}')
-            .join('\n')
-        : 'No items in the bag';
-
-    List<Map<String, dynamic>> spellsData = await profileDb.query('spells');
-    String spellString = spellsData.isNotEmpty
-        ? spellsData.map((spell) {
-            String spellName = spell['spellname'];
-            String status = spell['status'];
-            String level = spell['level'].toString();
-            String description = spell['description'];
-            return ' └── $spellName\n     └── Status: $status\n     └── Level: $level\n     └── Description: $description';
-          }).join('\n')
-        : 'No spells available';
-
-    List<Map<String, dynamic>> weaponsData = await profileDb.query('weapons');
-    String weaponsString = weaponsData.isNotEmpty
-        ? weaponsData.map((weapon) {
-            String weaponName = weapon['weapon'];
-            String attribute = weapon['attribute'];
-            String reach = weapon['reach'];
-            String bonus = weapon['bonus'];
-            String damage = weapon['damage'];
-            String damageType = weapon['damagetype'];
-            String description = weapon['description'];
-            return ' └── $weaponName\n     └── Attribute: $attribute\n     └── Reach: $reach\n     └── Bonus: $bonus\n     └── Damage: $damage\n     └── Damage Type: $damageType\n     └── Description: $description';
-          }).join('\n')
-        : 'No weapons available';
-
-    List<Map<String, dynamic>> skillsData = await profileDb.query('skills');
-    String skillsString = skillsData.isNotEmpty
-        ? skillsData.map((skill) {
-            String skillName = skill['skill'];
-            String proficiency = skill['proficiency'].toString();
-            String expertise = skill['expertise'].toString();
-            return ' └── $skillName\n     └── Proficiency: $proficiency\n     └── Expertise: $expertise';
-          }).join('\n')
-        : 'No skills available';
-
-    List<Map<String, dynamic>> savingThrowsData =
-        await profileDb.query('savingthrow');
-    String savingThrowsString = savingThrowsData.isNotEmpty
-        ? savingThrowsData.map((savingThrow) {
-            String saveName = savingThrow['save'];
-            String bonus = savingThrow['bonus'].toString();
-            return ' └── $saveName\n     └── Bonus: $bonus';
-          }).join('\n')
-        : 'No saving throws available';
-
-    List<Map<String, dynamic>> proficienciesData =
-        await profileDb.query('proficiencies');
-    String proficienciesString = proficienciesData.isNotEmpty
-        ? proficienciesData.map((proficiency) {
-            String profName = proficiency['proficiency'];
-            String profValue = proficiency['prof'];
-            return ' └── $profName\n     └── Value: $profValue';
-          }).join('\n')
-        : 'No proficiencies available';
-
-    List<Map<String, dynamic>> spellSlotsData =
-        await profileDb.query('spellslots');
-    String spellSlotsString = spellSlotsData.isNotEmpty
-        ? spellSlotsData.map((slot) {
-            String slotName = slot['spellslot'];
-            String total = slot['total'].toString();
-            String spent = slot['spent'].toString();
-            return ' └── $slotName\n     └── Total: $total\n     └── Spent: $spent';
-          }).join('\n')
-        : 'No spell slots available';
-
-    return '''
-          Character Name: $profileName
-          Info:
-          └── Race: $race
-          └── Class: $classType
-
-          Stats:
-          $profileStats
-
-          Bag:
-          $bagItems
-
-          Spells:
-          $spellString
-
-          Weapons:
-          $weaponsString
-
-          Skills:
-          $skillsString
-
-          Saving Throws:
-          $savingThrowsString
-
-          Proficiencies:
-          $proficienciesString
-
-          Spell Slots:
-          $spellSlotsString
-          ''';
   }
 
   Future<void> updateStats({
@@ -1166,6 +1023,7 @@ class ProfileManager {
     String? itemname,
     String? description,
     String? type,
+    int? amount,
   }) async {
     if (currentDb == null) return;
 
@@ -1179,6 +1037,7 @@ class ProfileManager {
       'itemname': itemname,
       'description': description,
       'type': type,
+      'amount': amount,
     };
 
     if (existingItemList.isNotEmpty) {
@@ -1207,14 +1066,18 @@ class ProfileManager {
     required String itemname,
     String? description,
     String? type,
+    int? amount,
   }) async {
     if (currentDb == null) return;
+
+    final itemAmount = amount ?? 1;
 
     final Map<String, dynamic> itemData = {
       'charId': selectedID,
       'itemname': itemname,
       'description': description,
       'type': type,
+      'amount': itemAmount,
     };
 
     try {
@@ -1244,6 +1107,8 @@ class ProfileManager {
     required uuid,
     String? tracker,
     int? value,
+    int? max,
+    String? type,
   }) async {
     if (currentDb == null) return;
 
@@ -1257,6 +1122,8 @@ class ProfileManager {
     final Map<String, dynamic> updates = {
       'trackername': tracker,
       'value': value,
+      'max': max,
+      'type': type,
     };
 
     if (existingTrackerList.isNotEmpty) {
@@ -1284,6 +1151,7 @@ class ProfileManager {
   Future<void> addTracker({
     required String tracker,
     int? value,
+    int? max,
     String? type,
   }) async {
     if (currentDb == null) return;
@@ -1292,6 +1160,8 @@ class ProfileManager {
       'charId': selectedID,
       'trackername': tracker,
       'value': value,
+      'max': max,
+      'type': type
     };
 
     try {
@@ -1317,6 +1187,79 @@ class ProfileManager {
     );
   }
 
+  Future<void> updateCondition({
+    required uuid,
+    String? condition,
+  }) async {
+    if (currentDb == null) return;
+
+    final List<Map<String, dynamic>> existingConditionList =
+        await currentDb!.query(
+      'conditions',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+
+    final Map<String, dynamic> updates = {
+      'condition': condition,
+    };
+
+    if (existingConditionList.isNotEmpty) {
+      final Map<String, dynamic> existingCondition =
+          existingConditionList.first;
+      updates.forEach((key, value) {
+        if (value == null) {
+          updates[key] = existingCondition[key];
+        }
+      });
+      await currentDb!.update(
+        'conditions',
+        updates,
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } else {
+      await currentDb!.insert(
+        'conditions',
+        updates,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<void> addCondition({
+    required String condition,
+  }) async {
+    if (currentDb == null) return;
+
+    final Map<String, dynamic> conditionData = {
+      'charId': selectedID,
+      'condition': condition,
+    };
+
+    try {
+      await currentDb!.insert(
+        'conditions',
+        conditionData,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error adding item: $e');
+      }
+    }
+  }
+
+  Future<void> removeCondition(int uuid) async {
+    if (currentDb == null) return;
+
+    await currentDb!.delete(
+      'conditions',
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
+    );
+  }
+
   Future<void> addCreature(Creature creature) async {
     if (currentDb == null) return;
 
@@ -1327,7 +1270,6 @@ class ProfileManager {
       'type': creature.type,
       'alignment': creature.alignment,
       'ac': creature.ac,
-      'hp': creature.hp,
       'currentHP': creature.currentHP,
       'maxHP': creature.maxHP,
       'speed': creature.speed,
@@ -1417,7 +1359,8 @@ class ProfileManager {
       'type': creature.type,
       'alignment': creature.alignment,
       'ac': creature.ac,
-      'hp': creature.hp,
+      'maxHP': creature.maxHP,
+      'currentHP': creature.currentHP,
       'speed': creature.speed,
       'str': creature.str,
       'dex': creature.dex,
@@ -1496,37 +1439,36 @@ class ProfileManager {
     }
   }
 
-Future<void> removeCreature(int uuid) async {
-  if (currentDb == null) return;
+  Future<void> removeCreature(int uuid) async {
+    if (currentDb == null) return;
 
-  try {
-    await currentDb!.delete(
-      'creature_traits',
-      where: 'charId = ? AND creature_id = ?',
-      whereArgs: [selectedID, uuid],
-    );
-    await currentDb!.delete(
-      'creature_actions',
-      where: 'charId = ? AND creature_id = ?',
-      whereArgs: [selectedID, uuid],
-    );
-    await currentDb!.delete(
-      'creature_legendary_actions',
-      where: 'charId = ? AND creature_id = ?',
-      whereArgs: [selectedID, uuid],
-    );
-    await currentDb!.delete(
-      'creatures',
-      where: 'charId = ? AND ID = ?',
-      whereArgs: [selectedID, uuid],
-    );
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error removing creature: $e');
+    try {
+      await currentDb!.delete(
+        'creature_traits',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, uuid],
+      );
+      await currentDb!.delete(
+        'creature_actions',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, uuid],
+      );
+      await currentDb!.delete(
+        'creature_legendary_actions',
+        where: 'charId = ? AND creature_id = ?',
+        whereArgs: [selectedID, uuid],
+      );
+      await currentDb!.delete(
+        'creatures',
+        where: 'charId = ? AND ID = ?',
+        whereArgs: [selectedID, uuid],
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error removing creature: $e');
+      }
     }
   }
-}
-
 
   Future<List<Creature>> getCreatures() async {
     if (currentDb == null) return [];
@@ -1587,7 +1529,6 @@ Future<void> removeCreature(int uuid) async {
         type: creatureData['type'],
         alignment: creatureData['alignment'],
         ac: creatureData['ac'],
-        hp: creatureData['hp'],
         currentHP: creatureData['currentHP'],
         maxHP: creatureData['maxHP'],
         speed: creatureData['speed'],
@@ -1621,6 +1562,18 @@ Future<void> removeCreature(int uuid) async {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'tracker',
+      where: 'charId = ?',
+      whereArgs: [selectedID],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getConditions() async {
+    if (currentDb == null) return [];
+
+    final List<Map<String, dynamic>> result = await currentDb!.query(
+      'conditions',
       where: 'charId = ?',
       whereArgs: [selectedID],
     );
@@ -1789,6 +1742,2220 @@ Future<void> removeCreature(int uuid) async {
       await currentDb!.close();
       if (kDebugMode) {
         print('Closing profile database');
+      }
+    }
+  }
+
+  List<FeatureData> parseFeatureData(String xmlString, int characterLevel) {
+    final document = XmlDocument.parse(xmlString);
+    List<FeatureData> features = [];
+
+    void parseFeats(Iterable<XmlElement> featElements, String type) {
+      for (final feat in featElements) {
+        final name = feat.findElements('name').first.innerText;
+        final description = feat.findElements('text').isNotEmpty
+            ? feat.findElements('text').first.innerText
+            : feat.findElements('description').first.innerText;
+
+        features.add(FeatureData(
+          name: name,
+          description: description,
+          type: type,
+        ));
+      }
+    }
+
+    final characterFeats = document
+        .findAllElements('character')
+        .expand((e) => e.findAllElements('feat'));
+    parseFeats(characterFeats, 'Sonstige');
+
+    parseFeats(
+      document.findAllElements('race').expand((e) => e.findAllElements('feat')),
+      'Rasse',
+    );
+
+    parseFeats(
+      document
+          .findAllElements('background')
+          .expand((e) => e.findAllElements('feat')),
+      'Hintergrund',
+    );
+
+    final classElements = document.findAllElements('class');
+    for (final classElement in classElements) {
+      final autolevels = classElement.findAllElements('autolevel');
+      for (final autolevel in autolevels) {
+        final levelElements = autolevel.findElements('level');
+        final level = levelElements.isNotEmpty
+            ? int.parse(levelElements.first.innerText)
+            : null;
+
+        if (level == null || level <= characterLevel) {
+          parseFeats(autolevel.findAllElements('feat'), 'Klasse');
+        }
+      }
+    }
+
+    final allFeatElements = document.findAllElements('feat');
+    final knownFeatElements = {
+      ...document
+          .findAllElements('race')
+          .expand((e) => e.findAllElements('feat')),
+      ...document
+          .findAllElements('background')
+          .expand((e) => e.findAllElements('feat')),
+      ...document
+          .findAllElements('character')
+          .expand((e) => e.findAllElements('feat')),
+      ...classElements.expand((e) => e.findAllElements('feat')),
+    };
+
+    for (final feat in allFeatElements) {
+      if (!knownFeatElements.contains(feat)) {
+        final name = feat.findElements('name').first.innerText;
+        final description = feat.findElements('description').first.innerText;
+        final type = feat.findElements('type').isNotEmpty
+            ? feat.findElements('type').first.innerText
+            : 'Sonstige';
+
+        features.add(FeatureData(
+          name: name,
+          description: description,
+          type: type,
+        ));
+      }
+    }
+
+    return features;
+  }
+
+  dynamic parseStatsData(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    final abilitiesString =
+        document.findAllElements('abilities').first.innerText;
+    final abilitiesList = abilitiesString
+        .split(',')
+        .where((value) => value.trim().isNotEmpty)
+        .map((value) => int.parse(value.trim()))
+        .toList();
+
+    final abilities = {
+      Defines.statSTR: abilitiesList[0],
+      Defines.statDEX: abilitiesList[1],
+      Defines.statCON: abilitiesList[2],
+      Defines.statINT: abilitiesList[3],
+      Defines.statWIS: abilitiesList[4],
+      Defines.statCHA: abilitiesList[5],
+    };
+
+    int? parseIntStat(String tagName) {
+      final elements = document.findAllElements(tagName);
+      return elements.isNotEmpty ? int.parse(elements.first.innerText) : 0;
+    }
+
+    final additionalStats = {
+      Defines.statMaxHP: parseIntStat('hpMax'),
+      Defines.statCurrentHP: parseIntStat('hpCurrent'),
+      Defines.statTempHP: parseIntStat('hpTemp'),
+      Defines.statXP: parseIntStat('xp'),
+      Defines.statArmor: parseIntStat('armorclass'),
+      Defines.statInspiration: parseIntStat('inspiration'),
+      Defines.statProficiencyBonus: parseIntStat('proficiencyBonus'),
+      Defines.statInitiative: parseIntStat('initiative'),
+      Defines.statSpellSaveDC: parseIntStat('spellSaveDC'),
+      Defines.statSpellAttackBonus: parseIntStat('spellAttackBonus'),
+    };
+
+    int getLevelFromDocument(XmlDocument document) {
+      int level = 0;
+
+      final statsElements = document.findAllElements('stats').toList();
+      if (statsElements.isNotEmpty) {
+        final statsElement = statsElements.first;
+        level = statsElement.findElements('level').isNotEmpty
+            ? int.parse(statsElement.findElements('level').first.innerText)
+            : 0;
+      }
+
+      if (level == 0) {
+        final classElements = document.findAllElements('class').toList();
+        if (classElements.isNotEmpty) {
+          final classElement = classElements.first;
+          level = classElement.findElements('level').isNotEmpty
+              ? int.parse(classElement.findElements('level').first.innerText)
+              : 0;
+        }
+      }
+
+      return level;
+    }
+
+    final level = getLevelFromDocument(document);
+
+    final hdCurrent = parseIntStat('hdCurrent');
+    final hd = parseIntStat('hd');
+
+    return {
+      ...abilities,
+      ...additionalStats,
+      Defines.statLevel: level,
+      Defines.statMaxHitDice: hd,
+      Defines.statCurrentHitDice: hdCurrent,
+    };
+  }
+
+  dynamic parseProficiencies(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    if (document.findAllElements('proficiencies').isNotEmpty) {
+      final proficienciesElement =
+          document.findAllElements('proficiencies').first;
+      final armor = proficienciesElement.findElements('armor').isNotEmpty
+          ? proficienciesElement.findElements('armor').first.innerText
+          : '';
+      final weapons = proficienciesElement.findElements('weapons').isNotEmpty
+          ? proficienciesElement.findElements('weapons').first.innerText
+          : '';
+      final tools = proficienciesElement.findElements('tools').isNotEmpty
+          ? proficienciesElement.findElements('tools').first.innerText
+          : '';
+      final language = proficienciesElement.findElements('language').isNotEmpty
+          ? proficienciesElement.findElements('language').first.innerText
+          : '';
+
+      return {
+        Defines.profArmor: armor,
+        Defines.profWeaponList: weapons,
+        Defines.profTools: tools,
+        Defines.profLanguages: language,
+      };
+    }
+
+    if (document.findAllElements('class').isNotEmpty) {
+      final classElement = document.findAllElements('class').first;
+      final armor = classElement.findElements('armor').first.innerText;
+      final weapons = classElement.findElements('weapons').first.innerText;
+      final tools = classElement.findElements('tools').first.innerText;
+
+      return {
+        Defines.profArmor: armor,
+        Defines.profWeaponList: weapons,
+        Defines.profTools: tools,
+      };
+    }
+
+    return {
+      Defines.profArmor: '',
+      Defines.profWeaponList: '',
+      Defines.profTools: '',
+    };
+  }
+
+  dynamic parseInfos(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    String getText(String parentTag, String childTag) {
+      final parent = document.findAllElements(parentTag);
+      if (parent.isNotEmpty) {
+        final child = parent.first.findElements(childTag);
+        return child.isNotEmpty ? child.first.innerText.trim() : "";
+      }
+      return "";
+    }
+
+    String getTextFromInfoOrFallback(String tagName) {
+      String infoText = getText('info', tagName);
+      if (infoText.isNotEmpty) {
+        return infoText;
+      } else {
+        switch (tagName) {
+          case 'name':
+            return getText('character', 'name');
+          case 'race':
+            return getText('race', 'name');
+          case 'background':
+            return getText('background', 'name');
+          case 'class':
+            return getText('class', 'name');
+          default:
+            return "";
+        }
+      }
+    }
+
+    return {
+      Defines.infoName: getTextFromInfoOrFallback('name'),
+      Defines.infoRace: getTextFromInfoOrFallback('race'),
+      Defines.infoClass: getTextFromInfoOrFallback('class'),
+      Defines.infoBackground: getTextFromInfoOrFallback('background'),
+      Defines.infoOrigin: getText('info', Defines.infoOrigin),
+      Defines.infoPersonalityTraits:
+          getText('info', Defines.infoPersonalityTraits),
+      Defines.infoIdeals: getText('info', Defines.infoIdeals),
+      Defines.infoBonds: getText('info', Defines.infoBonds),
+      Defines.infoFlaws: getText('info', Defines.infoFlaws),
+      Defines.infoAge: getText('info', Defines.infoAge),
+      Defines.infoGod: getText('info', Defines.infoGod),
+      Defines.infoSize: getText('info', Defines.infoSize),
+      Defines.infoHeight: getText('info', Defines.infoHeight),
+      Defines.infoWeight: getText('info', Defines.infoWeight),
+      Defines.infoSex: getText('info', Defines.infoSex),
+      Defines.infoAlignment: getText('info', Defines.infoAlignment),
+      Defines.infoEyeColour: getText('info', Defines.infoEyeColour),
+      Defines.infoHairColour: getText('info', Defines.infoHairColour),
+      Defines.infoSkinColour: getText('info', Defines.infoSkinColour),
+      Defines.infoAppearance: getText('info', Defines.infoAppearance),
+      Defines.infoBackstory: getText('info', Defines.infoBackstory),
+      Defines.infoNotes: getText('info', Defines.infoNotes),
+      Defines.infoSpellcastingClass:
+          getText('info', Defines.infoSpellcastingClass),
+      Defines.infoSpellcastingAbility:
+          getText('info', Defines.infoSpellcastingAbility),
+    };
+  }
+
+  List<Map<String, dynamic>> parseSpells(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Map<String, dynamic>> spells = [];
+
+    final spellElements = document.findAllElements('spell');
+    for (final spellElement in spellElements) {
+      final name = spellElement.findElements('name').first.innerText;
+
+      final description = spellElement.findElements('text').isNotEmpty
+          ? spellElement.findElements('text').first.innerText
+          : spellElement.findElements('description').isNotEmpty
+              ? spellElement.findElements('description').first.innerText
+              : "";
+
+      final levelElement = spellElement.findElements('level').isNotEmpty
+          ? int.parse(spellElement.findElements('level').first.innerText)
+          : 0;
+
+      final status = spellElement.findElements('status').isNotEmpty
+          ? spellElement.findElements('status').first.innerText
+          : Defines.spellKnown;
+
+      spells.add({
+        'name': name,
+        'description': description,
+        'status': status,
+        'level': levelElement,
+      });
+    }
+
+    return spells;
+  }
+
+  List<Map<String, dynamic>> parseTrackers(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Map<String, dynamic>> trackers = [];
+
+    final trackerElements = document.findAllElements('tracker');
+    for (final trackerElement in trackerElements) {
+      final name = trackerElement.findElements('label').isNotEmpty
+          ? trackerElement.findElements('label').first.innerText
+          : 'Kein Name';
+
+      final value = trackerElement.findElements('value').isNotEmpty
+          ? int.parse(trackerElement.findElements('value').first.innerText)
+          : 0;
+
+      final maxElement = trackerElement.findElements('formula').isNotEmpty
+          ? trackerElement.findElements('formula').first
+          : trackerElement.findElements('max').isNotEmpty
+              ? trackerElement.findElements('max').first
+              : null;
+
+      final max = maxElement != null ? int.parse(maxElement.innerText) : 0;
+
+      final type = trackerElement.findElements('type').isNotEmpty
+          ? trackerElement.findElements('type').first.innerText
+          : 'never';
+
+      trackers.add({
+        'name': name,
+        'value': value,
+        'max': max,
+        'type': type,
+      });
+    }
+
+    return trackers;
+  }
+
+  Map<String, Map<String, int>> parseSpellSlots(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    final spellSlotsElements = document.findAllElements('spellSlots').toList();
+
+    String slotsString = '';
+    String slotsCurrentString = '';
+
+    if (spellSlotsElements.isNotEmpty) {
+      final spellSlotsElement = spellSlotsElements.first;
+      slotsString = spellSlotsElement.findElements('slots').isNotEmpty
+          ? spellSlotsElement.findElements('slots').first.innerText
+          : '';
+      slotsCurrentString =
+          spellSlotsElement.findElements('slotsCurrent').isNotEmpty
+              ? spellSlotsElement.findElements('slotsCurrent').first.innerText
+              : '';
+    } else if (document.findAllElements('character').isNotEmpty) {
+      final characterElement = document.findAllElements('character').first;
+      slotsString = characterElement.findElements('slots').isNotEmpty
+          ? characterElement.findElements('slots').first.innerText
+          : '';
+      slotsCurrentString =
+          characterElement.findElements('slotsCurrent').isNotEmpty
+              ? characterElement.findElements('slotsCurrent').first.innerText
+              : '';
+    } else {
+      slotsString = document.findElements('slots').isNotEmpty
+          ? document.findElements('slots').first.innerText
+          : '';
+      slotsCurrentString = document.findElements('slotsCurrent').isNotEmpty
+          ? document.findElements('slotsCurrent').first.innerText
+          : '';
+    }
+
+    final slotsList = slotsString.isNotEmpty
+        ? slotsString
+            .split(',')
+            .where((value) => value.trim().isNotEmpty)
+            .map((value) => int.parse(value.trim()))
+            .toList()
+        : List.generate(10, (index) => 0);
+
+    final slotsCurrentList = slotsCurrentString.isNotEmpty
+        ? slotsCurrentString
+            .split(',')
+            .where((value) => value.trim().isNotEmpty)
+            .map((value) => int.parse(value.trim()))
+            .toList()
+        : List.generate(10, (index) => 0);
+
+    if (slotsList.length != slotsCurrentList.length) {
+      throw Exception(
+          'Mismatch between total spell slots and current spell slots.');
+    }
+
+    Map<String, Map<String, int>> spellSlotsMap = {};
+
+    for (int i = 0; i < slotsList.length; i++) {
+      String slotName;
+      switch (i) {
+        case 0:
+          slotName = Defines.slotZero;
+          break;
+        case 1:
+          slotName = Defines.slotOne;
+          break;
+        case 2:
+          slotName = Defines.slotTwo;
+          break;
+        case 3:
+          slotName = Defines.slotThree;
+          break;
+        case 4:
+          slotName = Defines.slotFour;
+          break;
+        case 5:
+          slotName = Defines.slotFive;
+          break;
+        case 6:
+          slotName = Defines.slotSix;
+          break;
+        case 7:
+          slotName = Defines.slotSeven;
+          break;
+        case 8:
+          slotName = Defines.slotEight;
+          break;
+        case 9:
+          slotName = Defines.slotNine;
+          break;
+        default:
+          continue;
+      }
+
+      spellSlotsMap[slotName] = {
+        'total': slotsList[i],
+        'spent': slotsCurrentList[i],
+      };
+    }
+
+    return spellSlotsMap;
+  }
+
+  List<Map<String, String>> parseWeapons(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Map<String, String>> attacks = [];
+
+    final weaponsElements = document.findAllElements('weapons');
+
+    for (final weaponsElement in weaponsElements) {
+      bool isInsideClassTag = false;
+
+      var parent = weaponsElement.parent;
+      while (parent != null) {
+        if (parent is XmlElement && parent.name.local == 'class') {
+          isInsideClassTag = true;
+          break;
+        }
+        parent = parent.parent;
+      }
+
+      if (!isInsideClassTag) {
+        final weaponElements = weaponsElement.findAllElements('weapon');
+        for (final weaponElement in weaponElements) {
+          final name = weaponElement.findElements('name').isNotEmpty
+              ? weaponElement.findElements('name').first.innerText
+              : '';
+          final attackBonus =
+              weaponElement.findElements('attackBonus').isNotEmpty
+                  ? weaponElement.findElements('attackBonus').first.innerText
+                  : '';
+          final damage = weaponElement.findElements('damage').isNotEmpty
+              ? weaponElement.findElements('damage').first.innerText
+              : '';
+
+          attacks.add({
+            'name': name,
+            'attackBonus': attackBonus,
+            'damage': damage,
+          });
+        }
+      }
+    }
+
+    final attackElements = document.findAllElements('attack');
+    for (final attackElement in attackElements) {
+      final name = attackElement.findElements('name').isNotEmpty
+          ? attackElement.findElements('name').first.innerText
+          : '';
+      final attackBonus = attackElement.findElements('attackBonus').isNotEmpty
+          ? attackElement.findElements('attackBonus').first.innerText
+          : '';
+      final damage = attackElement.findElements('damage').isNotEmpty
+          ? attackElement.findElements('damage').first.innerText
+          : '';
+      final damageType = attackElement.findElements('damageType').isNotEmpty
+          ? attackElement.findElements('damageType').first.innerText
+          : '';
+
+      attacks.add({
+        'name': name,
+        'attackBonus': attackBonus,
+        'damage': damage,
+        'damageType': damageType,
+      });
+    }
+
+    return attacks;
+  }
+
+  List<Map<String, String>> parseItems(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    Iterable<XmlElement> itemElements;
+
+    if (document.findAllElements('items').isNotEmpty) {
+      itemElements =
+          document.findAllElements('items').first.findAllElements('item');
+    } else if (document.findAllElements('character').isNotEmpty) {
+      itemElements =
+          document.findAllElements('character').first.findAllElements('item');
+    } else {
+      itemElements = document.findAllElements('item');
+    }
+
+    List<Map<String, String>> items = [];
+
+    for (final itemElement in itemElements) {
+      final name = itemElement.findElements('name').first.innerText;
+
+      final detailElement = itemElement.findElements('detail').isNotEmpty
+          ? itemElement.findElements('detail').first.innerText
+          : null;
+
+      String typeElement = itemElement.findElements('type').isNotEmpty
+          ? itemElement.findElements('type').first.innerText
+          : "Sonstige";
+
+      if (int.tryParse(typeElement) != null) {
+        typeElement = "Sonstige";
+      }
+
+      final amountElement = itemElement.findElements('quantity').isNotEmpty
+          ? itemElement.findElements('quantity').first.innerText
+          : '1';
+
+      items.add({
+        'name': name,
+        if (detailElement != null) 'detail': detailElement,
+        'type': typeElement,
+        'amount': amountElement,
+      });
+    }
+
+    return items;
+  }
+
+  Map<String, int> parseSavingThrows(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+
+    final Map<String, int> savingThrows = {};
+
+    final savingthrowsElement = document.findElements('savingthrows').isNotEmpty
+        ? document.findElements('savingthrows').first
+        : null;
+
+    if (savingthrowsElement == null) {
+      savingThrows[Defines.saveStr] = 0;
+      savingThrows[Defines.saveDex] = 0;
+      savingThrows[Defines.saveCon] = 0;
+      savingThrows[Defines.saveInt] = 0;
+      savingThrows[Defines.saveWis] = 0;
+      savingThrows[Defines.saveCha] = 0;
+    } else {
+      final saveStr = savingthrowsElement
+              .findElements(Defines.saveStr)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveStr).first.innerText)
+          : 0;
+      final saveDex = savingthrowsElement
+              .findElements(Defines.saveDex)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveDex).first.innerText)
+          : 0;
+      final saveCon = savingthrowsElement
+              .findElements(Defines.saveCon)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveCon).first.innerText)
+          : 0;
+      final saveInt = savingthrowsElement
+              .findElements(Defines.saveInt)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveInt).first.innerText)
+          : 0;
+      final saveWis = savingthrowsElement
+              .findElements(Defines.saveWis)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveWis).first.innerText)
+          : 0;
+      final saveCha = savingthrowsElement
+              .findElements(Defines.saveCha)
+              .isNotEmpty
+          ? int.parse(
+              savingthrowsElement.findElements(Defines.saveCha).first.innerText)
+          : 0;
+
+      savingThrows[Defines.saveStr] = saveStr;
+      savingThrows[Defines.saveDex] = saveDex;
+      savingThrows[Defines.saveCon] = saveCon;
+      savingThrows[Defines.saveInt] = saveInt;
+      savingThrows[Defines.saveWis] = saveWis;
+      savingThrows[Defines.saveCha] = saveCha;
+    }
+
+    return savingThrows;
+  }
+
+  List<Map<String, dynamic>> parseBagItems(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Map<String, dynamic>> bagItems = [];
+
+    final bagElement = document.findAllElements('bag').isNotEmpty
+        ? document.findAllElements('bag').first
+        : null;
+
+    if (bagElement == null) {
+      bagItems.add({
+        'platin': 0,
+        'gold': 0,
+        'electrum': 0,
+        'silver': 0,
+        'copper': 0,
+      });
+    } else {
+      final platin = bagElement.findAllElements(Defines.bagPlatin).isNotEmpty
+          ? int.parse(
+              bagElement.findAllElements(Defines.bagPlatin).first.innerText)
+          : 0;
+      final gold = bagElement.findAllElements(Defines.bagGold).isNotEmpty
+          ? int.parse(
+              bagElement.findAllElements(Defines.bagGold).first.innerText)
+          : 0;
+      final electrum = bagElement
+              .findAllElements(Defines.bagElectrum)
+              .isNotEmpty
+          ? int.parse(
+              bagElement.findAllElements(Defines.bagElectrum).first.innerText)
+          : 0;
+      final silver = bagElement.findAllElements(Defines.bagSilver).isNotEmpty
+          ? int.parse(
+              bagElement.findAllElements(Defines.bagSilver).first.innerText)
+          : 0;
+      final copper = bagElement.findAllElements(Defines.bagCopper).isNotEmpty
+          ? int.parse(
+              bagElement.findAllElements(Defines.bagCopper).first.innerText)
+          : 0;
+
+      bagItems.add({
+        'platin': platin,
+        'gold': gold,
+        'electrum': electrum,
+        'silver': silver,
+        'copper': copper,
+      });
+    }
+
+    return bagItems;
+  }
+
+  List<Map<String, dynamic>> parseSkills(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Map<String, dynamic>> skills = [];
+
+    int safeParseInt(String text) {
+      try {
+        return int.parse(text);
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    final skillsElement = document.findAllElements('skills').isNotEmpty
+        ? document.findAllElements('skills').first
+        : null;
+
+    if (skillsElement == null) {
+      return skills;
+    }
+
+    for (final skillElement in skillsElement.findAllElements('skill')) {
+      final skillName = skillElement.findAllElements('name').isNotEmpty
+          ? skillElement.findAllElements('name').first.innerText
+          : 'Kein Name';
+
+      final proficiency = skillElement.findAllElements('proficiency').isNotEmpty
+          ? int.parse(
+              skillElement.findAllElements('proficiency').first.innerText)
+          : 0;
+
+      final expertise = skillElement.findAllElements('expertise').isNotEmpty
+          ? safeParseInt(
+              skillElement.findAllElements('expertise').first.innerText)
+          : 0;
+
+      skills.add({
+        'skill': skillName,
+        'proficiency': proficiency,
+        'expertise': expertise,
+      });
+    }
+
+    return skills;
+  }
+
+  List<Creature> parseCreatures(String xmlString) {
+    final document = XmlDocument.parse(xmlString);
+    List<Creature> creatures = [];
+
+    int safeParseInt(String text) {
+      try {
+        return int.parse(text);
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    String extractTextFromElement(XmlElement element, String tag) {
+      return element.findElements(tag).isNotEmpty
+          ? element.findElements(tag).first.innerText
+          : '';
+    }
+
+    final creaturesElement = document.findAllElements('creature');
+
+    for (final creatureElement in creaturesElement) {
+      String extractText(String tag) =>
+          creatureElement.findElements(tag).isNotEmpty
+              ? creatureElement.findElements(tag).first.innerText
+              : '';
+
+      int extractInt(String tag) => safeParseInt(extractText(tag));
+
+      List<Trait> parseTraits(XmlElement traitsElement) {
+        return traitsElement.findAllElements('trait').map((traitElement) {
+          return Trait(
+            name: extractTextFromElement(traitElement, 'name'),
+            description: extractTextFromElement(traitElement, 'description'),
+          );
+        }).toList();
+      }
+
+      List<CAction> parseActions(XmlElement actionsElement) {
+        return actionsElement.findAllElements('action').map((actionElement) {
+          return CAction(
+            name: extractTextFromElement(actionElement, 'name'),
+            description: extractTextFromElement(actionElement, 'description'),
+            attack: extractTextFromElement(actionElement, 'actionDetails'),
+          );
+        }).toList();
+      }
+
+      List<Legendary> parseLegendaryActions(
+          XmlElement legendaryActionsElement) {
+        return legendaryActionsElement
+            .findAllElements('legendaryAction')
+            .map((legendaryElement) {
+          return Legendary(
+            name: extractTextFromElement(legendaryElement, 'name'),
+            description:
+                extractTextFromElement(legendaryElement, 'description'),
+          );
+        }).toList();
+      }
+
+      Creature creature = Creature(
+        name: extractText('name'),
+        size: extractText('size'),
+        type: extractText('type'),
+        alignment: extractText('alignment'),
+        ac: extractInt('ac'),
+        currentHP: extractInt('currentHP'),
+        maxHP: extractInt('maxHP'),
+        speed: extractText('speed'),
+        str: extractInt('str'),
+        dex: extractInt('dex'),
+        con: extractInt('con'),
+        intScore: extractInt('intScore'),
+        wis: extractInt('wis'),
+        cha: extractInt('cha'),
+        saves: extractText('saves'),
+        skills: extractText('skills'),
+        resistances: extractText('resistances'),
+        vulnerabilities: extractText('vulnerabilities'),
+        immunities: extractText('immunities'),
+        conditionImmunities: extractText('conditionImmunities'),
+        senses: extractText('senses'),
+        passivePerception: extractInt('passivePerception'),
+        languages: extractText('languages'),
+        cr: extractText('cr'),
+        traits: creatureElement.findElements('traits').isNotEmpty
+            ? parseTraits(creatureElement.findElements('traits').first)
+            : [],
+        actions: creatureElement.findElements('actions').isNotEmpty
+            ? parseActions(creatureElement.findElements('actions').first)
+            : [],
+        legendaryActions:
+            creatureElement.findElements('legendaryActions').isNotEmpty
+                ? parseLegendaryActions(
+                    creatureElement.findElements('legendaryActions').first)
+                : [],
+      );
+
+      creatures.add(creature);
+    }
+
+    return creatures;
+  }
+
+  Future<void> createProfileFromXmlFile(File file) async {
+    String xmlString = await file.readAsString();
+
+    final parsedStats = parseStatsData(xmlString);
+    final parsedInfos = parseInfos(xmlString);
+    final parsedProf = parseProficiencies(xmlString);
+    final parsedFeats =
+        parseFeatureData(xmlString, parsedStats[Defines.statLevel]);
+    final parsedSpells = parseSpells(xmlString);
+    final parsedSlots = parseSpellSlots(xmlString);
+    final parsedWeapons = parseWeapons(xmlString);
+    final parsedTrackers = parseTrackers(xmlString);
+    final parsedItems = parseItems(xmlString);
+    final parsedSavingThrows = parseSavingThrows(xmlString);
+    final parsedBagItems = parseBagItems(xmlString);
+    final parsedSkills = parseSkills(xmlString);
+    final parsedCreatures = parseCreatures(xmlString);
+
+    String characterName = parsedInfos[Defines.infoName];
+    String uniqueName = await _getUniqueName(characterName);
+
+    await createProfile(uniqueName);
+    Character profile = profiles.firstWhere((p) => p.name == uniqueName);
+    await selectProfile(profile);
+
+    await _importStats(parsedStats);
+    await _importProfileInfo(parsedInfos);
+    await _importProfs(parsedProf);
+    await _importSpells(parsedSpells);
+    await _importFeats(parsedFeats);
+    await _importWeapons(parsedWeapons);
+    await _importTrackers(parsedTrackers);
+    await _importItems(parsedItems);
+    await _importSavingThrows(parsedSavingThrows);
+    await _importBagItems(parsedBagItems);
+    await _importSkills(parsedSkills);
+    await _importSpellSlots(parsedSlots);
+    await _importCreatures(parsedCreatures);
+
+    await closeDB();
+
+    if (kDebugMode) {
+      print('Profile created and selected successfully from XML file!');
+    }
+  }
+
+  Future<String> _getUniqueName(String characterName) async {
+    String uniqueName = characterName;
+    int counter = 1;
+    while (profiles.any((p) => p.name == uniqueName)) {
+      uniqueName = '$characterName ($counter)';
+      counter++;
+    }
+    return uniqueName;
+  }
+
+  Future<void> _importStats(Map<String, dynamic> parsedStats) async {
+    await updateStats(
+        field: Defines.statSTR, value: parsedStats[Defines.statSTR]);
+    await updateStats(
+        field: Defines.statDEX, value: parsedStats[Defines.statDEX]);
+    await updateStats(
+        field: Defines.statCON, value: parsedStats[Defines.statCON]);
+    await updateStats(
+        field: Defines.statINT, value: parsedStats[Defines.statINT]);
+    await updateStats(
+        field: Defines.statWIS, value: parsedStats[Defines.statWIS]);
+    await updateStats(
+        field: Defines.statCHA, value: parsedStats[Defines.statCHA]);
+
+    await updateStats(
+        field: Defines.statMaxHP, value: parsedStats[Defines.statMaxHP]);
+    await updateStats(
+        field: Defines.statCurrentHP,
+        value: parsedStats[Defines.statCurrentHP]);
+    await updateStats(
+        field: Defines.statTempHP, value: parsedStats[Defines.statTempHP]);
+    await updateStats(
+        field: Defines.statXP, value: parsedStats[Defines.statXP]);
+    await updateStats(
+        field: Defines.statArmor, value: parsedStats[Defines.statArmor]);
+    await updateStats(
+        field: Defines.statInspiration,
+        value: parsedStats[Defines.statInspiration]);
+    await updateStats(
+        field: Defines.statProficiencyBonus,
+        value: parsedStats[Defines.statProficiencyBonus]);
+    await updateStats(
+        field: Defines.statInitiative,
+        value: parsedStats[Defines.statInitiative]);
+    await updateStats(
+        field: Defines.statSpellSaveDC,
+        value: parsedStats[Defines.statSpellSaveDC]);
+    await updateStats(
+        field: Defines.statSpellAttackBonus,
+        value: parsedStats[Defines.statSpellAttackBonus]);
+
+    await updateStats(
+        field: Defines.statLevel, value: parsedStats[Defines.statLevel]);
+    await updateStats(
+        field: Defines.statMaxHitDice,
+        value: parsedStats[Defines.statMaxHitDice]);
+    await updateStats(
+        field: Defines.statCurrentHitDice,
+        value: parsedStats[Defines.statCurrentHitDice]);
+  }
+
+  Future<void> _importProfileInfo(Map<String, dynamic> parsedInfos) async {
+    await updateProfileInfo(
+        field: Defines.infoRace, value: parsedInfos[Defines.infoRace]);
+    await updateProfileInfo(
+        field: Defines.infoClass, value: parsedInfos[Defines.infoClass]);
+    await updateProfileInfo(
+        field: Defines.infoBackground,
+        value: parsedInfos[Defines.infoBackground]);
+    await updateProfileInfo(
+        field: Defines.infoOrigin, value: parsedInfos[Defines.infoOrigin]);
+    await updateProfileInfo(
+        field: Defines.infoPersonalityTraits,
+        value: parsedInfos[Defines.infoPersonalityTraits]);
+    await updateProfileInfo(
+        field: Defines.infoIdeals, value: parsedInfos[Defines.infoIdeals]);
+    await updateProfileInfo(
+        field: Defines.infoBonds, value: parsedInfos[Defines.infoBonds]);
+    await updateProfileInfo(
+        field: Defines.infoFlaws, value: parsedInfos[Defines.infoFlaws]);
+    await updateProfileInfo(
+        field: Defines.infoAge, value: parsedInfos[Defines.infoAge]);
+    await updateProfileInfo(
+        field: Defines.infoGod, value: parsedInfos[Defines.infoGod]);
+    await updateProfileInfo(
+        field: Defines.infoSize, value: parsedInfos[Defines.infoSize]);
+    await updateProfileInfo(
+        field: Defines.infoHeight, value: parsedInfos[Defines.infoHeight]);
+    await updateProfileInfo(
+        field: Defines.infoWeight, value: parsedInfos[Defines.infoWeight]);
+    await updateProfileInfo(
+        field: Defines.infoSex, value: parsedInfos[Defines.infoSex]);
+    await updateProfileInfo(
+        field: Defines.infoAlignment,
+        value: parsedInfos[Defines.infoAlignment]);
+    await updateProfileInfo(
+        field: Defines.infoEyeColour,
+        value: parsedInfos[Defines.infoEyeColour]);
+    await updateProfileInfo(
+        field: Defines.infoHairColour,
+        value: parsedInfos[Defines.infoHairColour]);
+    await updateProfileInfo(
+        field: Defines.infoSkinColour,
+        value: parsedInfos[Defines.infoSkinColour]);
+    await updateProfileInfo(
+        field: Defines.infoAppearance,
+        value: parsedInfos[Defines.infoAppearance]);
+    await updateProfileInfo(
+        field: Defines.infoBackstory,
+        value: parsedInfos[Defines.infoBackstory]);
+    await updateProfileInfo(
+        field: Defines.infoNotes, value: parsedInfos[Defines.infoNotes]);
+    await updateProfileInfo(
+        field: Defines.infoSpellcastingClass,
+        value: parsedInfos[Defines.infoSpellcastingClass]);
+    await updateProfileInfo(
+        field: Defines.infoSpellcastingAbility,
+        value: parsedInfos[Defines.infoSpellcastingAbility]);
+  }
+
+  Future<void> _importProfs(Map<String, dynamic> parsedProfs) async {
+    await updateProficiencies(
+        field: Defines.profArmor, value: parsedProfs[Defines.profArmor]);
+    await updateProficiencies(
+        field: Defines.profWeaponList,
+        value: parsedProfs[Defines.profWeaponList]);
+    await updateProficiencies(
+        field: Defines.profTools, value: parsedProfs[Defines.profTools]);
+    await updateProficiencies(
+        field: Defines.profLanguages,
+        value: parsedProfs[Defines.profLanguages]);
+  }
+
+  Future<void> _importSpells(List<Map<String, dynamic>> parsedSpells) async {
+    for (final spell in parsedSpells) {
+      await addSpell(
+        spellName: spell['name'],
+        status: spell['status'],
+        level: spell['level'],
+        description: spell['description'],
+      );
+    }
+  }
+
+  Future<void> _importFeats(List<FeatureData> parsedFeats) async {
+    for (final feat in parsedFeats) {
+      await addFeat(
+        featName: feat.name,
+        description: feat.description,
+        type: feat.type,
+      );
+    }
+  }
+
+  Future<void> _importWeapons(List<Map<String, dynamic>> parsedWeapons) async {
+    for (final weapon in parsedWeapons) {
+      await addWeapon(
+        weapon: weapon['name']!,
+        bonus: weapon['attackBonus'],
+        damage: weapon['damage'],
+        reach: weapon['reach'],
+        attribute: weapon['attribute'],
+        damagetype: weapon['damageType'],
+        description: weapon['description'],
+      );
+    }
+  }
+
+  Future<void> _importTrackers(
+      List<Map<String, dynamic>> parsedTrackers) async {
+    for (final tracker in parsedTrackers) {
+      await addTracker(
+        tracker: tracker['name']!,
+        value: tracker['value'],
+        max: tracker['max'],
+        type: tracker['type'],
+      );
+    }
+  }
+
+  Future<void> _importItems(List<Map<String, dynamic>> parsedItems) async {
+    for (final item in parsedItems) {
+      final amount = item['amount'] != null
+          ? int.tryParse(item['amount'].toString()) ?? 1
+          : 1;
+
+      await addItem(
+        itemname: item['name']!,
+        description: item['detail'],
+        type: item['type'],
+        amount: amount,
+      );
+    }
+  }
+
+  Future<void> _importSavingThrows(
+      Map<String, dynamic> parsedSavingThrows) async {
+    await updateSavingThrows(
+        field: Defines.saveStr, value: parsedSavingThrows[Defines.saveStr]);
+    await updateSavingThrows(
+        field: Defines.saveDex, value: parsedSavingThrows[Defines.saveDex]);
+    await updateSavingThrows(
+        field: Defines.saveCon, value: parsedSavingThrows[Defines.saveCon]);
+    await updateSavingThrows(
+        field: Defines.saveInt, value: parsedSavingThrows[Defines.saveInt]);
+    await updateSavingThrows(
+        field: Defines.saveWis, value: parsedSavingThrows[Defines.saveWis]);
+    await updateSavingThrows(
+        field: Defines.saveCha, value: parsedSavingThrows[Defines.saveCha]);
+  }
+
+  Future<void> _importBagItems(
+      List<Map<String, dynamic>> parsedBagItems) async {
+    await updateBag(
+        field: Defines.bagPlatin, value: parsedBagItems[0]['platin']);
+    await updateBag(field: Defines.bagGold, value: parsedBagItems[0]['gold']);
+    await updateBag(
+        field: Defines.bagElectrum, value: parsedBagItems[0]['electrum']);
+    await updateBag(
+        field: Defines.bagSilver, value: parsedBagItems[0]['silver']);
+    await updateBag(
+        field: Defines.bagCopper, value: parsedBagItems[0]['copper']);
+  }
+
+  Future<void> _importSkills(List<Map<String, dynamic>> parsedSkills) async {
+    for (final skill in parsedSkills) {
+      int? expertise = skill['expertise'];
+
+      if (skill['skill'] == Defines.skillJackofAllTrades) {
+        expertise = null;
+      }
+
+      await updateSkills(
+        skill: skill['skill'],
+        proficiency: skill['proficiency'],
+        expertise: expertise,
+      );
+    }
+  }
+
+  Future<void> _importSpellSlots(
+      Map<String, Map<String, int>> parsedSpellSlots) async {
+    for (final entry in parsedSpellSlots.entries) {
+      final spellslot = entry.key;
+      final total = entry.value['total'];
+      final spent = entry.value['spent'];
+
+      await updateSpellSlots(
+        spellslot: spellslot,
+        total: total,
+        spent: spent,
+      );
+    }
+  }
+
+  Future<void> _importCreatures(List<Creature> parsedCreatures) async {
+    for (final entry in parsedCreatures) {
+      await addCreature(entry);
+    }
+  }
+
+  Future<String> exportFeatsToXml(Character profile) async {
+    await selectProfile(profile);
+
+    final feats = await getFeats();
+    final statsList = await getStats();
+    final proficienciesList = await getProficiencies();
+    final profileInfoList = await getProfileInfo();
+    final spells = await getAllSpells();
+    final trackers = await getTracker();
+    final spellSlots = await getSpellSlots();
+    final weapons = await getWeapons();
+    final items = await getItems();
+    final savingThrows = await getSavingThrows();
+    final bagItems = await getBagItems();
+    final skills = await getSkills();
+    final creatures = await getCreatures();
+
+    final builder = XmlBuilder();
+    builder.processing('xml', 'version="1.0" encoding="UTF-8"');
+
+    builder.element('character', nest: () {
+      builder.element('feats', nest: () {
+        for (final feat in feats) {
+          builder.element('feat', nest: () {
+            builder.element('name', nest: feat['featname']);
+            builder.element('description', nest: feat['description']);
+            builder.element('type', nest: feat['type']);
+          });
+        }
+      });
+
+      builder.element('stats', nest: () {
+        if (statsList.isNotEmpty) {
+          final stats = statsList.first;
+          void addStatElement(String tagName, dynamic value) {
+            if (value != null) {
+              builder.element(tagName, nest: value.toString());
+            }
+          }
+
+          addStatElement(
+              'abilities',
+              [
+                stats[Defines.statSTR],
+                stats[Defines.statDEX],
+                stats[Defines.statCON],
+                stats[Defines.statINT],
+                stats[Defines.statWIS],
+                stats[Defines.statCHA]
+              ].join(", "));
+
+          addStatElement('hpMax', stats[Defines.statMaxHP]);
+          addStatElement('hpCurrent', stats[Defines.statCurrentHP]);
+          addStatElement('hpTemp', stats[Defines.statTempHP]);
+          addStatElement('xp', stats[Defines.statXP]);
+          addStatElement('armorclass', stats[Defines.statArmor]);
+          addStatElement('inspiration', stats[Defines.statInspiration]);
+          addStatElement(
+              'proficiencyBonus', stats[Defines.statProficiencyBonus]);
+          addStatElement('initiative', stats[Defines.statInitiative]);
+          addStatElement('spellSaveDC', stats[Defines.statSpellSaveDC]);
+          addStatElement(
+              'spellAttackBonus', stats[Defines.statSpellAttackBonus]);
+          addStatElement('level', stats[Defines.statLevel]);
+          addStatElement('hdCurrent', stats[Defines.statCurrentHitDice]);
+          addStatElement('hd', stats[Defines.statMaxHitDice]);
+        }
+      });
+
+      builder.element('proficiencies', nest: () {
+        if (proficienciesList.isNotEmpty) {
+          final proficiencies = proficienciesList.first;
+
+          void addProficiencyElement(String tagName, dynamic value) {
+            if (value != null) {
+              builder.element(tagName, nest: value.toString());
+            }
+          }
+
+          addProficiencyElement('armor', proficiencies[Defines.profArmor]);
+          addProficiencyElement(
+              'weapons', proficiencies[Defines.profWeaponList]);
+          addProficiencyElement('tools', proficiencies[Defines.profTools]);
+          addProficiencyElement(
+              'language', proficiencies[Defines.profLanguages]);
+        }
+      });
+
+      builder.element('info', nest: () {
+        if (profileInfoList.isNotEmpty) {
+          final profileInfo = profileInfoList.first;
+
+          void addInfoElement(String tagName, dynamic value) {
+            if (value != null && value.toString().isNotEmpty) {
+              builder.element(tagName, nest: value.toString());
+            }
+          }
+
+          addInfoElement('name', profileInfo[Defines.infoName]);
+          addInfoElement('race', profileInfo[Defines.infoRace]);
+          addInfoElement('class', profileInfo[Defines.infoClass]);
+          addInfoElement('background', profileInfo[Defines.infoBackground]);
+          addInfoElement('origin', profileInfo[Defines.infoOrigin]);
+          addInfoElement(
+              'personalityTraits', profileInfo[Defines.infoPersonalityTraits]);
+          addInfoElement('ideals', profileInfo[Defines.infoIdeals]);
+          addInfoElement('bonds', profileInfo[Defines.infoBonds]);
+          addInfoElement('flaws', profileInfo[Defines.infoFlaws]);
+          addInfoElement('age', profileInfo[Defines.infoAge]);
+          addInfoElement('god', profileInfo[Defines.infoGod]);
+          addInfoElement('size', profileInfo[Defines.infoSize]);
+          addInfoElement('height', profileInfo[Defines.infoHeight]);
+          addInfoElement('weight', profileInfo[Defines.infoWeight]);
+          addInfoElement('sex', profileInfo[Defines.infoSex]);
+          addInfoElement('alignment', profileInfo[Defines.infoAlignment]);
+          addInfoElement('eyeColour', profileInfo[Defines.infoEyeColour]);
+          addInfoElement('hairColour', profileInfo[Defines.infoHairColour]);
+          addInfoElement('skinColour', profileInfo[Defines.infoSkinColour]);
+          addInfoElement('appearance', profileInfo[Defines.infoAppearance]);
+          addInfoElement('backstory', profileInfo[Defines.infoBackstory]);
+          addInfoElement('notes', profileInfo[Defines.infoNotes]);
+          addInfoElement(
+              'spellcastingClass', profileInfo[Defines.infoSpellcastingClass]);
+          addInfoElement('spellcastingAbility',
+              profileInfo[Defines.infoSpellcastingAbility]);
+        }
+      });
+
+      builder.element('spells', nest: () {
+        for (final spell in spells) {
+          builder.element('spell', nest: () {
+            builder.element('name', nest: spell['spellname']);
+            builder.element('description', nest: spell['description']);
+            builder.element('level', nest: spell['level'].toString());
+            builder.element('status', nest: spell['status']);
+          });
+        }
+      });
+
+      builder.element('trackers', nest: () {
+        for (final tracker in trackers) {
+          builder.element('tracker', nest: () {
+            builder.element('label', nest: tracker['trackername']);
+            builder.element('value', nest: tracker['value'].toString());
+            builder.element('max', nest: tracker['max'].toString());
+            builder.element('type',
+                nest: tracker['type']?.toString().isNotEmpty == true
+                    ? tracker['type'].toString()
+                    : 'never');
+          });
+        }
+      });
+
+      builder.element('spellSlots', nest: () {
+        final slotsList = [];
+        final slotsCurrentList = [];
+
+        for (int i = 0; i < spellSlots.length; i++) {
+          slotsList.add(spellSlots[i]['total'].toString());
+          slotsCurrentList.add(spellSlots[i]['spent'].toString());
+        }
+
+        builder.element('slots', nest: '${slotsList.join(',')},');
+        builder.element('slotsCurrent', nest: '${slotsCurrentList.join(',')},');
+      });
+
+      builder.element('weapons', nest: () {
+        for (final weapon in weapons) {
+          builder.element('weapon', nest: () {
+            builder.element('name', nest: weapon['weapon']);
+            if (weapon['attribute'] != null &&
+                weapon['attribute']!.isNotEmpty) {
+              builder.element('attribute', nest: weapon['attribute']);
+            }
+            if (weapon['reach'] != null && weapon['reach']!.isNotEmpty) {
+              builder.element('reach', nest: weapon['reach']);
+            }
+            if (weapon['bonus'] != null && weapon['bonus']!.isNotEmpty) {
+              builder.element('attackBonus', nest: weapon['bonus']);
+            }
+            if (weapon['damage'] != null && weapon['damage']!.isNotEmpty) {
+              builder.element('damage', nest: weapon['damage']);
+            }
+            if (weapon['damageType'] != null &&
+                weapon['damageType']!.isNotEmpty) {
+              builder.element('damageType', nest: weapon['damageType']);
+            }
+            if (weapon['description'] != null &&
+                weapon['description']!.isNotEmpty) {
+              builder.element('description', nest: weapon['description']);
+            }
+          });
+        }
+      });
+
+      builder.element('items', nest: () {
+        for (final item in items) {
+          builder.element('item', nest: () {
+            builder.element('name', nest: item['itemname']);
+
+            if (item['description'] != null &&
+                item['description']!.isNotEmpty) {
+              builder.element('detail', nest: item['description']);
+            }
+
+            String type = item['type'] ?? '';
+            if (type.isNotEmpty && int.tryParse(type) != null) {
+              type = 'Sonstige';
+            }
+
+            if (type.isNotEmpty) {
+              builder.element('type', nest: type);
+            }
+
+            final amount = item['amount'] ?? 1;
+            builder.element('quantity', nest: amount.toString());
+          });
+        }
+      });
+
+      builder.element('savingthrows', nest: () {
+        final allowedKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+        for (final entry in savingThrows.first.entries) {
+          final key = entry.key;
+          final value = entry.value;
+
+          if (allowedKeys.contains(key) && value != null) {
+            builder.element(key, nest: value.toString());
+          }
+        }
+      });
+
+      builder.element('bag', nest: () {
+        for (final item in bagItems) {
+          if (item['platin'] != null) {
+            builder.element(Defines.bagPlatin, nest: item['platin'].toString());
+          }
+          if (item['gold'] != null) {
+            builder.element(Defines.bagGold, nest: item['gold'].toString());
+          }
+          if (item['electrum'] != null) {
+            builder.element(Defines.bagElectrum,
+                nest: item['electrum'].toString());
+          }
+          if (item['silver'] != null) {
+            builder.element(Defines.bagSilver, nest: item['silver'].toString());
+          }
+          if (item['copper'] != null) {
+            builder.element(Defines.bagCopper, nest: item['copper'].toString());
+          }
+        }
+      });
+
+      builder.element('skills', nest: () {
+        for (final skill in skills) {
+          builder.element('skill', nest: () {
+            builder.element('name', nest: skill['skill']);
+            builder.element('proficiency',
+                nest: skill['proficiency'].toString());
+            builder.element('expertise', nest: skill['expertise'].toString());
+          });
+        }
+      });
+
+      builder.element('creatures', nest: () {
+        for (final creature in creatures) {
+          builder.element('creature', nest: () {
+            builder.element('name', nest: creature.name);
+            builder.element('size', nest: creature.size);
+            builder.element('type', nest: creature.type);
+            builder.element('alignment', nest: creature.alignment);
+            builder.element('ac', nest: creature.ac.toString());
+            builder.element('currentHP', nest: creature.currentHP.toString());
+            builder.element('maxHP', nest: creature.maxHP.toString());
+            builder.element('speed', nest: creature.speed);
+            builder.element('str', nest: creature.str.toString());
+            builder.element('dex', nest: creature.dex.toString());
+            builder.element('con', nest: creature.con.toString());
+            builder.element('intScore', nest: creature.intScore.toString());
+            builder.element('wis', nest: creature.wis.toString());
+            builder.element('cha', nest: creature.cha.toString());
+            builder.element('saves', nest: creature.saves);
+            builder.element('skills', nest: creature.skills);
+            builder.element('resistances', nest: creature.resistances);
+            builder.element('vulnerabilities', nest: creature.vulnerabilities);
+            builder.element('immunities', nest: creature.immunities);
+            builder.element('conditionImmunities',
+                nest: creature.conditionImmunities);
+            builder.element('senses', nest: creature.senses);
+            builder.element('passivePerception',
+                nest: creature.passivePerception.toString());
+            builder.element('languages', nest: creature.languages);
+            builder.element('cr', nest: creature.cr);
+
+            builder.element('traits', nest: () {
+              for (final trait in creature.traits) {
+                builder.element('trait', nest: () {
+                  builder.element('name', nest: trait.name);
+                  builder.element('description', nest: trait.description);
+                });
+              }
+            });
+
+            builder.element('actions', nest: () {
+              for (final action in creature.actions) {
+                builder.element('action', nest: () {
+                  builder.element('name', nest: action.name);
+                  builder.element('description', nest: action.description);
+                  builder.element('actionDetails', nest: action.attack);
+                });
+              }
+            });
+
+            builder.element('legendaryActions', nest: () {
+              for (final legendary in creature.legendaryActions) {
+                builder.element('legendaryAction', nest: () {
+                  builder.element('name', nest: legendary.name);
+                  builder.element('description', nest: legendary.description);
+                });
+              }
+            });
+          });
+        }
+      });
+    });
+
+    final document = builder.buildDocument();
+    return document.toXmlString(pretty: true, indent: '  ');
+  }
+
+  Future<bool> exportToPDF(Character profile) async {
+    try {
+      await selectProfile(profile);
+      final PDFBuilder pdfbuilder = PDFBuilder();
+      Map<String, String> filledValues = {};
+
+      final infos = await getProfileInfo();
+      final stats = await getStats();
+      final saves = await getSavingThrows();
+      final skills = await getSkills();
+      final weapons = await getWeapons();
+      final profs = await getProficiencies();
+      final spellslots = await getSpellSlots();
+      final spells = await getAllSpells();
+      final bag = await getBagItems();
+      final items = await getItems();
+      final feats = await getFeats();
+
+      if (infos.isNotEmpty && stats.isNotEmpty) {
+        int proficiencyBonus =
+            int.parse(stats.first[Defines.statProficiencyBonus].toString());
+
+        _updateInfoValues(filledValues, stats, infos);
+
+        _updateStatValues(filledValues, stats);
+
+        _updateWeaponValues(filledValues, weapons);
+
+        _updateProfValues(filledValues, profs);
+
+        _updateSavesValues(saves, filledValues, stats, proficiencyBonus);
+
+        _updateSkillValues(skills, filledValues, stats.first, proficiencyBonus);
+
+        _updateSpellValues(
+            filledValues, spellslots, spells, stats.first, infos.first);
+
+        _updateBagItemsValues(filledValues, bag, items);
+
+        _updateFeatValues(filledValues, feats);
+      }
+
+      await pdfbuilder.fillAndSavePdf(filledValues);
+      await closeDB();
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error exporting to PDF: $e');
+      }
+      return false;
+    }
+  }
+
+  void _updateStatValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> stats) {
+    /* Stats */
+    int strAbilityModifier = ((stats.first[Defines.statSTR] - 10) / 2).floor();
+    int dexAbilityModifier = ((stats.first[Defines.statDEX] - 10) / 2).floor();
+    int conAbilityModifier = ((stats.first[Defines.statCON] - 10) / 2).floor();
+    int intAbilityModifier = ((stats.first[Defines.statINT] - 10) / 2).floor();
+    int wisAbilityModifier = ((stats.first[Defines.statWIS] - 10) / 2).floor();
+    int chaAbilityModifier = ((stats.first[Defines.statCHA] - 10) / 2).floor();
+
+    filledValues["Str"] = stats.first[Defines.statSTR].toString();
+    filledValues["StrMod"] = strAbilityModifier.toString();
+
+    filledValues["Ges"] = stats.first[Defines.statDEX].toString();
+    filledValues["GesMod"] = dexAbilityModifier.toString();
+
+    filledValues["Kon"] = stats.first[Defines.statCON].toString();
+    filledValues["KonMod"] = conAbilityModifier.toString();
+
+    filledValues["Int"] = stats.first[Defines.statINT].toString();
+    filledValues["IntMod"] = intAbilityModifier.toString();
+
+    filledValues["Wei"] = stats.first[Defines.statWIS].toString();
+    filledValues["WeiMod"] = wisAbilityModifier.toString();
+
+    filledValues["Cha"] = stats.first[Defines.statCHA].toString();
+    filledValues["ChaMod"] = chaAbilityModifier.toString();
+  }
+
+  void _updateInfoValues(Map<String, String> filledValues,
+      List<Map<String, dynamic>> stats, List<Map<String, dynamic>> infos) {
+    /* Infos */
+    filledValues["Charaktername_page1"] = infos.first[Defines.infoName];
+    filledValues["Charaktername_page2"] = infos.first[Defines.infoName];
+    filledValues["KlasseUndStufe"] = infos.first[Defines.infoClass] +
+        " " +
+        stats.first[Defines.statLevel].toString();
+    filledValues["Hintergrund"] = infos.first[Defines.infoBackground];
+    filledValues["Volk"] = infos.first[Defines.infoRace];
+    filledValues["Erfahrungspunkte"] = stats.first[Defines.statXP].toString();
+    filledValues["Inspiration"] =
+        stats.first[Defines.statInspiration] <= 1 ? "true" : "false";
+    filledValues["Übungsbonus"] =
+        stats.first[Defines.statProficiencyBonus].toString();
+    filledValues["Rüstungsklasse"] = stats.first[Defines.statArmor].toString();
+    filledValues["Initiative"] = stats.first[Defines.statInitiative].toString();
+    filledValues["Bewegungsrate"] =
+        stats.first[Defines.statMovement].toString();
+    filledValues["TrefferpunkteMaximum"] =
+        stats.first[Defines.statMaxHP].toString();
+    filledValues["AktTrefferpunkte"] =
+        stats.first[Defines.statCurrentHP].toString();
+    filledValues["TempTrefferpunkte"] =
+        stats.first[Defines.statTempHP].toString();
+    filledValues["GesamtTW"] = stats.first[Defines.statMaxHitDice].toString() +
+        stats.first[Defines.statHitDiceFactor].toString();
+    filledValues["Trefferwürfel"] =
+        stats.first[Defines.statCurrentHitDice].toString();
+    filledValues["Alter"] = infos.first[Defines.infoAge].toString();
+    filledValues["Glaube"] = infos.first[Defines.infoGod].toString();
+    filledValues["Körpergrösse"] = infos.first[Defines.infoSize].toString();
+    filledValues["Gewicht"] = infos.first[Defines.infoWeight].toString();
+    filledValues["Geschlecht"] = infos.first[Defines.infoSex].toString();
+    filledValues["Gesinnung"] = infos.first[Defines.infoAlignment].toString();
+    filledValues["Augenfarbe"] = infos.first[Defines.infoEyeColour].toString();
+    filledValues["Haarfarbe"] = infos.first[Defines.infoHairColour].toString();
+    filledValues["Hautfarbe"] = infos.first[Defines.infoSkinColour].toString();
+    filledValues["Persönlichkeitsmerkmale"] =
+        infos.first[Defines.infoPersonalityTraits].toString();
+    filledValues["Ideale"] = infos.first[Defines.infoIdeals].toString();
+    filledValues["Bindungen"] = infos.first[Defines.infoBonds].toString();
+    filledValues["Makel"] = infos.first[Defines.infoFlaws].toString();
+    filledValues["Hintergrundgeschichte1"] =
+        infos.first[Defines.infoBackstory].toString();
+    filledValues["Aussehen"] = infos.first[Defines.infoAppearance].toString();
+  }
+
+  void _updateSavesValues(
+      List<Map<String, dynamic>> saves,
+      Map<String, String> filledValues,
+      List<Map<String, dynamic>> stats,
+      int proficiencyBonus) {
+    int strAbilityModifier = ((stats.first[Defines.statSTR] - 10) / 2).floor();
+    int dexAbilityModifier = ((stats.first[Defines.statDEX] - 10) / 2).floor();
+    int conAbilityModifier = ((stats.first[Defines.statCON] - 10) / 2).floor();
+    int intAbilityModifier = ((stats.first[Defines.statINT] - 10) / 2).floor();
+    int wisAbilityModifier = ((stats.first[Defines.statWIS] - 10) / 2).floor();
+    int chaAbilityModifier = ((stats.first[Defines.statCHA] - 10) / 2).floor();
+    final abilities = [
+      {
+        "save": Defines.saveStr,
+        "profKey": "StrProf",
+        "rwKey": "StrRW",
+        "modKey": strAbilityModifier
+      },
+      {
+        "save": Defines.saveDex,
+        "profKey": "GesProf",
+        "rwKey": "GesRW",
+        "modKey": dexAbilityModifier
+      },
+      {
+        "save": Defines.saveCon,
+        "profKey": "KonProf",
+        "rwKey": "KonRW",
+        "modKey": conAbilityModifier
+      },
+      {
+        "save": Defines.saveInt,
+        "profKey": "IntProf",
+        "rwKey": "IntRW",
+        "modKey": intAbilityModifier
+      },
+      {
+        "save": Defines.saveWis,
+        "profKey": "WeiProf",
+        "rwKey": "WeiRW",
+        "modKey": wisAbilityModifier
+      },
+      {
+        "save": Defines.saveCha,
+        "profKey": "ChaProf",
+        "rwKey": "ChaRW",
+        "modKey": chaAbilityModifier
+      },
+    ];
+
+    if (saves.isNotEmpty) {
+      var saveData = saves.first;
+
+      for (var ability in abilities) {
+        final isProficient = saveData[ability['save']] == 1;
+        filledValues[ability['profKey'] as String] =
+            isProficient ? "true" : "false";
+
+        filledValues[ability['rwKey'] as String] = isProficient
+            ? ((ability['modKey'] as int? ?? 0) + proficiencyBonus).toString()
+            : ability['modKey'].toString();
+      }
+    }
+  }
+
+  int _calculateSkillValue(Map<String, dynamic> skill, String skillName,
+      int abilityModifier, int proficiencyBonus, bool jack) {
+    int skillValue = abilityModifier;
+
+    if (skill['proficiency'] == 1) {
+      skillValue += proficiencyBonus;
+    }
+
+    if (skill['expertise'] == 1) {
+      skillValue += proficiencyBonus;
+    }
+
+    if (jack &&
+        skill['proficiency'] != 1 &&
+        skill['expertise'] != 1 &&
+        skillName != Defines.skillJackofAllTrades) {
+      skillValue += 1;
+    }
+
+    return skillValue;
+  }
+
+  void _updateSkillValues(
+      List<Map<String, dynamic>> skills,
+      Map<String, String> filledValues,
+      Map<String, dynamic> stats,
+      int proficiencyBonus) {
+    if (skills.isNotEmpty) {
+      final jack = skills.firstWhere(
+                  (element) => element['skill'] == Defines.skillJackofAllTrades,
+                  orElse: () => {})["proficiency"] ==
+              1
+          ? true
+          : false;
+      final dexAbilityModifier = ((stats[Defines.statDEX] - 10) / 2).floor();
+      final strAbilityModifier = ((stats[Defines.statSTR] - 10) / 2).floor();
+      final intAbilityModifier = ((stats[Defines.statINT] - 10) / 2).floor();
+      final wisAbilityModifier = ((stats[Defines.statWIS] - 10) / 2).floor();
+      final chaAbilityModifier = ((stats[Defines.statCHA] - 10) / 2).floor();
+
+      for (var skill in skills) {
+        final skillType = skill['skill'];
+
+        switch (skillType) {
+          case Defines.skillAcrobatics:
+            filledValues["AkrobatikProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AkrobatikExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AkrobatikGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAcrobatics,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillArcana:
+            filledValues["ArkaneKundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ArkaneKundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ArkaneKundeInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillArcana,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillAthletics:
+            filledValues["AthletikProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AthletikExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AthletikStr"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAthletics,
+                    strAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPerformance:
+            filledValues["AuftretenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["AuftretenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["AuftretenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPerformance,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillIntimidation:
+            filledValues["EinschüchternProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["EinschüchternExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["EinschüchternCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillIntimidation,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillSleightOfHand:
+            filledValues["FingerfertigkeitProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["FingerfertigkeitExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["FingerfertigkeitGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillSleightOfHand,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillHistory:
+            filledValues["GeschichteProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["GeschichteExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["GeschichteInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillHistory,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillMedicine:
+            filledValues["HeilkundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["HeilkundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["HeilkundeWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillMedicine,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillStealth:
+            filledValues["HeimlichkeitProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["HeimlichkeitExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["HeimlichkeitGes"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillStealth,
+                    dexAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillAnimalHandling:
+            filledValues["MitTierenUmgehenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["MitTierenUmgehenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["MitTierenUmgehenWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillAnimalHandling,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillInsight:
+            filledValues["MotivErkennenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["MotivErkennenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["MotivErkennenWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillInsight,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillInvestigation:
+            filledValues["NachforschungenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["NachforschungenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["NachforschungenInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillInvestigation,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillNature:
+            filledValues["NaturkundeProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["NaturkundeExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["NaturkundeInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillNature,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillReligion:
+            filledValues["ReligionProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ReligionExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ReligionInt"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillReligion,
+                    intAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillDeception:
+            filledValues["TäuschenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["TäuschenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["TäuschenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillDeception,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillSurvival:
+            filledValues["ÜberlebenskunstProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ÜberlebenskunstExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ÜberlebenskunstWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillDeception,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPersuasion:
+            filledValues["ÜberzeugenProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["ÜberzeugenExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["ÜberzeugenCha"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPersuasion,
+                    chaAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillPerception:
+            filledValues["WahrnehmungProf"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            filledValues["WahrnehmungExp"] =
+                skill['expertise'] == 1 ? "true" : "false";
+            filledValues["WahrnehmungWei"] = _calculateSkillValue(
+                    skill,
+                    Defines.skillPerception,
+                    wisAbilityModifier,
+                    proficiencyBonus,
+                    jack)
+                .toString();
+            break;
+
+          case Defines.skillJackofAllTrades:
+            filledValues["Alleskoenner"] =
+                skill['proficiency'] == 1 ? "true" : "false";
+            break;
+        }
+      }
+    }
+  }
+
+  void _updateWeaponValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> weapons) {
+    int i = 0;
+    if (weapons.isNotEmpty) {
+      for (var weapon in weapons) {
+        if (weapon['weapon'] != null && weapon['weapon']!.isNotEmpty) {
+          i++;
+          filledValues["Angriff$i"] = weapon['weapon'] ?? '';
+          filledValues["Bonus$i"] = weapon['bonus'] ?? '';
+          filledValues["Schaden$i"] = weapon['damage'] ?? '';
+          filledValues["Reichweite$i"] = weapon['reach'] ?? '';
+          filledValues["Beschreibung$i"] = weapon['description'] ?? '';
+          filledValues["Schadentyp$i"] = weapon['damagetype'] ?? '';
+        }
+      }
+    }
+  }
+
+  void _updateProfValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> profs) {
+    if (profs.isNotEmpty) {
+      filledValues["SonstigeWaffen"] =
+          profs.first[Defines.profWeaponList] ?? "";
+
+      if (profs.first.containsKey(Defines.profLanguages)) {
+        String languages = profs.first[Defines.profLanguages] ?? "";
+
+        List<String> languageList = languages
+            .split(RegExp(r'[,\s]+'))
+            .where((lang) => lang.isNotEmpty)
+            .toList();
+
+        for (int i = 0; i < languageList.length; i++) {
+          filledValues["Sprache${i + 1}"] = languageList[i];
+        }
+      }
+
+      if (profs.first.containsKey(Defines.profTools)) {
+        String tools = profs.first[Defines.profTools] ?? "";
+
+        List<String> toolList = tools
+            .split(',')
+            .map((tool) => tool.trim())
+            .where((tool) => tool.isNotEmpty)
+            .toList();
+
+        for (int i = 0; i < toolList.length; i++) {
+          filledValues["WerkzeugUndAndere${i + 1}"] = toolList[i];
+        }
+      }
+    }
+  }
+
+  void _updateSpellValues(
+      Map<String, String> filledValues,
+      List<Map<String, dynamic>> spellslots,
+      List<Map<String, dynamic>> spells,
+      Map<String, dynamic> stats,
+      Map<String, dynamic> infos) {
+    if (infos.isNotEmpty) {
+      filledValues["Zauberklasse"] = infos[Defines.infoSpellcastingClass];
+      filledValues["AttributZauberwirken"] =
+          infos[Defines.infoSpellcastingAbility];
+    }
+    if (stats.isNotEmpty) {
+      filledValues["ZauberRettungswurfSG"] =
+          stats[Defines.statSpellSaveDC].toString();
+      filledValues["ZauberAngriffsbonus"] =
+          stats[Defines.statSpellAttackBonus].toString();
+    }
+    if (spellslots.isNotEmpty) {
+      for (var spellslot in spellslots) {
+        switch (spellslot["spellslot"]) {
+          case Defines.slotOne:
+            filledValues["ZauberplätzeGesamt1"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht1"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotTwo:
+            filledValues["ZauberplätzeGesamt2"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht2"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotThree:
+            filledValues["ZauberplätzeGesamt3"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht3"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotFour:
+            filledValues["ZauberplätzeGesamt4"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht4"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotFive:
+            filledValues["ZauberplätzeGesamt5"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht5"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotSix:
+            filledValues["ZauberplätzeGesamt6"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht6"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotSeven:
+            filledValues["ZauberplätzeGesamt7"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht7"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotEight:
+            filledValues["ZauberplätzeGesamt8"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht8"] =
+                spellslot["spent"].toString();
+            break;
+          case Defines.slotNine:
+            filledValues["ZauberplätzeGesamt9"] = spellslot["total"].toString();
+            filledValues["ZauberplätzeVerbraucht9"] =
+                spellslot["spent"].toString();
+            break;
+        }
+      }
+    }
+
+    int zaubertrick = 0;
+    Map<int, int> levelCounters = {for (int i = 1; i <= 9; i++) i: 0};
+
+    if (spells.isNotEmpty) {
+      for (var spell in spells) {
+        int level = spell["level"];
+        if (level == 0) {
+          zaubertrick++;
+          filledValues["Zaubertrick$zaubertrick"] = spell["spellname"];
+        } else if (levelCounters.containsKey(level)) {
+          levelCounters[level] = levelCounters[level]! + 1;
+          int count = levelCounters[level]!;
+          filledValues["ZauberActive${level}_$count"] =
+              spell['status'] == Defines.spellPrep ? "true" : "false";
+          filledValues["Zauber${level}_$count"] = spell["spellname"];
+        }
+      }
+    }
+  }
+
+  void _updateBagItemsValues(
+    Map<String, String> filledValues,
+    List<Map<String, dynamic>> bag,
+    List<Map<String, dynamic>> items,
+  ) {
+    if (bag.isNotEmpty) {
+      filledValues["PM"] = (bag.first[Defines.bagPlatin] ?? 0).toString();
+      filledValues["GM"] = (bag.first[Defines.bagGold] ?? 0).toString();
+      filledValues["SM"] = (bag.first[Defines.bagSilver] ?? 0).toString();
+      filledValues["KM"] = (bag.first[Defines.bagCopper] ?? 0).toString();
+      filledValues["EM"] = (bag.first[Defines.bagElectrum] ?? 0).toString();
+    }
+    if (items.isNotEmpty) {
+      int i = 0;
+      for (var item in items) {
+        if (item['itemname'] != null && item['itemname']!.isNotEmpty) {
+          i++;
+          filledValues["Inventar$i"] = item['itemname'].toString();
+          filledValues["InventarAnz$i"] = item['amount'].toString();
+        }
+      }
+    }
+  }
+
+  void _updateFeatValues(
+      Map<String, String> filledValues, List<Map<String, dynamic>> feats) {
+    if (feats.isNotEmpty) {
+      StringBuffer classFeatures = StringBuffer();
+      StringBuffer raceFeatures = StringBuffer();
+      StringBuffer backgroundFeatures = StringBuffer();
+      StringBuffer abilitiesFeatures = StringBuffer();
+      StringBuffer otherFeatures = StringBuffer();
+
+      bool hasClassFeats = false;
+      bool hasRaceFeats = false;
+      bool hasBackgroundFeats = false;
+      bool hasAbilitiesFeats = false;
+      bool hasOtherFeats = false;
+
+      for (var feat in feats) {
+        switch (feat["type"]) {
+          case "Klasse":
+            if (!hasClassFeats) {
+              classFeatures.writeln("Klasse\n");
+              hasClassFeats = true;
+            }
+            classFeatures.writeln(feat["featname"]);
+            break;
+          case "Rasse":
+            if (!hasRaceFeats) {
+              raceFeatures.writeln("");
+              raceFeatures.writeln("Rasse\n");
+              hasRaceFeats = true;
+            }
+            raceFeatures.writeln(feat["featname"]);
+            break;
+          case "Hintergrund":
+            if (!hasBackgroundFeats) {
+              backgroundFeatures.writeln("");
+              backgroundFeatures.writeln("Hintergrund\n");
+              hasBackgroundFeats = true;
+            }
+            backgroundFeatures.writeln(feat["featname"]);
+            break;
+          case "Fähigkeiten":
+            if (!hasAbilitiesFeats) {
+              abilitiesFeatures.writeln("");
+              abilitiesFeatures.writeln("Fähigkeiten\n");
+              hasAbilitiesFeats = true;
+            }
+            abilitiesFeatures.writeln(feat["featname"]);
+            break;
+          case "Sonstige":
+            if (!hasOtherFeats) {
+              otherFeatures.writeln("");
+              otherFeatures.writeln("Sonstige\n");
+              hasOtherFeats = true;
+            }
+            otherFeatures.writeln(feat["featname"]);
+            break;
+        }
+      }
+
+      StringBuffer allFeatures1 = StringBuffer();
+      if (classFeatures.isNotEmpty) {
+        allFeatures1.writeln(classFeatures.toString().trim());
+      }
+      if (raceFeatures.isNotEmpty) {
+        allFeatures1.writeln(raceFeatures.toString().trim());
+      }
+      if (allFeatures1.isNotEmpty) {
+        filledValues["Klassenmerkmale1"] = allFeatures1.toString().trim();
+      }
+
+      StringBuffer allFeatures2 = StringBuffer();
+      if (backgroundFeatures.isNotEmpty) {
+        allFeatures2.writeln(backgroundFeatures.toString().trim());
+      }
+      if (abilitiesFeatures.isNotEmpty) {
+        allFeatures2.writeln(abilitiesFeatures.toString().trim());
+      }
+      if (otherFeatures.isNotEmpty) {
+        allFeatures2.writeln(otherFeatures.toString().trim());
+      }
+      if (allFeatures2.isNotEmpty) {
+        filledValues["Klassenmerkmale2"] = allFeatures2.toString().trim();
       }
     }
   }
