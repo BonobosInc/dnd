@@ -215,8 +215,8 @@ class DatabaseSchema {
       columnDefinitions.add('$columnName $columnType');
     });
 
-    // Special handling for foreign keys for tables that reference `info(charId)`
     if (tableName != 'version' &&
+        tableName != 'info' &&
         tableName != 'creature_traits' &&
         tableName != 'creature_actions' &&
         tableName != 'creature_legendary_actions') {
@@ -261,14 +261,15 @@ class DatabaseSchema {
   }
 
   static String versionTable() {
-    final versionColumns = {
-      'ID': 'INTEGER PRIMARY KEY AUTOINCREMENT',
-      'versionNumber': 'TEXT',
-    };
 
-    final columnDefinitions = versionColumns.entries
-        .map((entry) => '${entry.key} ${entry.value}')
-        .join(', ');
+    String columnDefinitions = '';
+
+    tablesColumns["version"]!.forEach((key, value) {
+      columnDefinitions += '$key $value';
+      if (key != tablesColumns["version"]!.keys.last) {
+        columnDefinitions += ', ';
+      }
+    });
 
     return 'CREATE TABLE IF NOT EXISTS version ($columnDefinitions);';
   }

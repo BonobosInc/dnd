@@ -491,22 +491,15 @@ class ProfileManager {
 
     currentDb = await openDatabase(profileDbPath, version: 1);
 
-    await updateDatabaseIfOutdated(currentDb!);
 
     await currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS version (ID INTEGER PRIMARY KEY, versionNumber TEXT)');
 
-    // final versionCount = Sqflite.firstIntValue(
-    //     await currentDb!.rawQuery('SELECT COUNT(*) FROM version'));
-    // if (versionCount == 0) {
-    //   await currentDb!.execute(
-    //       'INSERT INTO version (ID, versionNumber) VALUES (1, ?)',
-    //       [appVersion]);
-    // }
-
     for (String query in DatabaseSchema.allTables) {
       await currentDb!.execute(query);
     }
+
+    await updateDatabaseIfOutdated(currentDb!);
 
     await initializeDatabase(currentDb!, profileName);
     await loadProfiles();

@@ -302,6 +302,7 @@ class AllSpellsPageState extends State<AllSpellsPage> {
             IconButton(
               icon: const Icon(Icons.check),
               onPressed: () {
+                Navigator.of(context).pop();
                 Navigator.of(context).pop(_selectedSpells.toList());
               },
             ),
