@@ -113,6 +113,8 @@ class DatabaseSchema {
       'status': 'TEXT',
       'level': 'INTEGER',
       'description': 'TEXT',
+      'reach': 'TEXT',
+      'duration': 'TEXT',
     },
     'weapons': {
       'ID': 'INTEGER PRIMARY KEY AUTOINCREMENT',

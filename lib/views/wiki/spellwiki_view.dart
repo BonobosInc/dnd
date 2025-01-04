@@ -501,6 +501,8 @@ Future<Spell?> _showAddSpellDialog(
 
   String name = spellData?.name ?? '';
   String description = spellData?.text ?? '';
+  String? reach = spellData?.range;
+  String? duration = spellData?.duration;
 
   int level = Defines.spellZero;
   if (spellData?.level is String) {
@@ -520,6 +522,8 @@ Future<Spell?> _showAddSpellDialog(
       description: description,
       status: Defines.spellKnown,
       level: level,
+      reach: reach,
+      duration: duration,
     ),
     isNewSpell,
   );
@@ -530,13 +534,18 @@ Future<Spell?> _showSpellDialog(
   final TextEditingController descriptionController =
       TextEditingController(text: spell.description);
 
+  final TextEditingController reachController =
+      TextEditingController(text: spell.reach);
+  final TextEditingController durationController =
+      TextEditingController(text: spell.duration);
+
   return showDialog<Spell>(
     context: context,
     builder: (context) {
       return AlertDialog(
         title: const Text('Zauber bearbeiten'),
         content: SingleChildScrollView(
-          child: _buildSpellDetailForm(spell, descriptionController),
+          child: _buildSpellDetailForm(spell, descriptionController, reachController, durationController),
         ),
         actions: [
           SizedBox(
@@ -565,7 +574,10 @@ Future<Spell?> _showSpellDialog(
 }
 
 Widget _buildSpellDetailForm(
-    Spell spell, TextEditingController descriptionController) {
+    Spell spell,
+    TextEditingController descriptionController,
+    TextEditingController reach,
+    TextEditingController duration) {
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -575,7 +587,11 @@ Widget _buildSpellDetailForm(
         onChanged: (value) => spell.name = value,
       ),
       const SizedBox(height: 16),
-      _buildDescriptionTextField(descriptionController),
+      _buildDescriptionTextField(descriptionController, 'Beschreibung', 4),
+      const SizedBox(height: 16),
+      _buildDescriptionTextField(reach, 'Reichweite', 1),
+      const SizedBox(height: 16),
+      _buildDescriptionTextField(duration, 'Dauer', 1),
       const SizedBox(height: 16),
       _buildLevelDropdown(spell),
       const SizedBox(height: 16),
@@ -628,13 +644,14 @@ Widget _buildLevelDropdown(Spell spell) {
   );
 }
 
-Widget _buildDescriptionTextField(TextEditingController controller) {
+Widget _buildDescriptionTextField(
+    TextEditingController controller, String label, int maxLines) {
   return TextField(
     controller: controller,
-    maxLines: 4,
-    decoration: const InputDecoration(
-      labelText: 'Beschreibung',
-      border: OutlineInputBorder(),
+    maxLines: maxLines,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
     ),
   );
 }

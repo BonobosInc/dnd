@@ -177,8 +177,7 @@ class ProfileManager {
     final columnName = column['name'];
     final columnType = column['type'];
 
-    final result = await db.rawQuery(
-        'PRAGMA table_info($table);');
+    final result = await db.rawQuery('PRAGMA table_info($table);');
 
     bool columnExists = false;
     for (var row in result) {
@@ -490,7 +489,6 @@ class ProfileManager {
     final profileDbPath = await _getPath();
 
     currentDb = await openDatabase(profileDbPath, version: 1);
-
 
     await currentDb!.execute(
         'CREATE TABLE IF NOT EXISTS version (ID INTEGER PRIMARY KEY, versionNumber TEXT)');
@@ -862,6 +860,8 @@ class ProfileManager {
     String? status,
     int? level,
     String? description,
+    String? reach,
+    String? duration,
   }) async {
     if (currentDb == null) return;
 
@@ -876,6 +876,8 @@ class ProfileManager {
       'status': status,
       'level': level,
       'description': description,
+      'reach': reach,
+      'duration': duration,
     };
 
     if (existingSpellList.isNotEmpty) {
@@ -905,6 +907,8 @@ class ProfileManager {
     String? status,
     int? level,
     String? description,
+    String? reach,
+    String? duration,
   }) async {
     if (currentDb == null) return;
 
@@ -914,6 +918,8 @@ class ProfileManager {
       'status': status,
       'level': level,
       'description': description,
+      'reach': reach,
+      'duration': duration,
     };
 
     try {
@@ -1706,7 +1712,15 @@ class ProfileManager {
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
-      columns: ['spellname', 'level', 'status', 'description', 'ID'],
+      columns: [
+        'spellname',
+        'level',
+        'status',
+        'description',
+        'ID',
+        'reach',
+        'duration'
+      ],
       where: 'charId = ?',
       whereArgs: [selectedID],
     );
@@ -1714,19 +1728,25 @@ class ProfileManager {
     return result;
   }
 
-  Future<String> getSpellDescription(String spellName) async {
-    if (currentDb == null) return "keine Beschreibung";
+  Future<Map<String, dynamic>> getSpell(int uuid) async {
+    if (currentDb == null) {
+      return {'description': 'keine Beschreibung', 'reach': '', 'duration': ''};
+    }
 
     final List<Map<String, dynamic>> result = await currentDb!.query(
       'spells',
-      columns: ['description'],
-      where: 'charId = ? AND spellname = ?',
-      whereArgs: [selectedID, spellName],
+      columns: ['description', 'reach', 'duration'],
+      where: 'charId = ? AND ID = ?',
+      whereArgs: [selectedID, uuid],
     );
 
-    return result.isNotEmpty && result.first['description'] != null
-        ? result.first['description'] as String
-        : "keine Beschreibung";
+    return result.isNotEmpty
+        ? {
+            'description': result.first['description'] ?? 'keine Beschreibung',
+            'reach': result.first['reach'] ?? '',
+            'duration': result.first['duration'] ?? ''
+          }
+        : {'description': 'keine Beschreibung', 'reach': '', 'duration': ''};
   }
 
   bool hasProfiles() {
@@ -2038,11 +2058,21 @@ class ProfileManager {
           ? spellElement.findElements('status').first.innerText
           : Defines.spellKnown;
 
+      final reach = spellElement.findElements('reach').isNotEmpty
+          ? spellElement.findElements('reach').first.innerText
+          : "";
+
+      final duration = spellElement.findElements('duration').isNotEmpty
+          ? spellElement.findElements('duration').first.innerText
+          : "";
+
       spells.add({
         'name': name,
         'description': description,
         'status': status,
         'level': levelElement,
+        'reach': reach,
+        'duration': duration,
       });
     }
 
@@ -2756,6 +2786,8 @@ class ProfileManager {
         status: spell['status'],
         level: spell['level'],
         description: spell['description'],
+        reach: spell['reach'],
+        duration: spell['duration'],
       );
     }
   }
@@ -3012,6 +3044,8 @@ class ProfileManager {
             builder.element('description', nest: spell['description']);
             builder.element('level', nest: spell['level'].toString());
             builder.element('status', nest: spell['status']);
+            builder.element('reach', nest: spell['reach']);
+            builder.element('duration', nest: spell['duration']);
           });
         }
       });

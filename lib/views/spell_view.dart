@@ -29,8 +29,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
   final TextEditingController _spellcastingAbilityController =
       TextEditingController();
 
-  List<List<TextEditingController>> spellLevels =
-      List.generate(10, (index) => []);
+  List<List<Spell>> spellLevels = List.generate(10, (index) => []);
 
   @override
   void initState() {
@@ -45,7 +44,8 @@ class SpellManagementPageState extends State<SpellManagementPage> {
 
     int spellAttackBonus = initialStats[0][Defines.statSpellAttackBonus] ?? 0;
     int spellSaveDC = initialStats[0][Defines.statSpellSaveDC] ?? 0;
-    String spellcastingClass = initialInfo[0][Defines.infoSpellcastingClass] ?? "";
+    String spellcastingClass =
+        initialInfo[0][Defines.infoSpellcastingClass] ?? "";
     String spellcastingAbility =
         initialInfo[0][Defines.infoSpellcastingAbility] ?? "";
 
@@ -76,11 +76,18 @@ class SpellManagementPageState extends State<SpellManagementPage> {
           continue;
         }
 
-        String name = spell['spellname'];
-        TextEditingController controller = TextEditingController(text: name);
+        Spell spellObj = Spell(
+          name: spell['spellname'] ?? '',
+          description: spell['description'] ?? '',
+          status: spell['status'] ?? '',
+          level: level,
+          reach: spell['reach'] ?? '',
+          duration: spell['duration'] ?? '',
+          uuid: spell['ID'],
+        );
 
         if (level >= 0 && level < spellLevels.length) {
-          spellLevels[level].add(controller);
+          spellLevels[level].add(spellObj);
         }
       }
     }
@@ -260,7 +267,9 @@ class SpellManagementPageState extends State<SpellManagementPage> {
                           _buildDecrementButton(levelIndex),
                         ],
                         Text(
-                          levelIndex == 0 ? 'Zaubertrick' : 'Level $levelIndex ',
+                          levelIndex == 0
+                              ? 'Zaubertrick'
+                              : 'Level $levelIndex ',
                           style: TextStyle(
                             color: AppColors.textColorLight,
                             fontSize: 18,
@@ -288,7 +297,6 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: widget.profileManager.getSpellSlots(),
       builder: (context, snapshot) {
-
         int totalSlots = 0;
         int currentSlots = 0;
         if (snapshot.hasData) {
@@ -321,7 +329,6 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: widget.profileManager.getSpellSlots(),
       builder: (context, snapshot) {
-
         int totalSlots = 0;
         int currentSlots = 0;
 
@@ -362,7 +369,8 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     );
   }
 
-  void _updateCurrentSlots(int levelIndex, int currentSlots, int totalSlots) async {
+  void _updateCurrentSlots(
+      int levelIndex, int currentSlots, int totalSlots) async {
     String spellSlotKey = _getSpellSlotKey(levelIndex);
 
     await widget.profileManager.updateSpellSlots(
@@ -380,13 +388,13 @@ class SpellManagementPageState extends State<SpellManagementPage> {
 
   List<Widget> _buildSpellNames(int levelIndex) {
     List<Widget> fields = [];
-    for (var controller in spellLevels[levelIndex]) {
+    for (var spell in spellLevels[levelIndex]) {
       fields.add(
         GestureDetector(
           onTap: () async {
-            String? description = await widget.profileManager
-                .getSpellDescription(controller.text);
-            _showSpellDescription(controller.text, description);
+            Map<String, dynamic> spelldata =
+                await widget.profileManager.getSpell(spell.uuid!);
+            _showSpellDescription(spell.name, spelldata);
           },
           child: SizedBox(
             width: 150,
@@ -408,7 +416,7 @@ class SpellManagementPageState extends State<SpellManagementPage> {
               ),
               child: Center(
                 child: Text(
-                  controller.text.isNotEmpty ? controller.text : '',
+                  spell.name.isNotEmpty ? spell.name : '',
                   style: TextStyle(
                     color: AppColors.textColorDark,
                     fontSize: 14.0,
@@ -440,14 +448,29 @@ class SpellManagementPageState extends State<SpellManagementPage> {
     ];
   }
 
-  void _showSpellDescription(String spellName, String? description) {
+  void _showSpellDescription(String spellName, Map<String, dynamic> spellData) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(spellName),
           content: SingleChildScrollView(
-            child: Text(description ?? "Keine Beschreibung gefunden."),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Reichweite: ",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(spellData['reach'] ?? 'Nicht angegeben'),
+                SizedBox(height: 8.0),
+                Text("Dauer: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(spellData['duration'] ?? 'Nicht angegeben'),
+                SizedBox(height: 8.0),
+                Text("Beschreibung: ",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                    spellData['description'] ?? 'Keine Beschreibung gefunden.'),
+              ],
+            ),
           ),
           actions: [
             TextButton(
