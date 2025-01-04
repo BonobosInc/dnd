@@ -48,6 +48,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
           description: spell['description'] ?? '',
           status: spell['status'] ?? 'nicht bekannt',
           level: spell['level'] is int ? spell['level'] : 0,
+          reach: spell['reach'] ?? '',
+          duration: spell['duration'] ?? '',
           uuid: spell['ID'],
         ));
       }
@@ -136,6 +138,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   Spell _convertSpellDataToSpell(SpellData spellData) {
     String name = spellData.name;
     String description = spellData.text;
+    String? reach = spellData.range;
+    String? duration = spellData.duration;
 
     int level = Defines.spellZero;
     try {
@@ -149,6 +153,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       description: description,
       status: Defines.spellKnown,
       level: level,
+      reach: reach,
+      duration: duration,
     );
   }
 
@@ -167,13 +173,13 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         if (result is List<SpellData>) {
           for (var spellData in result) {
             final spell = _convertSpellDataToSpell(spellData);
-            _addSpell(spell, spell.description);
+            _addSpell(spell, spell.description, spell.reach, spell.duration);
           }
         } else if (result is SpellData) {
           final spell = _convertSpellDataToSpell(result);
-          _addSpell(spell, spell.description);
+          _addSpell(spell, spell.description, spell.reach, spell.duration);
         } else if (result is Spell) {
-          _addSpell(result, result.description);
+          _addSpell(result, result.description, result.reach, result.duration);
         }
       }
     }
@@ -187,6 +193,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
           description: '',
           status: Defines.spellKnown,
           level: Defines.spellZero,
+          reach: '',
+          duration: '',
         ),
         newspell);
   }
@@ -199,6 +207,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   void _showSpellDialog(Spell spell, bool newSpell) {
     TextEditingController descriptionController =
         TextEditingController(text: spell.description);
+    TextEditingController reachController = TextEditingController(text: spell.reach);
+    TextEditingController durationController = TextEditingController(text: spell.duration);
 
     showDialog(
       context: context,
@@ -206,7 +216,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
         return AlertDialog(
           title: const Text('Zauber bearbeiten'),
           content: SingleChildScrollView(
-            child: _buildSpellDetailForm(spell, descriptionController),
+            child: _buildSpellDetailForm(spell, descriptionController, reachController, durationController),
           ),
           actions: [
             SizedBox(
@@ -223,9 +233,9 @@ class SpellEditingPageState extends State<SpellEditingPage> {
               child: TextButton(
                 onPressed: () {
                   if (newSpell) {
-                    _addSpell(spell, descriptionController.text);
+                    _addSpell(spell, descriptionController.text, reachController.text, durationController.text);
                   } else {
-                    _updateSpell(spell, descriptionController.text);
+                    _updateSpell(spell, descriptionController.text, reachController.text, durationController.text);
                   }
                   Navigator.of(context).pop(true);
                 },
@@ -267,7 +277,7 @@ class SpellEditingPageState extends State<SpellEditingPage> {
   }
 
   Widget _buildSpellDetailForm(
-      Spell spell, TextEditingController descriptionController) {
+      Spell spell, TextEditingController descriptionController, TextEditingController reach, TextEditingController duration) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -277,7 +287,11 @@ class SpellEditingPageState extends State<SpellEditingPage> {
           onChanged: (value) => spell.name = value,
         ),
         const SizedBox(height: 16),
-        _buildDescriptionTextField(descriptionController),
+        _buildDescriptionTextField(descriptionController, 'Beschreibung', 4),
+        const SizedBox(height: 16),
+        _buildDescriptionTextField(reach, 'Reichweite', 1),
+        const SizedBox(height: 16),
+        _buildDescriptionTextField(duration, 'Dauer', 1),
         const SizedBox(height: 16),
         _buildLevelDropdown(spell),
         const SizedBox(height: 16),
@@ -286,13 +300,13 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     );
   }
 
-  Widget _buildDescriptionTextField(TextEditingController controller) {
+  Widget _buildDescriptionTextField(TextEditingController controller, String label, int maxLines) {
     return TextField(
       controller: controller,
-      maxLines: 4,
-      decoration: const InputDecoration(
-        labelText: 'Beschreibung',
-        border: OutlineInputBorder(),
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
       ),
     );
   }
@@ -360,9 +374,12 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     );
   }
 
-  void _updateSpell(Spell spell, String description) {
+  void _updateSpell(Spell spell, String description, String? reach, String? duration) {
     final finalDescription =
         description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    final finalReach = reach ?? "";
+    final finalDuration = duration ?? "";
 
     widget.profileManager
         .updateSpell(
@@ -370,6 +387,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       status: spell.status,
       level: spell.level,
       description: finalDescription,
+      reach: finalReach,
+      duration: finalDuration,
       uuid: spell.uuid,
     )
         .then((_) {
@@ -377,9 +396,12 @@ class SpellEditingPageState extends State<SpellEditingPage> {
     });
   }
 
-  void _addSpell(Spell spell, String description) {
+  void _addSpell(Spell spell, String description, String? reach, String? duration) {
     final finalDescription =
         description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+
+    final finalReach = spell.reach ?? "";
+    final finalDuration = spell.duration ?? "";
 
     widget.profileManager
         .addSpell(
@@ -387,6 +409,8 @@ class SpellEditingPageState extends State<SpellEditingPage> {
       status: spell.status,
       level: spell.level,
       description: finalDescription,
+      reach: finalReach,
+      duration: finalDuration,
     )
         .then((_) {
       _fetchSpells();
@@ -408,6 +432,8 @@ class Spell {
   String description;
   String status;
   int level;
+  String? reach;
+  String? duration;
   int? uuid;
 
   Spell({
@@ -415,6 +441,8 @@ class Spell {
     required this.description,
     required this.status,
     required this.level,
+    this.reach = "",
+    this.duration = "",
     this.uuid,
   });
 }
