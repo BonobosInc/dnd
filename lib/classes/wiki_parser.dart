@@ -613,22 +613,20 @@ class WikiParser {
       builder.element('proficiency', nest: classData.proficiency);
       builder.element('numSkills', nest: classData.numSkills);
 
-      builder.element('autolevels', nest: () {
-        for (final autolevel in classData.autolevels) {
-          builder.element('autolevel', attributes: {'level': autolevel.level},
-              nest: () {
-            for (final feature in autolevel.features) {
-              builder.element('feature', nest: () {
-                builder.element('name', nest: feature.name);
-                builder.element('text', nest: feature.description);
-              });
-            }
-            if (autolevel.slots != null) {
-              builder.element('slots', nest: autolevel.slots!.slots.join(', '));
-            }
-          });
-        }
-      });
+      for (final autolevel in classData.autolevels) {
+        builder.element('autolevel', attributes: {'level': autolevel.level},
+            nest: () {
+          for (final feature in autolevel.features ?? []) {
+            builder.element('feature', nest: () {
+              builder.element('name', nest: feature.name);
+              builder.element('text', nest: feature.description);
+            });
+          }
+          if (autolevel.slots != null) {
+            builder.element('slots', nest: autolevel.slots!.slots.join(','));
+          }
+        });
+      }
     });
 
     document.rootElement.children.add(builder.buildFragment());
