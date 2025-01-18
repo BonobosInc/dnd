@@ -41,6 +41,6 @@ jobs:
         with:
           # files: build/app/outputs/flutter-apk/BonoDND-${{ env.version }}.apk
           files: Test.txt
-          token: ${{ secrets.TOKEN }}
-          # tag_name: ${{ env.version }}
-          tag_name: "v1.0.0"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # name: ${{ env.version }}
+          name: Test
