@@ -22,12 +22,12 @@ jobs:
       # - run: flutter pub get
       # - run: flutter build apk --release
 
-      # - name: Extract version from version.dart
-      #   id: get_version
-      #   run: |
-      #     VERSION=$(grep 'const String appVersion' lib/configs/version.dart | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)";/\1/')
-      #     echo "VERSION=$VERSION"
-      #     echo "version=$VERSION" >> $GITHUB_ENV
+      - name: Extract version from version.dart
+        id: get_version
+        run: |
+          VERSION=$(grep 'const String appVersion' lib/configs/version.dart | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)";/\1/')
+          echo "VERSION=$VERSION"
+          echo "version=$VERSION" >> $GITHUB_ENV
 
       # - name: Rename APK
       #   run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/BonoDND-${{ env.version }}.apk
@@ -36,11 +36,26 @@ jobs:
       - name: Test
         run: cat Test.txt
 
+      - name: Create Tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const version = process.env.version;
+            const tagName = `v${version}`;
+            const context = github.context;
+
+            // Create a new tag and reference
+            await github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${tagName}`,
+              sha: context.sha
+            });
+
       - name: Push to Release
         uses: softprops/action-gh-release@v2
         with:
           # files: build/app/outputs/flutter-apk/BonoDND-${{ env.version }}.apk
           files: Test.txt
           token: ${{ secrets.GITHUB_TOKEN }}
-          # name: ${{ env.version }}
-          name: Test
+          name: ${{ env.version }}
