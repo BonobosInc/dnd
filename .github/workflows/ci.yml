@@ -36,26 +36,10 @@ jobs:
       - name: Test
         run: cat Test.txt
 
-      - name: Create Tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const version = process.env.version;
-            const tagName = `v${version}`;
-            const context = github.context;
-
-            // Create a new tag and reference
-            await github.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/tags/${tagName}`,
-              sha: context.sha
-            });
-
       - name: Push to Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
           # files: build/app/outputs/flutter-apk/BonoDND-${{ env.version }}.apk
-          files: Test.txt
+          artifacts: Test.txt
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: ${{ env.version }}
+          tag: ${{ env.version }}
