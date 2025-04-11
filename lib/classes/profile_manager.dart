@@ -2336,64 +2336,25 @@ class ProfileManager {
 
   Map<String, int> parseSavingThrows(String xmlString) {
     final document = XmlDocument.parse(xmlString);
-
     final Map<String, int> savingThrows = {};
+    final savingthrowsElement =
+        document.findAllElements('savingthrows').isNotEmpty
+            ? document.findAllElements('savingthrows').first
+            : null;
 
-    final savingthrowsElement = document.findElements('savingthrows').isNotEmpty
-        ? document.findElements('savingthrows').first
-        : null;
+    final saveKeys = [
+      Defines.saveStr,
+      Defines.saveDex,
+      Defines.saveCon,
+      Defines.saveInt,
+      Defines.saveWis,
+      Defines.saveCha,
+    ];
 
-    if (savingthrowsElement == null) {
-      savingThrows[Defines.saveStr] = 0;
-      savingThrows[Defines.saveDex] = 0;
-      savingThrows[Defines.saveCon] = 0;
-      savingThrows[Defines.saveInt] = 0;
-      savingThrows[Defines.saveWis] = 0;
-      savingThrows[Defines.saveCha] = 0;
-    } else {
-      final saveStr = savingthrowsElement
-              .findElements(Defines.saveStr)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveStr).first.innerText)
-          : 0;
-      final saveDex = savingthrowsElement
-              .findElements(Defines.saveDex)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveDex).first.innerText)
-          : 0;
-      final saveCon = savingthrowsElement
-              .findElements(Defines.saveCon)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveCon).first.innerText)
-          : 0;
-      final saveInt = savingthrowsElement
-              .findElements(Defines.saveInt)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveInt).first.innerText)
-          : 0;
-      final saveWis = savingthrowsElement
-              .findElements(Defines.saveWis)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveWis).first.innerText)
-          : 0;
-      final saveCha = savingthrowsElement
-              .findElements(Defines.saveCha)
-              .isNotEmpty
-          ? int.parse(
-              savingthrowsElement.findElements(Defines.saveCha).first.innerText)
-          : 0;
-
-      savingThrows[Defines.saveStr] = saveStr;
-      savingThrows[Defines.saveDex] = saveDex;
-      savingThrows[Defines.saveCon] = saveCon;
-      savingThrows[Defines.saveInt] = saveInt;
-      savingThrows[Defines.saveWis] = saveWis;
-      savingThrows[Defines.saveCha] = saveCha;
+    for (final key in saveKeys) {
+      final value =
+          savingthrowsElement?.findElements(key).firstOrNull?.innerText;
+      savingThrows[key] = int.tryParse(value ?? '0') ?? 0;
     }
 
     return savingThrows;
