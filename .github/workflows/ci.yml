@@ -59,14 +59,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.version }}
 
-      - name: Publish to Discord
-        uses: sarisia/actions-status-discord@v1
-        if: always()
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          nodetail: true
-          title: "Neue Version von BonoDND verfügbar!"
-          description: |
-            Version `${{ github.event.release.tag_name }}`
-            Click [here](${{ github.event.release.html_url }}) to download!
-          color: 0xff91a4
+    publish:
+      name: Publish
+      runs-on: ubuntu-latest
+      needs: release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      steps:
+        - name: Publish to Discord
+          uses: sarisia/actions-status-discord@v1
+          if: always()
+          with:
+            webhook: ${{ secrets.DISCORD_WEBHOOK }}
+            nodetail: true
+            title: "Neue Version von BonoDND verfügbar!"
+            description: |
+              Version `${{ env.version }}`
+              Click [here](${{ github.event.release.html_url }}) to download!
+            color: 0xff91a4
