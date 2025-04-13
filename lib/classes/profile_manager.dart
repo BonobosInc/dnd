@@ -1886,6 +1886,9 @@ class ProfileManager {
       Defines.statInitiative: parseIntStat('initiative'),
       Defines.statSpellSaveDC: parseIntStat('spellSaveDC'),
       Defines.statSpellAttackBonus: parseIntStat('spellAttackBonus'),
+      Defines.statMovement: document.findAllElements('movement').isNotEmpty
+          ? document.findAllElements('movement').first.innerText
+          : "",
     };
 
     int getLevelFromDocument(XmlDocument document) {
@@ -2666,6 +2669,9 @@ class ProfileManager {
     await updateStats(
         field: Defines.statCurrentHitDice,
         value: parsedStats[Defines.statCurrentHitDice]);
+    await updateStats(
+        field: Defines.statMovement,
+        value: parsedStats[Defines.statMovement]);
   }
 
   Future<void> _importProfileInfo(Map<String, dynamic> parsedInfos) async {
@@ -2936,6 +2942,7 @@ class ProfileManager {
           addStatElement('level', stats[Defines.statLevel]);
           addStatElement('hdCurrent', stats[Defines.statCurrentHitDice]);
           addStatElement('hd', stats[Defines.statMaxHitDice]);
+          addStatElement('movement', stats[Defines.statMovement]);
         }
       });
 
