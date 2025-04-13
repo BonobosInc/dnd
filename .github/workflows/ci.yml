@@ -12,33 +12,21 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    #   - name: Clone repository
-    #     uses: actions/checkout@v4
-    #   - name: Set up Flutter
-    #     uses: subosito/flutter-action@v2
-    #     with:
-    #       version: '3.24.3'
-    #   - run: flutter --version
-    #   - run: flutter pub get
-    #   - run: flutter build apk --release
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          version: '3.24.3'
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter build apk --release
 
-    #   - name: Save Build Artifact
-    #     uses: actions/upload-artifact@v4
-    #     with:
-    #       name: release-apk
-    #       path: build/app/outputs/flutter-apk/app-release.apk
-
-        - name: Publish to Discord
-          uses: sarisia/actions-status-discord@v1
-          if: always()
-          with:
-            webhook: ${{ secrets.DISCORD_WEBHOOK }}
-            nodetail: true
-            title: "Neue Version von BonoDND verfügbar!"
-            description: |
-              Version `${{ github.event.release.tag_name }}`
-              Click [here](${{ github.event.release.html_url }}) to download!
-            color: 0xff91a4
+      - name: Save Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   release:
     name: Release
@@ -71,14 +59,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.version }}
 
-      # - name: Publish to Discord
-      #   uses: sarisia/actions-status-discord@v1
-      #   if: always()
-      #   with:
-      #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
-      #     nodetail: true
-      #     title: "Neue Version von BonoDND verfügbar!"
-      #     description: |
-      #       Version `${{ github.event.release.tag_name }}`
-      #       Click [here](${{ github.event.release.html_url }}) to download!
-      #     color: 0xff91a4
+      - name: Publish to Discord
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: "Neue Version von BonoDND verfügbar!"
+          description: |
+            Version `${{ github.event.release.tag_name }}`
+            Click [here](${{ github.event.release.html_url }}) to download!
+          color: 0xff91a4
