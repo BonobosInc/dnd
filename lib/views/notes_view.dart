@@ -141,6 +141,10 @@ class NotesPageState extends State<NotesPage> {
         hairColourController.text = characterData[Defines.infoHairColour] ?? '';
         skinColourController.text = characterData[Defines.infoSkinColour] ?? '';
         appearanceController.text = characterData[Defines.infoAppearance] ?? '';
+        backStoryController.text =
+            characterData[Defines.infoBackstory] ?? '';
+        otherNotesController.text = characterData[Defines.infoNotes] ?? '';
+        sizeController.text = characterData[Defines.infoSize] ?? '';
       });
     } else {
       selectedSize = sizeOptions[0];
