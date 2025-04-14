@@ -20,6 +20,17 @@ jobs:
           version: '3.24.3'
       - run: flutter --version
       - run: flutter pub get
+
+      - name: Decode and Save Keystore
+        run: echo "${{ secrets.APP_KEY }}" | base64 -d > android/app/keystore.jks
+
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=keystore.jks" >> android/key.properties
+
       - run: flutter build apk --release
 
       - name: Save Build Artifact
