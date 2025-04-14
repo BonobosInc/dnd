@@ -1770,12 +1770,15 @@ class ProfileManager {
     final document = XmlDocument.parse(xmlString);
     List<FeatureData> features = [];
 
-    void parseFeats(Iterable<XmlElement> featElements, String type) {
+    void parseFeats(Iterable<XmlElement> featElements, [String? defaultType]) {
       for (final feat in featElements) {
         final name = feat.findElements('name').first.innerText;
         final description = feat.findElements('text').isNotEmpty
             ? feat.findElements('text').first.innerText
             : feat.findElements('description').first.innerText;
+        final type = feat.findElements('type').isNotEmpty
+            ? feat.findElements('type').first.innerText
+            : (defaultType ?? 'Sonstige');
 
         features.add(FeatureData(
           name: name,
@@ -2670,8 +2673,7 @@ class ProfileManager {
         field: Defines.statCurrentHitDice,
         value: parsedStats[Defines.statCurrentHitDice]);
     await updateStats(
-        field: Defines.statMovement,
-        value: parsedStats[Defines.statMovement]);
+        field: Defines.statMovement, value: parsedStats[Defines.statMovement]);
   }
 
   Future<void> _importProfileInfo(Map<String, dynamic> parsedInfos) async {
