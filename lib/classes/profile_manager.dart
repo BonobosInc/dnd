@@ -2036,9 +2036,9 @@ class ProfileManager {
       Defines.infoBackstory: getText('info', Defines.infoBackstory),
       Defines.infoNotes: getText('info', Defines.infoNotes),
       Defines.infoSpellcastingClass:
-          getText('info', Defines.infoSpellcastingClass),
+          getText('info', "spellcastingClass"),
       Defines.infoSpellcastingAbility:
-          getText('info', Defines.infoSpellcastingAbility),
+          getText('info', "spellcastingAbility"),
     };
   }
 
