@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dnd/classes/wiki_parser.dart';
+import 'package:dnd/configs/auto_updater.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -9,9 +10,12 @@ import 'package:flutter/services.dart';
 import 'package:window_size/window_size.dart';
 
 ValueNotifier<bool> isDarkMode = ValueNotifier(true);
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await cleanupPendingApk();
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     setWindowTitle('BonoDND');
@@ -35,6 +39,10 @@ void main() async {
   await wikiParser.loadXml();
 
   runApp(DNDApp(wikiParser: wikiParser));
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+  checkForUpdate(navigatorKey.currentContext!);
+});
 }
 
 class DNDApp extends StatelessWidget {
@@ -50,6 +58,7 @@ class DNDApp extends StatelessWidget {
         AppColors.toggleTheme(isDark);
 
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'DND App',
           theme: ThemeData(
             brightness: isDark ? Brightness.dark : Brightness.light,
