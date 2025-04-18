@@ -82,6 +82,27 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
   final filePath = '${dir!.path}/update.apk';
   final file = File(filePath);
 
+  if (context.mounted) {
+    showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: AlertDialog(
+        title: Text('Herunterladen...'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Bitte warten, die neue Version wird heruntergeladen.'),
+          ],
+        ),
+      ),
+    ),
+  );
+  }
+
   try {
     final response = await http.get(Uri.parse(url));
     await file.writeAsBytes(response.bodyBytes);
@@ -89,8 +110,16 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pending_apk_cleanup', filePath);
 
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+
     await AppInstaller.installApk(filePath);
   } catch (e) {
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+
     if (e.toString().contains("INSTALL_FAILED_PERMISSION_DENIED")) {
       if (context.mounted) {
         showDialog(
