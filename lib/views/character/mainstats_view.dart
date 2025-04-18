@@ -200,11 +200,6 @@ class MainStatsPageState extends State<MainStatsPage> {
     });
   }
 
-  void _stopTimerC() {
-    _timer?.cancel();
-    _timer = null;
-  }
-
   void _incrementCreatureHP(int index) {
     setState(() {
       if (creatures[index].currentHP < creatures[index].maxHP) {
