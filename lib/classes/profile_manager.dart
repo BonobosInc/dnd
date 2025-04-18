@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dnd/classes/database_schema.dart';
 import 'package:dnd/classes/wiki_classes.dart';
@@ -553,7 +554,30 @@ class ProfileManager {
     await currentDb!.delete('creature_legendary_actions',
         where: 'charId = ?', whereArgs: [charId]);
 
+    await _deleteProfileImage(profile.name);
+
     await loadProfiles();
+  }
+
+  Future<void> _deleteProfileImage(String name) async {
+    String imagePath;
+
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+      Directory directory = isDebugMode
+          ? Directory('./temp')
+          : await getApplicationSupportDirectory();
+
+      imagePath = '${directory.path}/$name.png';
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      imagePath = '${appSupportDir.path}/$name.png';
+    }
+
+    final imageFile = File(imagePath);
+    if (await imageFile.exists()) {
+      await imageFile.delete();
+    }
   }
 
   Future<void> renameProfile(String oldName, String newName) async {
@@ -2035,10 +2059,8 @@ class ProfileManager {
       Defines.infoAppearance: getText('info', Defines.infoAppearance),
       Defines.infoBackstory: getText('info', Defines.infoBackstory),
       Defines.infoNotes: getText('info', Defines.infoNotes),
-      Defines.infoSpellcastingClass:
-          getText('info', "spellcastingClass"),
-      Defines.infoSpellcastingAbility:
-          getText('info', "spellcastingAbility"),
+      Defines.infoSpellcastingClass: getText('info', "spellcastingClass"),
+      Defines.infoSpellcastingAbility: getText('info', "spellcastingAbility"),
     };
   }
 
@@ -2605,6 +2627,7 @@ class ProfileManager {
     await _importSkills(parsedSkills);
     await _importSpellSlots(parsedSlots);
     await _importCreatures(parsedCreatures);
+    await _importProfileImageFromXml(xmlString, uniqueName);
 
     await closeDB();
 
@@ -2621,6 +2644,33 @@ class ProfileManager {
       counter++;
     }
     return uniqueName;
+  }
+
+  Future<void> _importProfileImageFromXml(
+      String xmlString, String profileName) async {
+    final xmlDoc = XmlDocument.parse(xmlString);
+    final imageElement = xmlDoc.findAllElements('profileImage').firstOrNull;
+
+    if (imageElement != null) {
+      final base64Image = imageElement.innerText;
+      final bytes = base64Decode(base64Image);
+
+      String imagePath = '';
+      if (Platform.isWindows) {
+        bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+        Directory directory = isDebugMode
+            ? Directory('./temp')
+            : await getApplicationSupportDirectory();
+
+        imagePath = '${directory.path}/$profileName.png';
+      } else {
+        Directory appSupportDir = await getApplicationSupportDirectory();
+        imagePath = '${appSupportDir.path}/$profileName.png';
+      }
+
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(bytes);
+    }
   }
 
   Future<void> _importStats(Map<String, dynamic> parsedStats) async {
@@ -2894,6 +2944,7 @@ class ProfileManager {
     final bagItems = await getBagItems();
     final skills = await getSkills();
     final creatures = await getCreatures();
+    final base64Image = await _getProfileImageBase64(profile.name);
 
     final builder = XmlBuilder();
     builder.processing('xml', 'version="1.0" encoding="UTF-8"');
@@ -3206,6 +3257,10 @@ class ProfileManager {
           });
         }
       });
+
+      if (base64Image != null) {
+        builder.element('profileImage', nest: base64Image);
+      }
     });
 
     final document = builder.buildDocument();
@@ -3265,6 +3320,31 @@ class ProfileManager {
     }
   }
 
+  Future<String?> _getProfileImageBase64(String name) async {
+    String imagePath = '';
+
+    if (Platform.isWindows) {
+      bool isDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+      Directory directory = isDebugMode
+          ? Directory('./temp')
+          : await getApplicationSupportDirectory();
+
+      imagePath = '${directory.path}/$name.png';
+    } else {
+      Directory appSupportDir = await getApplicationSupportDirectory();
+      imagePath = '${appSupportDir.path}/$name.png';
+    }
+
+    File profileImageFile = File(imagePath);
+
+    if (await profileImageFile.exists()) {
+      final bytes = await profileImageFile.readAsBytes();
+      return base64Encode(bytes);
+    }
+
+    return null;
+  }
+
   void _updateStatValues(
       Map<String, String> filledValues, List<Map<String, dynamic>> stats) {
     /* Stats */
@@ -3299,9 +3379,8 @@ class ProfileManager {
     /* Infos */
     filledValues["Charaktername_page1"] = infos.first[Defines.infoName];
     filledValues["Charaktername_page2"] = infos.first[Defines.infoName];
-    filledValues["KlasseUndStufe"] = infos.first[Defines.infoClass] +
-        " " +
-        stats.first[Defines.statLevel].toString();
+    filledValues["KlasseUndStufe"] =
+        infos.first[Defines.infoClass] + " ${stats.first[Defines.statLevel]}";
     filledValues["Hintergrund"] = infos.first[Defines.infoBackground];
     filledValues["Volk"] = infos.first[Defines.infoRace];
     filledValues["Erfahrungspunkte"] = stats.first[Defines.statXP].toString();
