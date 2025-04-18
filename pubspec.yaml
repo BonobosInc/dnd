@@ -53,7 +53,7 @@ dependencies:
   share_plus: ^10.1.3
   http: ^1.3.0
   permission_handler: ^12.0.0+1
-  flutter_app_installer: ^1.0.1
+  app_installer: ^1.3.1
 
 dev_dependencies:
   flutter_test:

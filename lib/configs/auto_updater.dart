@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_app_installer/flutter_app_installer.dart';
+import 'package:app_installer/app_installer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dnd/configs/version.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -89,8 +89,7 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pending_apk_cleanup', filePath);
 
-    final flutterAppInstaller = FlutterAppInstaller();
-    await flutterAppInstaller.installApk(filePath: filePath);
+    await AppInstaller.installApk(filePath);
   } catch (e) {
     if (e.toString().contains("INSTALL_FAILED_PERMISSION_DENIED")) {
       if (context.mounted) {
