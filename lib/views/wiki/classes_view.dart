@@ -76,7 +76,7 @@ class ClassDetailPageState extends State<ClassDetailPage> {
 
       final existingFeatures = featuresByLevel[level]!.toSet();
 
-      for (var feature in features) {
+      for (var feature in features!) {
         if (!existingFeatures.contains(feature)) {
           featuresByLevel[level]!.add(feature);
           existingFeatures.add(feature);
