@@ -149,7 +149,7 @@ class CharacterViewState extends State<CharacterView> {
                     setState(() {
                       level = tempLevel;
                       xp = xpThresholds[
-                          level - 1]; // Set XP to min for this level
+                          level - 1];
                     });
 
                     await widget.profileManager.updateStats(
@@ -201,7 +201,7 @@ class CharacterViewState extends State<CharacterView> {
               onPressed: () async {
                 setState(() {
                   xp = tempXP;
-                  level = _calculateLevelFromXP(xp); // Update level
+                  level = _calculateLevelFromXP(xp);
                 });
 
                 await widget.profileManager.updateStats(
