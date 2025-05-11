@@ -40,6 +40,29 @@ class CharacterViewState extends State<CharacterView> {
 
   dynamic _profileImagePath = AssetImage('assets/images/default.png');
 
+  final List<int> xpThresholds = [
+    0,
+    300,
+    900,
+    2700,
+    6500,
+    14000,
+    23000,
+    34000,
+    48000,
+    64000,
+    85000,
+    100000,
+    120000,
+    140000,
+    165000,
+    195000,
+    225000,
+    265000,
+    305000,
+    355000,
+  ];
+
   GlobalKey<MainStatsPageState> mainStatsPageKey =
       GlobalKey<MainStatsPageState>();
 
@@ -125,11 +148,19 @@ class CharacterViewState extends State<CharacterView> {
                   onPressed: () async {
                     setState(() {
                       level = tempLevel;
+                      xp = xpThresholds[
+                          level - 1]; // Set XP to min for this level
                     });
+
                     await widget.profileManager.updateStats(
                       field: Defines.statLevel,
                       value: level,
                     );
+                    await widget.profileManager.updateStats(
+                      field: Defines.statXP,
+                      value: xp,
+                    );
+
                     if (context.mounted) Navigator.of(context).pop();
                   },
                 ),
@@ -170,11 +201,18 @@ class CharacterViewState extends State<CharacterView> {
               onPressed: () async {
                 setState(() {
                   xp = tempXP;
+                  level = _calculateLevelFromXP(xp); // Update level
                 });
+
                 await widget.profileManager.updateStats(
                   field: Defines.statXP,
                   value: xp,
                 );
+                await widget.profileManager.updateStats(
+                  field: Defines.statLevel,
+                  value: level,
+                );
+
                 if (context.mounted) Navigator.of(context).pop();
               },
             ),
@@ -182,6 +220,13 @@ class CharacterViewState extends State<CharacterView> {
         );
       },
     );
+  }
+
+  int _calculateLevelFromXP(int xp) {
+    for (int i = xpThresholds.length - 1; i >= 0; i--) {
+      if (xp >= xpThresholds[i]) return i + 1;
+    }
+    return 1;
   }
 
   Future<List<Map<String, dynamic>>> _getSpellSlots() async {
@@ -510,21 +555,59 @@ class CharacterViewState extends State<CharacterView> {
               ],
             ),
             backgroundColor: AppColors.appBarColor,
-            bottom: TabBar(
-              tabs: [
-                Tab(icon: Icon(MdiIcons.swordCross)),
-                const Tab(icon: Icon(Icons.list)),
-              ],
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(48.0),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 600) {
+                    return TabBar(
+                      tabs: [
+                        Tab(icon: Icon(MdiIcons.swordCross)),
+                        Tab(icon: Icon(Icons.list)),
+                      ],
+                    );
+                  } else {
+                    return SizedBox.shrink();
+                  }
+                },
+              ),
             ),
           ),
-          body: TabBarView(
-            children: [
-              MainStatsPage(
-                  key: mainStatsPageKey,
-                  profileManager: widget.profileManager,
-                  wikiParser: widget.wikiParser),
-              StatsPage(profileManager: widget.profileManager),
-            ],
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              bool isWideScreen = constraints.maxWidth >= 600;
+              if (isWideScreen) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: MainStatsPage(
+                        key: mainStatsPageKey,
+                        profileManager: widget.profileManager,
+                        wikiParser: widget.wikiParser,
+                      ),
+                    ),
+                    Expanded(
+                      child: StatsPage(
+                        profileManager: widget.profileManager,
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return TabBarView(
+                  children: [
+                    MainStatsPage(
+                      key: mainStatsPageKey,
+                      profileManager: widget.profileManager,
+                      wikiParser: widget.wikiParser,
+                    ),
+                    StatsPage(
+                      profileManager: widget.profileManager,
+                    ),
+                  ],
+                );
+              }
+            },
           ),
           endDrawer: SizedBox(
             width: 250,

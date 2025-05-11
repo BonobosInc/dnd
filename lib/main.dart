@@ -26,10 +26,6 @@ void main() async {
 
   isDarkMode.value = AppColors.isDarkMode;
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -41,8 +37,18 @@ void main() async {
   runApp(DNDApp(wikiParser: wikiParser));
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
-  checkForUpdate(navigatorKey.currentContext!);
-});
+    final context = navigatorKey.currentContext!;
+    final deviceType = getDeviceType(context);
+    if (deviceType == 'phone') {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
+    checkForUpdate(context);
+  });
+}
+
+String getDeviceType(BuildContext context) {
+  final data = MediaQuery.of(context);
+  return data.size.shortestSide < 600 ? 'phone' : 'tablet';
 }
 
 class DNDApp extends StatelessWidget {
