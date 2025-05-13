@@ -1,16 +1,7 @@
 # dnd
 
-A new Flutter project.
+## TODO List
+- Automatische berechnung initiative und proficiencybonus
+- Hinzufügen von weiteren Inventaren wie z.B. Bag of Holding damit Benutzer selbst Container erstellen können unter Ausrüstung
+- Attunement von Items hinzufügen und aktuelle Anzahl Attunements anzeigen
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
