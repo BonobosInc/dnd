@@ -95,6 +95,10 @@ class MainStatsPageState extends State<MainStatsPage> {
         healFactor = characterData[Defines.statHitDiceFactor];
       });
     }
+    await widget.profileManager.updateStats(
+        field: Defines.statProficiencyBonus, value: proficiencyBonus);
+    await widget.profileManager.updateStats(
+        field: Defines.statInitiative, value: initiative);
   }
 
   void refreshContent() {
