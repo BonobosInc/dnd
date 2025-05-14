@@ -79,8 +79,16 @@ class MainStatsPageState extends State<MainStatsPage> {
         tempHP = characterData[Defines.statTempHP];
         armor = characterData[Defines.statArmor];
         inspiration = characterData[Defines.statInspiration];
-        proficiencyBonus = characterData[Defines.statProficiencyBonus];
-        initiative = characterData[Defines.statInitiative];
+        proficiencyBonus = _calculateProficiencyBonus(
+            int.tryParse(characterData[Defines.statLevel].toString()) ?? 1);
+        initiative = (((characterData[Defines.statDEX] is int
+                        ? characterData[Defines.statDEX]
+                        : int.tryParse(
+                                characterData[Defines.statDEX].toString()) ??
+                            10) -
+                    10) /
+                2)
+            .floor();
         movement = characterData[Defines.statMovement].toString();
         currentHitDice = characterData[Defines.statCurrentHitDice];
         maxHitDice = characterData[Defines.statMaxHitDice];
@@ -94,6 +102,14 @@ class MainStatsPageState extends State<MainStatsPage> {
     _loadTrackers();
     _loadConditions();
     _fetchCreatures();
+  }
+
+  int _calculateProficiencyBonus(int level) {
+    if (level >= 17) return 6;
+    if (level >= 13) return 5;
+    if (level >= 9) return 4;
+    if (level >= 5) return 3;
+    return 2;
   }
 
   Future<void> _loadConditions() async {
@@ -198,11 +214,6 @@ class MainStatsPageState extends State<MainStatsPage> {
     _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       _decrementCreatureHP(index);
     });
-  }
-
-  void _stopTimerC() {
-    _timer?.cancel();
-    _timer = null;
   }
 
   void _incrementCreatureHP(int index) {
@@ -1106,7 +1117,8 @@ class MainStatsPageState extends State<MainStatsPage> {
       itemWidth = (screenWidth - 32) / itemsPerRow;
     }
 
-    return SingleChildScrollView(
+    return SafeArea(
+        child: SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1224,7 +1236,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       isCount: true),
                   _buildStatCard('Übungsbonus', proficiencyBonus,
                       Defines.statProficiencyBonus,
-                      isCount: true),
+                      isCount: true, isClickable: false),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1233,7 +1245,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 children: [
                   _buildStatCard(
                       'Initiative', initiative, Defines.statInitiative,
-                      isCount: true),
+                      isCount: true, isClickable: false),
                   _buildStatCard(
                       'Bewegungsrate', movement, Defines.statMovement),
                   _buildEditHitDiceCard(),
@@ -1529,48 +1541,57 @@ class MainStatsPageState extends State<MainStatsPage> {
           const SizedBox(height: 8),
         ],
       ),
-    );
+    ));
   }
 
-  Widget _buildStatCard(String name, dynamic value, dynamic statType,
-      {bool isCount = false}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _showEditStatDialog(name, statType, value, isCount: isCount);
-        },
-        child: Column(
-          children: [
-            Text(
-              name,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
+  Widget _buildStatCard(
+    String name,
+    dynamic value,
+    dynamic statType, {
+    bool isCount = false,
+    bool isClickable = true,
+  }) {
+    Widget cardContent = Column(
+      children: [
+        Text(
+          name,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(
+          height: 50,
+          child: Card(
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
             ),
-            SizedBox(
-              height: 50,
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Center(
-                    child: Text(
-                      '$value',
-                      style: const TextStyle(
-                        fontSize: 16,
-                      ),
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: Center(
+                child: Text(
+                  '$value',
+                  style: const TextStyle(
+                    fontSize: 16,
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
+    );
+
+    return Expanded(
+      child: isClickable
+          ? GestureDetector(
+              onTap: () {
+                _showEditStatDialog(name, statType, value, isCount: isCount);
+              },
+              child: cardContent,
+            )
+          : cardContent,
     );
   }
 

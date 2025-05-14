@@ -148,9 +148,11 @@ class CharacterViewState extends State<CharacterView> {
                   onPressed: () async {
                     setState(() {
                       level = tempLevel;
-                      xp = xpThresholds[
-                          level - 1];
+                      xp = xpThresholds[level - 1];
                     });
+                    if (mainStatsPageKey.currentState != null) {
+                      mainStatsPageKey.currentState!.refreshContent();
+                    }
 
                     await widget.profileManager.updateStats(
                       field: Defines.statLevel,

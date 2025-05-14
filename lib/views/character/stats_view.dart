@@ -815,7 +815,8 @@ class StatsPageState extends State<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return SafeArea(
+    child: SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,6 +849,6 @@ class StatsPageState extends State<StatsPage> {
           _buildSkillsSection(),
         ],
       ),
-    );
+    ));
   }
 }
