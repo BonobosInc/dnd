@@ -1097,14 +1097,15 @@ class MainStatsPageState extends State<MainStatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    double healthBarWidth = MediaQuery.of(context).size.width - 32;
-    double currentHPWidth =
-        maxHP > 0 ? (currentHP / maxHP) * healthBarWidth : 0;
-
-    double tempHPWidth = maxHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
-
     return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
       final double screenWidth = constraints.maxWidth;
+
+      final double healthBarWidth = screenWidth - 32;
+      final double currentHPWidth =
+          maxHP > 0 ? (currentHP / maxHP) * healthBarWidth : 0;
+      final double tempHPWidth =
+          maxHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
+
       int itemsPerRow;
       double itemWidth;
 
