@@ -97,8 +97,8 @@ class MainStatsPageState extends State<MainStatsPage> {
     }
     await widget.profileManager.updateStats(
         field: Defines.statProficiencyBonus, value: proficiencyBonus);
-    await widget.profileManager.updateStats(
-        field: Defines.statInitiative, value: initiative);
+    await widget.profileManager
+        .updateStats(field: Defines.statInitiative, value: initiative);
   }
 
   void refreshContent() {
@@ -1103,449 +1103,452 @@ class MainStatsPageState extends State<MainStatsPage> {
 
     double tempHPWidth = maxHP > 0 ? (tempHP / maxHP) * healthBarWidth : 0;
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    int itemsPerRow = 3;
-    double itemWidth = 100.0;
+    return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+      final double screenWidth = constraints.maxWidth;
+      int itemsPerRow;
+      double itemWidth;
 
-    if (screenWidth >= 800) {
-      itemsPerRow = 5;
-      itemWidth = (screenWidth - 64) / itemsPerRow;
-    } else if (screenWidth >= 600) {
-      itemsPerRow = 4;
-      itemWidth = (screenWidth - 64) / itemsPerRow;
-    } else if (screenWidth >= 400) {
-      itemsPerRow = 3;
-      itemWidth = (screenWidth - 32) / itemsPerRow;
-    } else {
-      itemsPerRow = 2;
-      itemWidth = (screenWidth - 32) / itemsPerRow;
-    }
-
-    return SafeArea(
-        child: SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Lebenspunkte',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          Divider(color: AppColors.textColorLight, thickness: 1.5),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: _showEditHpDialog,
-                child: Text(
-                  tempHP > 0
-                      ? '$currentHP/$maxHP + $tempHP Temp'
-                      : '$currentHP/$maxHP',
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onLongPressStart: (_) => _startDecrementing(),
-                onLongPressEnd: (_) => _stopTimer(),
-                child: IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: _decrementHP,
-                ),
-              ),
-              GestureDetector(
-                onLongPressStart: (_) => _startIncrementing(),
-                onLongPressEnd: (_) => _stopTimer(),
-                child: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: _incrementHP,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: _showEditHpDialog,
-            child: Stack(
+      if (screenWidth >= 800) {
+        itemsPerRow = 5;
+        itemWidth = (screenWidth - 64) / itemsPerRow;
+      } else if (screenWidth >= 600) {
+        itemsPerRow = 4;
+        itemWidth = (screenWidth - 64) / itemsPerRow;
+      } else if (screenWidth >= 400) {
+        itemsPerRow = 3;
+        itemWidth = (screenWidth - 32) / itemsPerRow;
+      } else {
+        itemsPerRow = 2;
+        itemWidth = (screenWidth - 32) / itemsPerRow;
+      }
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Lebenspunkte',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            Divider(color: AppColors.textColorLight, thickness: 1.5),
+            Row(
               children: [
-                Container(
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: AppColors.missingHealth,
-                    borderRadius: BorderRadius.circular(5),
+                GestureDetector(
+                  onTap: _showEditHpDialog,
+                  child: Text(
+                    tempHP > 0
+                        ? '$currentHP/$maxHP + $tempHP Temp'
+                        : '$currentHP/$maxHP',
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  child: Container(
+                const Spacer(),
+                GestureDetector(
+                  onLongPressStart: (_) => _startDecrementing(),
+                  onLongPressEnd: (_) => _stopTimer(),
+                  child: IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: _decrementHP,
+                  ),
+                ),
+                GestureDetector(
+                  onLongPressStart: (_) => _startIncrementing(),
+                  onLongPressEnd: (_) => _stopTimer(),
+                  child: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: _incrementHP,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _showEditHpDialog,
+              child: Stack(
+                children: [
+                  Container(
                     height: 20,
-                    width: currentHPWidth,
                     decoration: BoxDecoration(
-                      color: AppColors.currentHealth,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(5),
-                        bottomLeft: const Radius.circular(5),
-                        topRight: (currentHP == maxHP)
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                        bottomRight: (currentHP == maxHP)
-                            ? const Radius.circular(5)
-                            : Radius.zero,
-                      ),
+                      color: AppColors.missingHealth,
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                ),
-                if (tempHP > 0)
                   Positioned(
                     left: 0,
                     child: Container(
                       height: 20,
-                      width: tempHPWidth,
+                      width: currentHPWidth,
                       decoration: BoxDecoration(
-                        color: AppColors.tempHealth,
+                        color: AppColors.currentHealth,
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(5),
                           bottomLeft: const Radius.circular(5),
-                          topRight: (tempHP == maxHP)
+                          topRight: (currentHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
-                          bottomRight: (tempHP == maxHP)
+                          bottomRight: (currentHP == maxHP)
                               ? const Radius.circular(5)
                               : Radius.zero,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (tempHP > 0)
+                    Positioned(
+                      left: 0,
+                      child: Container(
+                        height: 20,
+                        width: tempHPWidth,
+                        decoration: BoxDecoration(
+                          color: AppColors.tempHealth,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(5),
+                            bottomLeft: const Radius.circular(5),
+                            topRight: (tempHP == maxHP)
+                                ? const Radius.circular(5)
+                                : Radius.zero,
+                            bottomRight: (tempHP == maxHP)
+                                ? const Radius.circular(5)
+                                : Radius.zero,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Stats Section
+            const Text(
+              'Statistik',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            Divider(color: AppColors.textColorLight, thickness: 1.5),
+            const SizedBox(height: 8),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatCard('Rüstungsklasse', armor, Defines.statArmor,
+                        isCount: true),
+                    _buildStatCard(
+                        'Inspiration', inspiration, Defines.statInspiration,
+                        isCount: true),
+                    _buildStatCard('Übungsbonus', proficiencyBonus,
+                        Defines.statProficiencyBonus,
+                        isCount: true, isClickable: false),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatCard(
+                        'Initiative', initiative, Defines.statInitiative,
+                        isCount: true, isClickable: false),
+                    _buildStatCard(
+                        'Bewegungsrate', movement, Defines.statMovement),
+                    _buildEditHitDiceCard(),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 25),
+
+            // Status Effects Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Status Effekte',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _addCondition,
+                ),
+              ],
+            ),
+            Divider(color: AppColors.textColorLight, thickness: 1.5),
+            Column(
+              children: [
+                for (int i = 0; i < statusEffects.length; i += itemsPerRow)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          for (int j = i;
+                              j < i + itemsPerRow && j < statusEffects.length;
+                              j++)
+                            SizedBox(
+                              width: itemWidth,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _editCondition(statusEffects[j]);
+                                },
+                                onLongPress: () {
+                                  _showDeleteConfirmationDialogCondition(
+                                      statusEffects[j]);
+                                },
+                                child: Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 50,
+                                      child: Card(
+                                        elevation: 3,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Center(
+                                            child: Text(
+                                              statusEffects[j].condition,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 25),
+
+            // Trackers Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tracker',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _addNewTracker,
+                ),
+              ],
+            ),
+            Divider(color: AppColors.textColorLight, thickness: 1.5),
+            Column(
+              children: [
+                for (int i = 0; i < trackers.length; i += itemsPerRow)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          for (int j = i;
+                              j < i + itemsPerRow && j < trackers.length;
+                              j++)
+                            SizedBox(
+                              width: itemWidth,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _editTracker(trackers[j]);
+                                },
+                                onLongPress: () {
+                                  _showDeleteConfirmationDialog(trackers[j]);
+                                },
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      trackers[j].tracker,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: itemWidth,
+                                      child: Card(
+                                        elevation: 3,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                trackers[j].value.toString(),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            // Creatures Section
+            const SizedBox(height: 25),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Begleiter',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _addCreature,
+                ),
+              ],
+            ),
+            Divider(color: AppColors.textColorLight, thickness: 1.5),
+            Column(
+              children: [
+                for (int i = 0; i < creatures.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: GestureDetector(
+                      onLongPress: () {
+                        _showDeleteConfirmationDialogC(creatures[i]);
+                      },
+                      onTap: () {
+                        _editCreature(creatures[i]);
+                      },
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        elevation: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${creatures[i].name} ${creatures[i].currentHP} / ${creatures[i].maxHP}',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      GestureDetector(
+                                        onLongPressStart: (_) =>
+                                            _startDecrementingC(i),
+                                        onLongPressEnd: (_) => _stopTimer(),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.remove),
+                                          onPressed: () {
+                                            _decrementCreatureHP(i);
+                                          },
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onLongPressStart: (_) =>
+                                            _startIncrementingC(i),
+                                        onLongPressEnd: (_) => _stopTimer(),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.add),
+                                          onPressed: () {
+                                            _incrementCreatureHP(i);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  _showEditCreatureHPDialog(i);
+                                },
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    double cardWidth = constraints.maxWidth;
+                                    double greenBarWidth = 0;
+
+                                    if (creatures[i].maxHP > 0) {
+                                      greenBarWidth = (creatures[i].currentHP /
+                                              creatures[i].maxHP) *
+                                          cardWidth;
+                                      greenBarWidth =
+                                          greenBarWidth.clamp(0.0, cardWidth);
+                                    }
+
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF581B10),
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 0,
+                                          child: Container(
+                                            height: 20,
+                                            width: greenBarWidth,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF1B6533),
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
               ],
             ),
-          ),
 
-          const SizedBox(height: 25),
-
-          // Stats Section
-          const Text(
-            'Statistik',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          Divider(color: AppColors.textColorLight, thickness: 1.5),
-          const SizedBox(height: 8),
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatCard('Rüstungsklasse', armor, Defines.statArmor,
-                      isCount: true),
-                  _buildStatCard(
-                      'Inspiration', inspiration, Defines.statInspiration,
-                      isCount: true),
-                  _buildStatCard('Übungsbonus', proficiencyBonus,
-                      Defines.statProficiencyBonus,
-                      isCount: true, isClickable: false),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatCard(
-                      'Initiative', initiative, Defines.statInitiative,
-                      isCount: true, isClickable: false),
-                  _buildStatCard(
-                      'Bewegungsrate', movement, Defines.statMovement),
-                  _buildEditHitDiceCard(),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 25),
-
-          // Status Effects Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Status Effekte',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _addCondition,
-              ),
-            ],
-          ),
-          Divider(color: AppColors.textColorLight, thickness: 1.5),
-          Column(
-            children: [
-              for (int i = 0; i < statusEffects.length; i += itemsPerRow)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        for (int j = i;
-                            j < i + itemsPerRow && j < statusEffects.length;
-                            j++)
-                          SizedBox(
-                            width: itemWidth,
-                            child: GestureDetector(
-                              onTap: () {
-                                _editCondition(statusEffects[j]);
-                              },
-                              onLongPress: () {
-                                _showDeleteConfirmationDialogCondition(
-                                    statusEffects[j]);
-                              },
-                              child: Column(
-                                children: [
-                                  SizedBox(
-                                    height: 50,
-                                    child: Card(
-                                      elevation: 3,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Center(
-                                          child: Text(
-                                            statusEffects[j].condition,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 25),
-
-          // Trackers Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Tracker',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _addNewTracker,
-              ),
-            ],
-          ),
-          Divider(color: AppColors.textColorLight, thickness: 1.5),
-          Column(
-            children: [
-              for (int i = 0; i < trackers.length; i += itemsPerRow)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        for (int j = i;
-                            j < i + itemsPerRow && j < trackers.length;
-                            j++)
-                          SizedBox(
-                            width: itemWidth,
-                            child: GestureDetector(
-                              onTap: () {
-                                _editTracker(trackers[j]);
-                              },
-                              onLongPress: () {
-                                _showDeleteConfirmationDialog(trackers[j]);
-                              },
-                              child: Column(
-                                children: [
-                                  Text(
-                                    trackers[j].tracker,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: itemWidth,
-                                    child: Card(
-                                      elevation: 3,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              trackers[j].value.toString(),
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          // Creatures Section
-          const SizedBox(height: 25),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Begleiter',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _addCreature,
-              ),
-            ],
-          ),
-          Divider(color: AppColors.textColorLight, thickness: 1.5),
-          Column(
-            children: [
-              for (int i = 0; i < creatures.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: GestureDetector(
-                    onLongPress: () {
-                      _showDeleteConfirmationDialogC(creatures[i]);
-                    },
-                    onTap: () {
-                      _editCreature(creatures[i]);
-                    },
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '${creatures[i].name} ${creatures[i].currentHP} / ${creatures[i].maxHP}',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    GestureDetector(
-                                      onLongPressStart: (_) =>
-                                          _startDecrementingC(i),
-                                      onLongPressEnd: (_) => _stopTimer(),
-                                      child: IconButton(
-                                        icon: const Icon(Icons.remove),
-                                        onPressed: () {
-                                          _decrementCreatureHP(i);
-                                        },
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onLongPressStart: (_) =>
-                                          _startIncrementingC(i),
-                                      onLongPressEnd: (_) => _stopTimer(),
-                                      child: IconButton(
-                                        icon: const Icon(Icons.add),
-                                        onPressed: () {
-                                          _incrementCreatureHP(i);
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                _showEditCreatureHPDialog(i);
-                              },
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  double cardWidth = constraints.maxWidth;
-                                  double greenBarWidth = 0;
-
-                                  if (creatures[i].maxHP > 0) {
-                                    greenBarWidth = (creatures[i].currentHP /
-                                            creatures[i].maxHP) *
-                                        cardWidth;
-                                    greenBarWidth =
-                                        greenBarWidth.clamp(0.0, cardWidth);
-                                  }
-
-                                  return Stack(
-                                    children: [
-                                      Container(
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF581B10),
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: 0,
-                                        child: Container(
-                                          height: 20,
-                                          width: greenBarWidth,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF1B6533),
-                                            borderRadius:
-                                                BorderRadius.circular(5),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-        ],
-      ),
-    ));
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    }));
   }
 
   Widget _buildStatCard(
