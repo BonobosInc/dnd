@@ -90,6 +90,32 @@ class WikiPageState extends State<WikiPage> {
     widget.wikiParser.creatures.clear();
   }
 
+  void _addclass() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddClassPage(
+          onSave: (newClass) async {
+            final xmlFilePath = await getDir();
+            final xmlFile = File(xmlFilePath);
+            if (!xmlFile.existsSync()) {
+              throw Exception("XML file not found at $xmlFilePath");
+            }
+            final document =
+                xml.XmlDocument.parse(await xmlFile.readAsString());
+
+            widget.wikiParser.addClassToXml(document, newClass);
+
+            await xmlFile.writeAsString(document.toXmlString(pretty: true));
+            if (kDebugMode) {
+              print("Class added successfully to XML.");
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> importXml() async {
     String? filePath = await FilePicker.platform
         .pickFiles(
@@ -218,32 +244,7 @@ class WikiPageState extends State<WikiPage> {
                       _deleteXml();
                       loadDataFromParser();
                     } else if (value == 'class') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddClassPage(
-                            onSave: (newClass) async {
-                              final xmlFilePath = await getDir();
-                              final xmlFile = File(xmlFilePath);
-                              if (!xmlFile.existsSync()) {
-                                throw Exception(
-                                    "XML file not found at $xmlFilePath");
-                              }
-                              final document = xml.XmlDocument.parse(
-                                  await xmlFile.readAsString());
-
-                              widget.wikiParser
-                                  .addClassToXml(document, newClass);
-
-                              await xmlFile.writeAsString(
-                                  document.toXmlString(pretty: true));
-                              if (kDebugMode) {
-                                print("Class added successfully to XML.");
-                              }
-                            },
-                          ),
-                        ),
-                      );
+                      _addclass();
                     }
                   },
                   itemBuilder: (BuildContext context) {
