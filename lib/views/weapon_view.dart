@@ -4,6 +4,7 @@ import 'package:dnd/configs/defines.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/colours.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class WeaponPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -45,8 +46,9 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   void _addWeapon(Weapon weapon, String description) {
+    final loc = AppLocalizations.of(context)!;
     final finalDescription =
-        description.isEmpty ? "Keine Beschreibung verfügbar" : description;
+        description.isEmpty ? loc.nodescription : description;
 
     widget.profileManager
         .addWeapon(
@@ -64,8 +66,9 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   void _updateWeapon(Weapon weapon, String description) {
+    final loc = AppLocalizations.of(context)!;
     final finalDescription =
-        description.isEmpty ? "Keine Beschreibung verfügbar" : description;
+        description.isEmpty ? loc.nodescription : description;
 
     widget.profileManager
         .updateWeapons(
@@ -89,6 +92,7 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   void _showWeaponDialog(Weapon weapon, bool isNewWeapon) {
+    final loc = AppLocalizations.of(context)!;
     final TextEditingController nameController =
         TextEditingController(text: weapon.name);
     final TextEditingController attributeController =
@@ -108,7 +112,7 @@ class WeaponPageState extends State<WeaponPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(isNewWeapon ? 'Waffe hinzufügen' : 'Waffe bearbeiten'),
+          title: Text(isNewWeapon ? loc.addweapon : loc.editweapon),
           content: SingleChildScrollView(
             child: _buildWeaponDetailForm(
               nameController,
@@ -126,7 +130,7 @@ class WeaponPageState extends State<WeaponPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("Abbrechen"),
+              child: Text(loc.abort),
             ),
             TextButton(
               onPressed: () {
@@ -160,7 +164,7 @@ class WeaponPageState extends State<WeaponPage> {
                 }
                 Navigator.of(context).pop();
               },
-              child: const Text("Speichern"),
+              child: Text(loc.save),
             ),
           ],
         );
@@ -178,15 +182,16 @@ class WeaponPageState extends State<WeaponPage> {
     TextEditingController descriptionController,
     Weapon weapon,
   ) {
+    final loc = AppLocalizations.of(context)!;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildTextField('Waffe', nameController),
-        _buildTextField('Reichweite', reachController),
-        _buildTextField('Schadenstyp', damageTypeController),
-        _buildTextField('Bonus', bonusController),
-        _buildTextField('Schaden', damageController),
-        _buildTextField('Attribut', attributeController),
+        _buildTextField(loc.weapon, nameController),
+        _buildTextField(loc.reach, reachController),
+        _buildTextField(loc.damagetype, damageTypeController),
+        _buildTextField(loc.bonus, bonusController),
+        _buildTextField(loc.damage, damageController),
+        _buildTextField(loc.attribute, attributeController),
         _buildDescriptionTextField(descriptionController),
       ],
     );
@@ -208,26 +213,28 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   void _showDeleteConfirmationDialog(Weapon weapon) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Löschen bestätigen'),
+          title: Text(loc.confirmdelete),
           content: Text(
-              'Sind Sie sicher, dass Sie "${weapon.name}" löschen möchten?'),
+            loc.confirmItemDelete(weapon.name),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
             ),
             TextButton(
               onPressed: () {
                 _deleteWeapon(weapon.uuid!);
                 Navigator.of(context).pop(true);
               },
-              child: const Text('Löschen'),
+              child: Text(loc.delete),
             ),
           ],
         );
@@ -237,13 +244,14 @@ class WeaponPageState extends State<WeaponPage> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final constraints = BoxConstraints(
       maxWidth: MediaQuery.of(context).size.width,
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Waffen",
+        title: Text(loc.weapons,
             style: TextStyle(color: AppColors.textColorLight)),
         backgroundColor: AppColors.appBarColor,
         actions: [
@@ -264,6 +272,7 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   Widget _buildWeaponTile(Weapon weapon, BoxConstraints constraints) {
+    final loc = AppLocalizations.of(context)!;
     double scaledfontSize = min(constraints.maxWidth * 0.04, 600 * 0.04);
     double scaledfontDamageType = min(constraints.maxWidth * 0.035, 600 * 0.035);
     return Row(
@@ -391,7 +400,7 @@ class WeaponPageState extends State<WeaponPage> {
                             Expanded(
                               child: Text(
                                 weapon.description ??
-                                    "Keine Beschreibung verfügbar",
+                                    loc.nodescription,
                                 textAlign: TextAlign.left,
                                 style: TextStyle(
                                   color: AppColors.textColorLight,
@@ -433,12 +442,13 @@ class WeaponPageState extends State<WeaponPage> {
   }
 
   Widget _buildDescriptionTextField(TextEditingController controller) {
+    final loc = AppLocalizations.of(context)!;
     return TextField(
       controller: controller,
       maxLines: 4,
-      decoration: const InputDecoration(
-        labelText: 'Beschreibung',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: loc.description,
+        border: const OutlineInputBorder(),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:dnd/configs/defines.dart';
 import 'package:dnd/views/spell_editing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SpellDetailPage extends StatelessWidget {
   final SpellData spellData;
