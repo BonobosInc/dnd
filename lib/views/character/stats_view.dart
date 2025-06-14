@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class StatsPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -12,7 +13,6 @@ class StatsPage extends StatefulWidget {
 }
 
 class StatsPageState extends State<StatsPage> {
-
   int strength = 10;
   int dexterity = 10;
   int constitution = 10;
@@ -357,6 +357,7 @@ class StatsPageState extends State<StatsPage> {
 
   Future<void> _showEditDialog(
       String statName, int currentScore, String field) async {
+    final loc = AppLocalizations.of(context)!;
     int newScore = currentScore;
 
     await showDialog(
@@ -365,14 +366,14 @@ class StatsPageState extends State<StatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Bearbeite $statName'),
+              title: Text('${loc.edit} $statName'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Wert:'),
+                      Text('${loc.value}:'),
                       Row(
                         children: [
                           IconButton(
@@ -401,7 +402,7 @@ class StatsPageState extends State<StatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Abbrechen'),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -409,7 +410,7 @@ class StatsPageState extends State<StatsPage> {
 
                     if (context.mounted) Navigator.of(context).pop();
                   },
-                  child: const Text('Speichern'),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -421,17 +422,18 @@ class StatsPageState extends State<StatsPage> {
 
   Future<void> _showSavingThrowDialog(
       String statName, int proficiency, String field) async {
+    final loc = AppLocalizations.of(context)!;
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Rettungswurf für $statName'),
+        title: Text('${loc.savingThrowfor} $statName'),
         content: StatefulBuilder(
           builder: (context, setState) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 CheckboxListTile(
-                  title: const Text("Übungsbonus"),
+                  title: Text(loc.proficiencyBonus),
                   value: proficiency == 1,
                   onChanged: (bool? value) {
                     setState(() {
@@ -446,7 +448,7 @@ class StatsPageState extends State<StatsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Abbrechen'),
+            child: Text(loc.abort),
           ),
           TextButton(
             onPressed: () async {
@@ -456,7 +458,7 @@ class StatsPageState extends State<StatsPage> {
               });
               Navigator.of(context).pop();
             },
-            child: const Text('Speichern'),
+            child: Text(loc.save),
           ),
         ],
       ),
@@ -525,17 +527,18 @@ class StatsPageState extends State<StatsPage> {
 
   Future<void> _showSkillDialog(
       String skillName, int proficiency, int hasExpertise, String field) async {
+    final loc = AppLocalizations.of(context)!;
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Bearbeite Fertigkeit für $skillName'),
+        title: Text('${loc.editskillfor} $skillName'),
         content: StatefulBuilder(
           builder: (context, setState) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 CheckboxListTile(
-                  title: const Text("Übung"),
+                  title: Text(loc.proficiency),
                   value: proficiency == 1,
                   onChanged: (bool? value) {
                     setState(() {
@@ -547,7 +550,7 @@ class StatsPageState extends State<StatsPage> {
                   },
                 ),
                 CheckboxListTile(
-                  title: const Text("Expertise"),
+                  title: Text(loc.expertise),
                   value: hasExpertise == 1,
                   onChanged: (bool? value) {
                     if (proficiency == 1) {
@@ -561,7 +564,7 @@ class StatsPageState extends State<StatsPage> {
                   checkColor: proficiency == 1 ? null : Colors.grey[700],
                 ),
                 CheckboxListTile(
-                  title: const Text("Alleskönner"),
+                  title: Text(loc.jack),
                   value: skillJack == 1,
                   onChanged: (bool? value) {
                     setState(() {
@@ -576,7 +579,7 @@ class StatsPageState extends State<StatsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Abbrechen'),
+            child: Text(loc.abort),
           ),
           TextButton(
             onPressed: () async {
@@ -587,7 +590,7 @@ class StatsPageState extends State<StatsPage> {
               });
               Navigator.of(context).pop();
             },
-            child: const Text('Speichern'),
+            child: Text(loc.save),
           ),
         ],
       ),
@@ -666,51 +669,157 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildSkillsSection() {
+    final loc = AppLocalizations.of(context)!;
+
+    final List<Map<String, dynamic>> skillData = [
+      {
+        'name': loc.skillAcrobatics,
+        'prof': skillProfAcro,
+        'ex': skillExAcro,
+        'define': Defines.skillAcrobatics,
+        'ability': dexterity,
+      },
+      {
+        'name': loc.skillAnimalHandling,
+        'prof': skillProfAnim,
+        'ex': skillExAnim,
+        'define': Defines.skillAnimalHandling,
+        'ability': wisdom,
+      },
+      {
+        'name': loc.skillArcana,
+        'prof': skillProfArca,
+        'ex': skillExArca,
+        'define': Defines.skillArcana,
+        'ability': intelligence,
+      },
+      {
+        'name': loc.skillAthletics,
+        'prof': skillProfAthl,
+        'ex': skillExAthl,
+        'define': Defines.skillAthletics,
+        'ability': strength,
+      },
+      {
+        'name': loc.skillDeception,
+        'prof': skillProfDece,
+        'ex': skillExDece,
+        'define': Defines.skillDeception,
+        'ability': charisma,
+      },
+      {
+        'name': loc.skillHistory,
+        'prof': skillProfHist,
+        'ex': skillExHist,
+        'define': Defines.skillHistory,
+        'ability': intelligence,
+      },
+      {
+        'name': loc.skillInsight,
+        'prof': skillProfInsi,
+        'ex': skillExInsi,
+        'define': Defines.skillInsight,
+        'ability': wisdom,
+      },
+      {
+        'name': loc.skillIntimidation,
+        'prof': skillProfInti,
+        'ex': skillExInti,
+        'define': Defines.skillIntimidation,
+        'ability': charisma,
+      },
+      {
+        'name': loc.skillInvestigation,
+        'prof': skillProfInve,
+        'ex': skillExInve,
+        'define': Defines.skillInvestigation,
+        'ability': intelligence,
+      },
+      {
+        'name': loc.skillMedicine,
+        'prof': skillProfMedi,
+        'ex': skillExMedi,
+        'define': Defines.skillMedicine,
+        'ability': wisdom,
+      },
+      {
+        'name': loc.skillNature,
+        'prof': skillProfNatu,
+        'ex': skillExNatu,
+        'define': Defines.skillNature,
+        'ability': intelligence,
+      },
+      {
+        'name': loc.skillPerception,
+        'prof': skillProfPerc,
+        'ex': skillExPerc,
+        'define': Defines.skillPerception,
+        'ability': wisdom,
+      },
+      {
+        'name': loc.skillPerformance,
+        'prof': skillProfPerf,
+        'ex': skillExPerf,
+        'define': Defines.skillPerformance,
+        'ability': charisma,
+      },
+      {
+        'name': loc.skillPersuasion,
+        'prof': skillProfPers,
+        'ex': skillExPers,
+        'define': Defines.skillPersuasion,
+        'ability': charisma,
+      },
+      {
+        'name': loc.skillReligion,
+        'prof': skillProfReli,
+        'ex': skillExReli,
+        'define': Defines.skillReligion,
+        'ability': intelligence,
+      },
+      {
+        'name': loc.skillSleightOfHand,
+        'prof': skillProfSlei,
+        'ex': skillExSlei,
+        'define': Defines.skillSleightOfHand,
+        'ability': dexterity,
+      },
+      {
+        'name': loc.skillStealth,
+        'prof': skillProfStea,
+        'ex': skillExStea,
+        'define': Defines.skillStealth,
+        'ability': dexterity,
+      },
+      {
+        'name': loc.skillSurvival,
+        'prof':
+            skillProfStea,
+        'ex': skillExStea,
+        'define': Defines.skillSurvival,
+        'ability': wisdom,
+      },
+    ];
+
+    skillData.sort((a, b) => a['name'].compareTo(b['name']));
+
     return Column(
       children: [
         _buildSkillsLabelRow(),
-        _buildSkillRow("Akrobatik", skillProfAcro, skillExAcro,
-            Defines.skillAcrobatics, dexterity),
-        _buildSkillRow("Arkane Kenntnis", skillProfArca, skillExArca,
-            Defines.skillArcana, intelligence),
-        _buildSkillRow("Athletik", skillProfAthl, skillExAthl,
-            Defines.skillAthletics, strength),
-        _buildSkillRow("Auftreten", skillProfPerf, skillExPerf,
-            Defines.skillPerformance, charisma),
-        _buildSkillRow("Einschüchtern", skillProfInti, skillExInti,
-            Defines.skillIntimidation, charisma),
-        _buildSkillRow("Fingerfertigkeit", skillProfSlei, skillExSlei,
-            Defines.skillSleightOfHand, dexterity),
-        _buildSkillRow("Geschichte", skillProfHist, skillExHist,
-            Defines.skillHistory, intelligence),
-        _buildSkillRow("Heilkunde", skillProfMedi, skillExMedi,
-            Defines.skillMedicine, wisdom),
-        _buildSkillRow("Heimlichkeit", skillProfStea, skillExStea,
-            Defines.skillStealth, dexterity),
-        _buildSkillRow("Mit Tieren umgehen", skillProfAnim, skillExAnim,
-            Defines.skillAnimalHandling, wisdom),
-        _buildSkillRow("Motiv Erkennen", skillProfInsi, skillExInsi,
-            Defines.skillInsight, wisdom),
-        _buildSkillRow("Nachforschung", skillProfInve, skillExInve,
-            Defines.skillInvestigation, intelligence),
-        _buildSkillRow("Naturkunde", skillProfNatu, skillExNatu,
-            Defines.skillNature, intelligence),
-        _buildSkillRow("Religion", skillProfReli, skillExReli,
-            Defines.skillReligion, intelligence),
-        _buildSkillRow("Täuschen", skillProfDece, skillExDece,
-            Defines.skillDeception, charisma),
-        _buildSkillRow("Überlebenskunst", skillProfStea, skillExStea,
-            Defines.skillSurvival, wisdom),
-        _buildSkillRow("Überzeugen", skillProfPers, skillExPers,
-            Defines.skillPersuasion, charisma),
-        _buildSkillRow("Wahrnehmung", skillProfPerc, skillExPerc,
-            Defines.skillPerception, wisdom),
+        ...skillData.map((skill) => _buildSkillRow(
+              skill['name'],
+              skill['prof'],
+              skill['ex'],
+              skill['define'],
+              skill['ability'],
+            )),
       ],
     );
   }
 
   Widget _buildStatsLabelRow() {
-    return const Padding(
+    final loc = AppLocalizations.of(context)!;
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
       child: Row(
         children: [
@@ -718,7 +827,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 1,
             child: Center(
               child: Text(
-                "Wert",
+                loc.value,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -729,7 +838,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 2,
             child: Center(
               child: Text(
-                "Fähigkeit",
+                loc.ability,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -740,7 +849,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 1,
             child: Center(
               child: Text(
-                "Mod",
+                loc.modifier,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -752,7 +861,8 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildSavingThrowLabelRow() {
-    return const Padding(
+    final loc = AppLocalizations.of(context)!;
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
       child: Row(
         children: [
@@ -760,7 +870,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 1,
             child: Center(
               child: Text(
-                "Bonus",
+                loc.bonus,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -771,7 +881,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 3,
             child: Center(
               child: Text(
-                "Fähigkeit",
+                loc.ability,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -783,7 +893,8 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildSkillsLabelRow() {
-    return const Padding(
+    final loc = AppLocalizations.of(context)!;
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
       child: Row(
         children: [
@@ -791,7 +902,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 1,
             child: Center(
               child: Text(
-                "Bonus",
+                loc.bonus,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -802,7 +913,7 @@ class StatsPageState extends State<StatsPage> {
             flex: 3,
             child: Center(
               child: Text(
-                "Fertigkeit",
+                loc.skill,
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -815,37 +926,38 @@ class StatsPageState extends State<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return SafeArea(
-    child: SingleChildScrollView(
+        child: SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader("Stats"),
           _buildStatsLabelRow(),
-          _buildStatRow("Stärke", strength, Defines.statSTR),
-          _buildStatRow("Geschicklichkeit", dexterity, Defines.statDEX),
-          _buildStatRow("Konstitution", constitution, Defines.statCON),
-          _buildStatRow("Intelligenz", intelligence, Defines.statINT),
-          _buildStatRow("Weisheit", wisdom, Defines.statWIS),
-          _buildStatRow("Charisma", charisma, Defines.statCHA),
+          _buildStatRow(loc.strength, strength, Defines.statSTR),
+          _buildStatRow(loc.dexterity, dexterity, Defines.statDEX),
+          _buildStatRow(loc.dexterity, constitution, Defines.statCON),
+          _buildStatRow(loc.intelligence, intelligence, Defines.statINT),
+          _buildStatRow(loc.wisdom, wisdom, Defines.statWIS),
+          _buildStatRow(loc.charisma, charisma, Defines.statCHA),
           const SizedBox(height: 24),
-          _buildHeader("Rettungswürfe"),
+          _buildHeader(loc.savingThrows),
           _buildSavingThrowLabelRow(),
           _buildSavingThrowRow(
-              "Stärke", saveStrProficiency, Defines.saveStr, strength),
-          _buildSavingThrowRow("Geschicklichkeit", saveDexProficiency,
+              loc.strength, saveStrProficiency, Defines.saveStr, strength),
+          _buildSavingThrowRow(loc.dexterity, saveDexProficiency,
               Defines.saveDex, dexterity),
-          _buildSavingThrowRow("Konstitution", saveConProficiency,
+          _buildSavingThrowRow(loc.constitution, saveConProficiency,
               Defines.saveCon, constitution),
           _buildSavingThrowRow(
-              "Intelligenz", saveIntProficiency, Defines.saveInt, intelligence),
+              loc.intelligence, saveIntProficiency, Defines.saveInt, intelligence),
           _buildSavingThrowRow(
-              "Weisheit", saveWisProficiency, Defines.saveWis, wisdom),
+              loc.wisdom, saveWisProficiency, Defines.saveWis, wisdom),
           _buildSavingThrowRow(
-              "Charisma", saveChaProficiency, Defines.saveCha, charisma),
+              loc.charisma, saveChaProficiency, Defines.saveCha, charisma),
           const SizedBox(height: 24),
-          _buildHeader("Fertigkeiten"),
+          _buildHeader(loc.skills),
           _buildSkillsSection(),
         ],
       ),

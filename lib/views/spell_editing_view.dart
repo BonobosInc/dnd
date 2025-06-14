@@ -5,7 +5,7 @@ import 'package:dnd/views/wiki/spellwiki_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class SpellEditingPage extends StatefulWidget {
   final ProfileManager profileManager;

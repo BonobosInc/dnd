@@ -4,7 +4,7 @@ import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 import 'dart:math';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class BagPage extends StatefulWidget {
   final ProfileManager profileManager;

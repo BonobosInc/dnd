@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dnd/main.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 import 'package:dnd/configs/colours.dart';
 
 class SettingsPage extends StatelessWidget {

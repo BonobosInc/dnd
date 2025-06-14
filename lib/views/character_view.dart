@@ -16,7 +16,7 @@ import 'package:dnd/configs/colours.dart';
 import 'spell_view.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class CharacterView extends StatefulWidget {
   final ProfileManager profileManager;

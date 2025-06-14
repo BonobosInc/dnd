@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:dnd/configs/colours.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'spell_editing_view.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class SpellManagementPage extends StatefulWidget {
   final ProfileManager profileManager;

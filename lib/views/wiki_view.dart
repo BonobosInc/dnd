@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class WikiPage extends StatefulWidget {
   final WikiParser wikiParser;
