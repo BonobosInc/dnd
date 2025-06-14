@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class WikiPage extends StatefulWidget {
   final WikiParser wikiParser;
@@ -91,6 +92,7 @@ class WikiPageState extends State<WikiPage> {
   }
 
   Future<void> importXml() async {
+    final loc = AppLocalizations.of(context)!;
     String? filePath = await FilePicker.platform
         .pickFiles(
           type: FileType.any,
@@ -101,7 +103,7 @@ class WikiPageState extends State<WikiPage> {
       if (!filePath.endsWith('.xml')) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nur XML-Dateien sind erlaubt.')),
+            SnackBar(content: Text(loc.onlyxmlallowed)),
           );
         }
         return;
@@ -113,30 +115,31 @@ class WikiPageState extends State<WikiPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Import erfolgreich')),
+            SnackBar(content: Text(loc.importgood)),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Import fehlgeschlagen: $e')),
+            SnackBar(content: Text('${loc.importbad}: $e')),
           );
         }
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Import abgebrochen oder fehlgeschlagen.')),
+          SnackBar(
+              content: Text(loc.importbad)),
         );
       }
     }
   }
 
   Future<void> exportXml() async {
+    final loc = AppLocalizations.of(context)!;
     if (widget.wikiParser.savedXmlFilePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No XML file has been loaded to export.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(loc.noexportfilefound)));
       return;
     }
 
@@ -145,18 +148,19 @@ class WikiPageState extends State<WikiPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Export erfolgreich!')));
+            .showSnackBar(SnackBar(content: Text(loc.exportgood)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: $e')));
+            .showSnackBar(SnackBar(content: Text('${loc.exportbad}: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     List<dynamic> filteredItems = [];
     if (searchQuery.isNotEmpty) {
       filteredItems.addAll(classes.where((item) =>
@@ -177,8 +181,8 @@ class WikiPageState extends State<WikiPage> {
             ? TextField(
                 controller: searchController,
                 focusNode: searchFocusNode,
-                decoration: const InputDecoration(
-                  hintText: 'Search...',
+                decoration: InputDecoration(
+                  hintText: '${loc.search}...',
                   border: InputBorder.none,
                   hintStyle: TextStyle(color: Colors.white54),
                 ),
@@ -189,7 +193,7 @@ class WikiPageState extends State<WikiPage> {
                   });
                 },
               )
-            : const Text('D&D Wiki'),
+            : Text(loc.wiki),
         actions: widget.importFeat == false
             ? [
                 IconButton(
@@ -248,17 +252,17 @@ class WikiPageState extends State<WikiPage> {
                   },
                   itemBuilder: (BuildContext context) {
                     return [
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'import',
-                        child: Text('Wiki importieren'),
+                        child: Text(loc.importwiki),
                       ),
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'export',
-                        child: Text('Wiki exportieren'),
+                        child: Text(loc.exportwiki),
                       ),
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'delete',
-                        child: Text('Wiki löschen'),
+                        child: Text(loc.deletewiki),
                       ),
                       // const PopupMenuItem<String>(
                       //   value: 'class',
@@ -274,7 +278,7 @@ class WikiPageState extends State<WikiPage> {
         padding: const EdgeInsets.all(16.0),
         children: searchQuery.isNotEmpty
             ? (filteredItems.isEmpty
-                ? [const ListTile(title: Text('Keine Ergebnisse gefunden'))]
+                ? [ListTile(title: Text(loc.noresultfound))]
                 : filteredItems.map((item) {
                     return Column(
                       children: [
@@ -315,13 +319,13 @@ class WikiPageState extends State<WikiPage> {
                     );
                   }).toList())
             : [
-                buildCollapsibleSection('Rassen', races),
-                buildCollapsibleSection('Klassen', classes),
-                buildCollapsibleSection('Hintergründe', backgrounds),
-                buildCollapsibleSection('Talente', feats),
-                buildCreatureCollapsibleSection('Monster', creatures),
+                buildCollapsibleSection(loc.races, races),
+                buildCollapsibleSection(loc.classesKey, classes),
+                buildCollapsibleSection(loc.backgrounds, backgrounds),
+                buildCollapsibleSection(loc.talents, feats),
+                buildCreatureCollapsibleSection(loc.monster, creatures),
                 if (widget.importFeat == false)
-                  buildSpellCollapsibleSection('Zauber', spells),
+                  buildSpellCollapsibleSection(loc.spells, spells),
               ],
       ),
     );
@@ -329,6 +333,7 @@ class WikiPageState extends State<WikiPage> {
 
   Widget buildCollapsibleSection<T extends Nameable>(
       String title, List<T> items) {
+    final loc = AppLocalizations.of(context)!;
     List<T> filteredItems = items.where((item) {
       return item.name.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
@@ -349,7 +354,7 @@ class WikiPageState extends State<WikiPage> {
             ),
           ),
           children: filteredItems.isEmpty
-              ? [const ListTile(title: Text('Keine Ergebnisse gefunden'))]
+              ? [ListTile(title: Text(loc.noresultfound))]
               : filteredItems.asMap().entries.map((entry) {
                   int index = entry.key;
                   T item = entry.value;
@@ -400,6 +405,7 @@ class WikiPageState extends State<WikiPage> {
   }
 
   Widget buildSpellCollapsibleSection(String title, List<SpellData> spells) {
+    final loc = AppLocalizations.of(context)!;
     final groupedSpells = <String, List<SpellData>>{};
 
     for (var spell in spells) {
@@ -428,7 +434,7 @@ class WikiPageState extends State<WikiPage> {
       children: [
         const Divider(),
         ListTile(
-          title: const Text('Alle Zauber'),
+          title: Text(loc.allspells),
           onTap: () {
             Navigator.push(
               context,
@@ -469,6 +475,7 @@ class WikiPageState extends State<WikiPage> {
 
   Widget buildCreatureCollapsibleSection(
       String title, List<Creature> creatures) {
+    final loc = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -484,7 +491,7 @@ class WikiPageState extends State<WikiPage> {
           children: [
             const Divider(),
             ListTile(
-              title: const Text('Alle Monster'),
+              title: Text(loc.allmonster),
               onTap: () {
                 Navigator.push(
                   context,
