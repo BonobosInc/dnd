@@ -8,11 +8,15 @@ import 'views/profile_home_screen.dart';
 import 'configs/colours.dart';
 import 'package:flutter/services.dart';
 import 'package:window_size/window_size.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 ValueNotifier<bool> isDarkMode = ValueNotifier(true);
+ValueNotifier<Locale> appLocale = ValueNotifier(const Locale('de'));
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await cleanupPendingApk();
@@ -23,8 +27,9 @@ void main() async {
   }
 
   await AppColors.loadThemePreference();
-
   isDarkMode.value = AppColors.isDarkMode;
+
+  await _loadSavedLocale();
 
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     sqfliteFfiInit();
@@ -46,6 +51,17 @@ void main() async {
   });
 }
 
+Future<void> _loadSavedLocale() async {
+  final prefs = await SharedPreferences.getInstance();
+  final langCode = prefs.getString('locale') ?? 'de';
+  appLocale.value = Locale(langCode);
+}
+
+Future<void> saveLocale(Locale locale) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('locale', locale.languageCode);
+}
+
 String getDeviceType(BuildContext context) {
   final data = MediaQuery.of(context);
   return data.size.shortestSide < 600 ? 'phone' : 'tablet';
@@ -63,28 +79,44 @@ class DNDApp extends StatelessWidget {
       builder: (context, isDark, child) {
         AppColors.toggleTheme(isDark);
 
-        return MaterialApp(
-          navigatorKey: navigatorKey,
-          title: 'DND App',
-          theme: ThemeData(
-            brightness: isDark ? Brightness.dark : Brightness.light,
-            primaryColor: AppColors.primaryColor,
-            scaffoldBackgroundColor: AppColors.primaryColor,
-            appBarTheme: AppBarTheme(
-              color: AppColors.appBarColor,
-            ),
-            splashColor: Colors.transparent,
-            cardColor: AppColors.cardColor,
-            dividerColor: AppColors.dividerColor,
-            textTheme: TextTheme(
-              bodyLarge: TextStyle(color: AppColors.textColorLight),
-              bodyMedium: TextStyle(color: AppColors.textColorDark),
-              displayLarge:
-                  TextStyle(color: AppColors.textColorLight, fontSize: 20),
-            ),
-          ),
-          home: ProfileHomeScreen(wikiParser: wikiParser),
-          debugShowCheckedModeBanner: false,
+        return ValueListenableBuilder<Locale>(
+          valueListenable: appLocale,
+          builder: (context, locale, _) {
+            return MaterialApp(
+              navigatorKey: navigatorKey,
+              title: 'DND App',
+              locale: locale,
+              theme: ThemeData(
+                brightness: isDark ? Brightness.dark : Brightness.light,
+                primaryColor: AppColors.primaryColor,
+                scaffoldBackgroundColor: AppColors.primaryColor,
+                appBarTheme: AppBarTheme(
+                  color: AppColors.appBarColor,
+                ),
+                splashColor: Colors.transparent,
+                cardColor: AppColors.cardColor,
+                dividerColor: AppColors.dividerColor,
+                textTheme: TextTheme(
+                  bodyLarge: TextStyle(color: AppColors.textColorLight),
+                  bodyMedium: TextStyle(color: AppColors.textColorDark),
+                  displayLarge:
+                      TextStyle(color: AppColors.textColorLight, fontSize: 20),
+                ),
+              ),
+              home: ProfileHomeScreen(wikiParser: wikiParser),
+              debugShowCheckedModeBanner: false,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('de'),
+                Locale('en'),
+              ],
+            );
+          },
         );
       },
     );

@@ -4,6 +4,7 @@ import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
 import 'package:dnd/configs/colours.dart';
 import 'dart:math';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class BagPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -93,15 +94,16 @@ class BagPageState extends State<BagPage> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gegenstände/Ausrüstung'),
+        title: Text(loc.equipments),
         backgroundColor: AppColors.appBarColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _showAddItemDialog,
-            tooltip: 'Gegenstand hinzufügen',
+            tooltip: loc.additem,
           ),
         ],
       ),
@@ -114,7 +116,7 @@ class BagPageState extends State<BagPage> {
               children: [
                 Expanded(
                   child: _buildIntegerTextField(
-                    'PM',
+                    loc.platinum,
                     platinController,
                     Defines.bagPlatin,
                   ),
@@ -122,7 +124,7 @@ class BagPageState extends State<BagPage> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: _buildIntegerTextField(
-                    'GM',
+                    loc.gold,
                     goldController,
                     Defines.bagGold,
                   ),
@@ -130,7 +132,7 @@ class BagPageState extends State<BagPage> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: _buildIntegerTextField(
-                    'EM',
+                    loc.electrum,
                     electrumController,
                     Defines.bagElectrum,
                   ),
@@ -138,7 +140,7 @@ class BagPageState extends State<BagPage> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: _buildIntegerTextField(
-                    'SM',
+                    loc.silver,
                     silverController,
                     Defines.bagSilver,
                   ),
@@ -146,7 +148,7 @@ class BagPageState extends State<BagPage> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: _buildIntegerTextField(
-                    'KM',
+                    loc.copper,
                     copperController,
                     Defines.bagCopper,
                   ),
@@ -154,7 +156,7 @@ class BagPageState extends State<BagPage> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildItemsTiles(),
+            _buildItemsTiles(loc),
           ],
         ),
       ),
@@ -202,6 +204,7 @@ class BagPageState extends State<BagPage> {
   void _showItemDialog(Item item, bool newItem) {
     TextEditingController descriptionController =
         TextEditingController(text: item.description);
+    final loc = AppLocalizations.of(context)!;
 
     String? selectedType = item.type;
     int editedAmount = item.amount ?? 1;
@@ -212,25 +215,25 @@ class BagPageState extends State<BagPage> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: const Text('Gegenstand bearbeiten'),
+              title: Text(loc.edititem),
               content: SingleChildScrollView(
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    _buildItemDetailForm(item, descriptionController),
+                    _buildItemDetailForm(item, descriptionController, loc),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: selectedType,
-                      items: const [
+                      items: [
                         DropdownMenuItem(
-                            value: 'Gegenstände', child: Text('Gegenstände')),
+                            value: 'Gegenstände', child: Text(loc.item)),
                         DropdownMenuItem(
-                            value: 'Ausrüstung', child: Text('Ausrüstung')),
+                            value: 'Ausrüstung', child: Text(loc.equipment)),
                         DropdownMenuItem(
-                            value: 'Sonstige', child: Text('Sonstige')),
+                            value: 'Sonstige', child: Text(loc.other)),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'Typ',
+                      decoration: InputDecoration(
+                        labelText: loc.type,
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (value) {
@@ -244,7 +247,7 @@ class BagPageState extends State<BagPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Menge:'),
+                        Text('${loc.amount}:'),
                         Row(
                           children: [
                             IconButton(
@@ -278,7 +281,7 @@ class BagPageState extends State<BagPage> {
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Abbrechen'),
+                    child: Text(loc.abort),
                   ),
                 ),
                 SizedBox(
@@ -287,13 +290,13 @@ class BagPageState extends State<BagPage> {
                     onPressed: () {
                       item.amount = editedAmount;
                       if (newItem) {
-                        _addItem(item, descriptionController.text);
+                        _addItem(item, descriptionController.text, loc);
                       } else {
-                        _updateItem(item, descriptionController.text);
+                        _updateItem(item, descriptionController.text, loc);
                       }
                       Navigator.of(context).pop(true);
                     },
-                    child: const Text('Speichern'),
+                    child: Text(loc.save),
                   ),
                 ),
               ],
@@ -304,9 +307,9 @@ class BagPageState extends State<BagPage> {
     );
   }
 
-  void _updateItem(Item item, String description) {
+  void _updateItem(Item item, String description, AppLocalizations loc) {
     final finalDescription =
-        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+        description.isEmpty ? loc.nodescription : description;
 
     widget.profileManager
         .updateItem(
@@ -321,9 +324,9 @@ class BagPageState extends State<BagPage> {
     });
   }
 
-  void _addItem(Item item, String description) {
+  void _addItem(Item item, String description, AppLocalizations loc) {
     final finalDescription =
-        description.isEmpty ? "Keine Beschreibung vorhanden" : description;
+        description.isEmpty ? loc.nodescription : description;
 
     widget.profileManager
         .addItem(
@@ -342,17 +345,17 @@ class BagPageState extends State<BagPage> {
   }
 
   Widget _buildItemDetailForm(
-      Item item, TextEditingController descriptionController) {
+      Item item, TextEditingController descriptionController, AppLocalizations loc) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildItemTextField(
-          label: 'Name',
+          label: loc.name,
           controller: TextEditingController(text: item.name),
           onChanged: (value) => item.name = value,
         ),
         const SizedBox(height: 16),
-        _buildDescriptionTextField(descriptionController),
+        _buildDescriptionTextField(descriptionController, loc),
       ],
     );
   }
@@ -372,37 +375,37 @@ class BagPageState extends State<BagPage> {
     );
   }
 
-  Widget _buildDescriptionTextField(TextEditingController controller) {
+  Widget _buildDescriptionTextField(TextEditingController controller, AppLocalizations loc) {
     return TextField(
       controller: controller,
       maxLines: 8,
-      decoration: const InputDecoration(
-        labelText: 'Beschreibung',
+      decoration: InputDecoration(
+        labelText: loc.description,
         border: OutlineInputBorder(),
       ),
     );
   }
 
-  Widget _buildItemsTiles() {
+  Widget _buildItemsTiles(AppLocalizations loc) {
     items.sort((a, b) => a.uuid!.compareTo(b.uuid!));
 
     Map<String, List<Item>> groupedItems = {
-      'Gegenstände': [],
-      'Ausrüstung': [],
-      'Sonstige': [],
+      loc.item: [],
+      loc.equipment: [],
+      loc.other: [],
     };
 
     for (var item in items) {
       String groupKey;
       switch (item.type) {
         case 'Gegenstände':
-          groupKey = 'Gegenstände';
+          groupKey = loc.item;
           break;
         case 'Ausrüstung':
-          groupKey = 'Ausrüstung';
+          groupKey = loc.equipment;
           break;
         default:
-          groupKey = 'Sonstige';
+          groupKey = loc.other;
           break;
       }
       groupedItems[groupKey]!.add(item);
@@ -467,26 +470,26 @@ class BagPageState extends State<BagPage> {
   }
 
   void _showDeleteConfirmationDialog(Item item) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Löschen bestätigen'),
-          content:
-              Text('Bist du sicher, dass du "${item.name}" löschen möchtest?'),
+          title: Text(loc.confirmdelete),
+          content: Text(loc.confirmItemDelete(item.name)),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
             ),
             TextButton(
               onPressed: () {
                 _deleteItem(item.uuid!);
                 Navigator.of(context).pop(true);
               },
-              child: const Text('Löschen'),
+              child: Text(loc.delete),
             ),
           ],
         );

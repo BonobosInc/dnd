@@ -16,6 +16,7 @@ import 'package:dnd/configs/colours.dart';
 import 'spell_view.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CharacterView extends StatefulWidget {
   final ProfileManager profileManager;
@@ -70,11 +71,16 @@ class CharacterViewState extends State<CharacterView> {
   void initState() {
     super.initState();
     name = widget.profile.name;
-    _loadCharacterData();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCharacterData();
+    });
     _getProfileImagePath();
   }
 
   Future<void> _loadCharacterData() async {
+    final loc = AppLocalizations.of(context)!;
+
     List<Map<String, dynamic>> result =
         await widget.profileManager.getProfileInfo();
     List<Map<String, dynamic>> stats = await widget.profileManager.getStats();
@@ -82,7 +88,7 @@ class CharacterViewState extends State<CharacterView> {
     if (result.isNotEmpty) {
       Map<String, dynamic> characterData = result.first;
       setState(() {
-        name = characterData[Defines.infoName] ?? "Unbekannter Charakter";
+        name = characterData[Defines.infoName] ?? loc.unknownchar;
       });
     }
     if (stats.isNotEmpty) {
@@ -95,6 +101,7 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   void _showLevelDialog() {
+    final loc = AppLocalizations.of(context)!;
     showDialog<int>(
       context: context,
       builder: (BuildContext context) {
@@ -103,7 +110,7 @@ class CharacterViewState extends State<CharacterView> {
         return StatefulBuilder(
           builder: (BuildContext context, setStateDialog) {
             return AlertDialog(
-              title: const Text("Level"),
+              title: Text(loc.level),
               content: SizedBox(
                 width: 150,
                 child: Row(
@@ -138,13 +145,13 @@ class CharacterViewState extends State<CharacterView> {
               ),
               actions: <Widget>[
                 TextButton(
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: const Text("Speichern"),
+                  child: Text(loc.save),
                   onPressed: () async {
                     setState(() {
                       level = tempLevel;
@@ -176,6 +183,7 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   void _showXPDialog() {
+    final loc = AppLocalizations.of(context)!;
     showDialog<int>(
       context: context,
       builder: (BuildContext context) {
@@ -184,9 +192,9 @@ class CharacterViewState extends State<CharacterView> {
             TextEditingController(text: tempXP.toString());
 
         return AlertDialog(
-          title: const Text("XP"),
+          title: Text(loc.xp),
           content: _buildTextField(
-            label: 'Gib die Anzahl deiner XP ein',
+            label: loc.enterxpamount,
             controller: controller,
             onChanged: (value) {
               tempXP = int.tryParse(value) ?? 0;
@@ -194,13 +202,13 @@ class CharacterViewState extends State<CharacterView> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text("Abbrechen"),
+              child: Text(loc.abort),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text("Speichern"),
+              child: Text(loc.save),
               onPressed: () async {
                 setState(() {
                   xp = tempXP;
@@ -253,8 +261,9 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   Future<void> _longRest() async {
+    final loc = AppLocalizations.of(context)!;
     final shouldProceed = await _showConfirmationDialog(
-        'Lange Rast', 'Möchtest du wirklich eine lange Rast machen?');
+        loc.longrest, loc.longrestconfirm);
 
     if (!shouldProceed) return;
 
@@ -302,8 +311,9 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   Future<void> _shortRest() async {
+    final loc = AppLocalizations.of(context)!;
     final shouldProceed = await _showConfirmationDialog(
-        'Kurze Rast', 'Möchtest du wirklich eine kurze Rast machen?');
+        loc.shortrest, loc.shortrestconfirm);
 
     if (!shouldProceed) return;
 
@@ -324,6 +334,7 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   Future<bool> _showConfirmationDialog(String title, String message) async {
+    final loc = AppLocalizations.of(context)!;
     return await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
@@ -332,13 +343,13 @@ class CharacterViewState extends State<CharacterView> {
               content: Text(message),
               actions: <Widget>[
                 TextButton(
-                  child: Text('Nein'),
+                  child: Text(loc.no),
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   },
                 ),
                 TextButton(
-                  child: Text('Ja'),
+                  child: Text(loc.yes),
                   onPressed: () {
                     Navigator.of(context).pop(true);
                   },
@@ -366,6 +377,7 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   void _showProfileImageDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -410,14 +422,14 @@ class CharacterViewState extends State<CharacterView> {
                     }
                   }
                 },
-                child: Text("Bild hinzufügen"),
+                child: Text(loc.addimage),
               ),
               SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   _showDeleteConfirmationDialog(context);
                 },
-                child: Text("Bild entfernen"),
+                child: Text(loc.deleteimage),
               ),
             ],
           ),
@@ -427,22 +439,23 @@ class CharacterViewState extends State<CharacterView> {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Bild entfernen'),
+          title: Text(loc.deleteimage),
           content:
-              const Text('Bist du sicher, dass du das Bild entfernen willst?'),
+              Text(loc.deleteimageconfirm),
           actions: [
             TextButton(
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Entfernen'),
+              child: Text(loc.delete),
               onPressed: () async {
                 if (_profileImagePath is File) {
                   File profileImageFile = _profileImagePath as File;
@@ -520,6 +533,7 @@ class CharacterViewState extends State<CharacterView> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return PopScope(
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {
@@ -639,7 +653,7 @@ class CharacterViewState extends State<CharacterView> {
                                     GestureDetector(
                                       onTap: _showLevelDialog,
                                       child: Text(
-                                        'Level: $level',
+                                        '${loc.level}: $level',
                                         style: TextStyle(
                                           color: AppColors.textColorLight,
                                           fontSize: 18,
@@ -669,17 +683,17 @@ class CharacterViewState extends State<CharacterView> {
                                       },
                                       itemBuilder: (BuildContext context) {
                                         return [
-                                          const PopupMenuItem<int>(
+                                          PopupMenuItem<int>(
                                             value: 1,
-                                            child: Text('Lange Rast'),
+                                            child: Text(loc.longrest),
                                           ),
-                                          const PopupMenuItem<int>(
+                                          PopupMenuItem<int>(
                                             value: 2,
-                                            child: Text('Kurze Rast'),
+                                            child: Text(loc.shortrest),
                                           ),
-                                          const PopupMenuItem<int>(
+                                          PopupMenuItem<int>(
                                             value: 3,
-                                            child: Text('Einstellungen'),
+                                            child: Text(loc.settings),
                                           ),
                                         ];
                                       },
@@ -689,7 +703,7 @@ class CharacterViewState extends State<CharacterView> {
                                 GestureDetector(
                                   onTap: _showXPDialog,
                                   child: Text(
-                                    'XP: $xp',
+                                    '${loc.xp}: $xp',
                                     style: TextStyle(
                                       color: AppColors.textColorLight,
                                       fontSize: 18,
@@ -703,7 +717,7 @@ class CharacterViewState extends State<CharacterView> {
                         ),
                         ListTile(
                           title: Text(
-                            'Zauber',
+                            loc.spells,
                             style: TextStyle(color: AppColors.textColorLight),
                           ),
                           onTap: () {
@@ -721,7 +735,7 @@ class CharacterViewState extends State<CharacterView> {
                         ),
                         ListTile(
                           title: Text(
-                            'Waffen',
+                            loc.weapons,
                             style: TextStyle(color: AppColors.textColorLight),
                           ),
                           onTap: () {
@@ -738,7 +752,7 @@ class CharacterViewState extends State<CharacterView> {
                         ),
                         ListTile(
                           title: Text(
-                            'Notizen',
+                            loc.notes,
                             style: TextStyle(color: AppColors.textColorLight),
                           ),
                           onTap: () {
@@ -756,7 +770,7 @@ class CharacterViewState extends State<CharacterView> {
                         ),
                         ListTile(
                           title: Text(
-                            'Ausrüstung',
+                            loc.equipments,
                             style: TextStyle(color: AppColors.textColorLight),
                           ),
                           onTap: () {
@@ -773,7 +787,7 @@ class CharacterViewState extends State<CharacterView> {
                         ),
                         ListTile(
                           title: Text(
-                            'Wiki',
+                            loc.wiki,
                             style: TextStyle(color: AppColors.textColorLight),
                           ),
                           onTap: () {
