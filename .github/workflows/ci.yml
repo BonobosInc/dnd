@@ -62,18 +62,17 @@ jobs:
           version: '3.29.3'
           channel: 'stable'
 
-      - name: Download sqlite.dll
-        run: |
-          Invoke-WebRequest -Uri "https://www.sqlite.org/2025/sqlite-dll-win-x64-3500100.zip" -OutFile "sqlite.zip"
-          Expand-Archive -Path sqlite.zip -DestinationPath sqlite
-          Move-Item -Path .\sqlite\sqlite3.dll -Destination .\windows\runner\Release\sqlite3.dll
-
-
       - name: Install Flutter dependencies
         run: flutter pub get
 
       - name: Build Windows
         run: flutter build windows
+
+      - name: Download sqlite.dll
+        run: |
+          Invoke-WebRequest -Uri "https://www.sqlite.org/2025/sqlite-dll-win-x64-3500100.zip" -OutFile "sqlite.zip"
+          Expand-Archive -Path sqlite.zip -DestinationPath sqlite
+          Copy-Item -Path .\sqlite\sqlite3.dll -Destination .\build\windows\runner\Release\sqlite3.dll
 
       - name: Zip Windows Build
         run: |
