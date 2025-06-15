@@ -65,8 +65,9 @@ jobs:
       - name: Download sqlite.dll
         run: |
           Invoke-WebRequest -Uri "https://www.sqlite.org/2025/sqlite-dll-win-x64-3500100.zip" -OutFile "sqlite.zip"
-          Expand-Archive -Path sqlite.zip -DestinationPath .
-          Move-Item -Path .\sqlite3.dll -Destination .\windows\runner\Release\sqlite3.dll
+          Expand-Archive -Path sqlite.zip -DestinationPath sqlite
+          Move-Item -Path .\sqlite\sqlite3.dll -Destination .\windows\runner\Release\sqlite3.dll
+
 
       - name: Install Flutter dependencies
         run: flutter pub get
