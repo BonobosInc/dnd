@@ -62,30 +62,21 @@ jobs:
           version: '3.29.3'
           channel: 'stable'
 
-      - name: Download sqlite.dll
-        run: |
-          Invoke-WebRequest -Uri "https://www.sqlite.org/2025/sqlite-dll-win-x64-3500100.zip" -OutFile "sqlite.zip"
-          Expand-Archive -Path sqlite.zip -DestinationPath sqlite
-
       - name: Install Flutter dependencies
         run: flutter pub get
 
       - name: Build Windows
         run: flutter build windows
 
-      - name: Copy SQLite DLL to build directory
+      - name: Download sqlite.dll
         run: |
-          $destinationDir = ".\build\windows\runner\Release"
-          if (-not (Test-Path $destinationDir)) {
-            Write-Host "Creating directory: $destinationDir"
-            New-Item -Path $destinationDir -ItemType Directory -Force
-          }
-          Copy-Item -Path ".\sqlite\sqlite3.dll" -Destination "$destinationDir\sqlite3.dll" -Force
-          Write-Host "SQLite DLL copied to: $destinationDir\sqlite3.dll"
+          Invoke-WebRequest -Uri "https://www.sqlite.org/2025/sqlite-dll-win-x64-3500100.zip" -OutFile "sqlite.zip"
+          Expand-Archive -Path sqlite.zip -DestinationPath sqlite
+          Copy-Item -Path ".\sqlite\sqlite3.dll" -Destination ".\build\windows\x64\runner\Release\sqlite3.dll" -Force
       - name: Zip Windows Build
         run: |
-          $outputPath = "build/windows/x64/runner/Release"
-          Compress-Archive -Path "$outputPath/*" -DestinationPath "bonodnd-windows.zip"
+          $outputPath = "build\windows\x64\runner\Release"
+          Compress-Archive -Path "$outputPath\*" -DestinationPath "bonodnd-windows.zip" -Force
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
