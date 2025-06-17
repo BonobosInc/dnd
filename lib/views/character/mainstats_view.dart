@@ -7,6 +7,7 @@ import 'package:dnd/views/wiki/creatures_view.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 class MainStatsPage extends StatefulWidget {
   final ProfileManager profileManager;
@@ -41,23 +42,26 @@ class MainStatsPageState extends State<MainStatsPage> {
   List<Creature> creatures = [];
 
   List<Condition> statusEffects = [];
-  List<String> conditionOptions = [
-    'Blind', // Blinded
-    'Festgesetzt', // Restrained
-    'Betäubt', // Stunned
-    'Gelähmt', // Paralyzed
-    'Erschöpfung', // Exhaustion
-    'Vergiftet', // Poisoned
-    'Verängstigt', // Frightened
-    'Gepackt', // Grappled
-    'Versteinert', // Petrified
-    'Bezaubert', // Charmed
-    'Taub', // Deafened
-    'Bewusstlos', // Unconscious
-    'Liegend', // Prone
-    'Kampfunfähig', // Incapacitated
-    'Unsichtbar', // Invisible
-  ];
+  List<String> getConditionOptions(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return [
+      loc.conditionBlind,
+      loc.conditionRestrained,
+      loc.conditionStunned,
+      loc.conditionParalyzed,
+      loc.conditionExhaustion,
+      loc.conditionPoisoned,
+      loc.conditionFrightened,
+      loc.conditionGrappled,
+      loc.conditionPetrified,
+      loc.conditionCharmed,
+      loc.conditionDeafened,
+      loc.conditionUnconscious,
+      loc.conditionProne,
+      loc.conditionIncapacitated,
+      loc.conditionInvisible,
+    ];
+  }
 
   @override
   void initState() {
@@ -251,6 +255,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   Future<void> _showEditStatDialog(
       String statName, String field, dynamic currentValue,
       {bool isCount = false}) async {
+    final loc = AppLocalizations.of(context)!;
     dynamic newValue = currentValue;
 
     TextEditingController controller =
@@ -270,7 +275,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                       ? Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Wert:'),
+                            Text('${loc.value}:'),
                             Row(
                               children: [
                                 IconButton(
@@ -309,7 +314,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -336,7 +341,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                     await _loadCharacterData();
                     if (context.mounted) Navigator.of(context).pop();
                   },
-                  child: const Text("Speichern"),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -347,6 +352,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   void _showEditCreatureHPDialog(int index) {
+    final loc = AppLocalizations.of(context)!;
     TextEditingController hpController = TextEditingController(
       text: creatures[index].currentHP.toString(),
     );
@@ -358,19 +364,19 @@ class MainStatsPageState extends State<MainStatsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("HP für ${creatures[index].name}"),
+          title: Text("${loc.hpfor} ${creatures[index].name}"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildTextField(
-                label: 'Aktuelle HP',
+                label: loc.currenthp,
                 controller: hpController,
                 onChanged: (value) {},
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 10),
               _buildTextField(
-                label: 'Maximale HP',
+                label: loc.maxhp,
                 controller: maxHpController,
                 onChanged: (value) {},
                 keyboardType: TextInputType.number,
@@ -382,7 +388,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
             ),
             TextButton(
               onPressed: () {
@@ -399,7 +405,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 });
                 Navigator.of(context).pop();
               },
-              child: const Text('Speichern'),
+              child: Text(loc.save),
             ),
           ],
         );
@@ -408,6 +414,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _showEditHpDialog() async {
+    final loc = AppLocalizations.of(context)!;
     int newCurrentHP = currentHP;
     int newMaxHP = maxHP;
     int newTempHP = tempHP;
@@ -428,7 +435,7 @@ class MainStatsPageState extends State<MainStatsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildTextField(
-                  label: "Aktuelle HP",
+                  label: loc.currenthp,
                   controller: currentHpController,
                   onChanged: (value) {
                     newCurrentHP = int.tryParse(value) ?? currentHP;
@@ -436,7 +443,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   keyboardType: TextInputType.number),
               const SizedBox(height: 8),
               _buildTextField(
-                  label: "Max HP",
+                  label: loc.maxhp,
                   controller: maxHpController,
                   onChanged: (value) {
                     newMaxHP = int.tryParse(value) ?? maxHP;
@@ -444,7 +451,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   keyboardType: TextInputType.number),
               const SizedBox(height: 8),
               _buildTextField(
-                  label: "Temp HP",
+                  label: loc.temphp,
                   controller: tempHpController,
                   onChanged: (value) {
                     newTempHP = int.tryParse(value) ?? tempHP;
@@ -455,7 +462,7 @@ class MainStatsPageState extends State<MainStatsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Abbrechen"),
+              child: Text(loc.abort),
             ),
             TextButton(
               onPressed: () async {
@@ -474,7 +481,7 @@ class MainStatsPageState extends State<MainStatsPage> {
 
                 if (context.mounted) Navigator.of(context).pop();
               },
-              child: const Text("Speichern"),
+              child: Text(loc.save),
             ),
           ],
         );
@@ -483,6 +490,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _addNewTracker() async {
+    final loc = AppLocalizations.of(context)!;
     String newTrackerName = '';
     int newTrackerValue = 0;
     int newTrackerMaxValue = 0;
@@ -494,12 +502,12 @@ class MainStatsPageState extends State<MainStatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Neuen Tracker erstellen"),
+              title: Text(loc.addtracker),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildTextField(
-                    label: "Tracker",
+                    label: loc.tracker,
                     controller: TextEditingController(text: newTrackerName),
                     onChanged: (value) {
                       newTrackerName = value;
@@ -508,16 +516,16 @@ class MainStatsPageState extends State<MainStatsPage> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: newTrackerType,
-                    items: const [
-                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
+                    items: [
+                      DropdownMenuItem(value: 'never', child: Text(loc.never)),
                       DropdownMenuItem(
-                          value: 'long', child: Text('Lange Rast')),
+                          value: 'long', child: Text(loc.longrest)),
                       DropdownMenuItem(
-                          value: 'short', child: Text('Kurze Rast')),
+                          value: 'short', child: Text(loc.shortrest)),
                     ],
-                    decoration: const InputDecoration(
-                      labelText: 'Zurücksetzen',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: loc.reset,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -529,7 +537,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Aktueller Wert:'),
+                      Text('${loc.currentvalue}:'),
                       Row(
                         children: [
                           IconButton(
@@ -558,7 +566,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Maximaler Wert:'),
+                      Text('${loc.maximumvalue}:'),
                       Row(
                         children: [
                           IconButton(
@@ -589,7 +597,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -604,13 +612,13 @@ class MainStatsPageState extends State<MainStatsPage> {
                       if (context.mounted) Navigator.of(context).pop();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                             content:
-                                Text("Bitte einen Tracker-Namen eingeben.")),
+                                Text(loc.entertrackername)),
                       );
                     }
                   },
-                  child: const Text("Hinzufügen"),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -621,6 +629,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _editTracker(Tracker tracker) async {
+    final loc = AppLocalizations.of(context)!;
     String editedTrackerName = tracker.tracker;
     int editedValue = tracker.value ?? 0;
     int editedMaxValue = tracker.max ?? 0;
@@ -639,7 +648,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildTextField(
-                    label: "Tracker Name",
+                    label: loc.trackername,
                     controller: TextEditingController(text: editedTrackerName),
                     onChanged: (value) {
                       editedTrackerName = value;
@@ -648,16 +657,14 @@ class MainStatsPageState extends State<MainStatsPage> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: editedTrackerType,
-                    items: const [
-                      DropdownMenuItem(value: 'never', child: Text('Niemals')),
-                      DropdownMenuItem(
-                          value: 'long', child: Text('Lange Rast')),
-                      DropdownMenuItem(
-                          value: 'short', child: Text('Kurze Rast')),
+                    items: [
+                      DropdownMenuItem(value: 'never', child: Text(loc.never)),
+                      DropdownMenuItem(value: 'long', child: Text(loc.longrest)),
+                      DropdownMenuItem(value: 'short', child: Text(loc.shortrest)),
                     ],
-                    decoration: const InputDecoration(
-                      labelText: 'Zurücksetzen',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: loc.reset,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -669,7 +676,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Aktueller Wert:'),
+                      Text('${loc.currentvalue}:'),
                       Row(
                         children: [
                           IconButton(
@@ -696,7 +703,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Maximaler Wert:'),
+                      Text('${loc.maximumvalue}:'),
                       Row(
                         children: [
                           IconButton(
@@ -725,7 +732,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Abbrechen'),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -740,7 +747,7 @@ class MainStatsPageState extends State<MainStatsPage> {
 
                     if (context.mounted) Navigator.of(context).pop();
                   },
-                  child: const Text('Speichern'),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -751,6 +758,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _addCondition() async {
+    final loc = AppLocalizations.of(context)!;
     String? selectedCondition;
     int? newConditionUUID;
 
@@ -760,21 +768,21 @@ class MainStatsPageState extends State<MainStatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Neue Bedingung hinzufügen"),
+              title: Text(loc.addcondition),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
                     value: selectedCondition,
-                    items: conditionOptions.map((condition) {
+                    items: getConditionOptions(context).map((condition) {
                       return DropdownMenuItem<String>(
                         value: condition,
                         child: Text(condition),
                       );
                     }).toList(),
-                    decoration: const InputDecoration(
-                      labelText: 'Bedingung auswählen',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: loc.addcondition,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -788,7 +796,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -804,12 +812,12 @@ class MainStatsPageState extends State<MainStatsPage> {
                       if (context.mounted) Navigator.of(context).pop();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("Bitte eine Bedingung auswählen.")),
+                        SnackBar(
+                            content: Text(loc.choosecondition)),
                       );
                     }
                   },
-                  child: const Text("Hinzufügen"),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -820,6 +828,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   void _editCondition(Condition condition) async {
+    final loc = AppLocalizations.of(context)!;
     String? selectedCondition = condition.condition;
     int? conditionUUID = condition.uuid;
 
@@ -829,21 +838,21 @@ class MainStatsPageState extends State<MainStatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Bedingung bearbeiten"),
+              title: Text(loc.editcondition),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
                     value: selectedCondition,
-                    items: conditionOptions.map((condition) {
+                    items: getConditionOptions(context).map((condition) {
                       return DropdownMenuItem<String>(
                         value: condition,
                         child: Text(condition),
                       );
                     }).toList(),
-                    decoration: const InputDecoration(
-                      labelText: 'Bedingung auswählen',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: loc.editcondition,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -857,7 +866,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -875,13 +884,13 @@ class MainStatsPageState extends State<MainStatsPage> {
                       if (context.mounted) Navigator.of(context).pop();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Bitte eine Bedingung auswählen."),
+                        SnackBar(
+                          content: Text(loc.choosecondition),
                         ),
                       );
                     }
                   },
-                  child: const Text("Speichern"),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -967,6 +976,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Future<void> _showEditHitDiceDialog() async {
+    final loc = AppLocalizations.of(context)!;
     int newCurrentHitDice = currentHitDice;
     int newMaxHitDice = maxHitDice;
     String newHealFactor = healFactor;
@@ -977,12 +987,12 @@ class MainStatsPageState extends State<MainStatsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Hit Dice"),
+              title: Text(loc.hitdice),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildTextField(
-                    label: "Heilungsfaktor",
+                    label: loc.healfactor,
                     controller: TextEditingController(text: healFactor),
                     onChanged: (value) {
                       newHealFactor = value;
@@ -993,7 +1003,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Aktuelle Hit Dice:'),
+                      Text('${loc.currenthitdice}:'),
                       Row(
                         children: [
                           IconButton(
@@ -1025,7 +1035,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Max Hit Dice:'),
+                      Text('${loc.maxhitdice}:'),
                       Row(
                         children: [
                           IconButton(
@@ -1054,7 +1064,7 @@ class MainStatsPageState extends State<MainStatsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Abbrechen"),
+                  child: Text(loc.abort),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -1075,7 +1085,7 @@ class MainStatsPageState extends State<MainStatsPage> {
 
                     if (context.mounted) Navigator.of(context).pop();
                   },
-                  child: const Text("Speichern"),
+                  child: Text(loc.save),
                 ),
               ],
             );
@@ -1098,6 +1108,7 @@ class MainStatsPageState extends State<MainStatsPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
+      final loc = AppLocalizations.of(context)!;
       final double screenWidth = constraints.maxWidth;
 
       final double healthBarWidth = screenWidth - 32;
@@ -1127,9 +1138,9 @@ class MainStatsPageState extends State<MainStatsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Lebenspunkte',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              loc.hp,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Divider(color: AppColors.textColorLight, thickness: 1.5),
             Row(
@@ -1222,9 +1233,9 @@ class MainStatsPageState extends State<MainStatsPage> {
             const SizedBox(height: 25),
 
             // Stats Section
-            const Text(
-              'Statistik',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              loc.statistic,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Divider(color: AppColors.textColorLight, thickness: 1.5),
             const SizedBox(height: 8),
@@ -1233,12 +1244,12 @@ class MainStatsPageState extends State<MainStatsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatCard('Rüstungsklasse', armor, Defines.statArmor,
+                    _buildStatCard(loc.ac, armor, Defines.statArmor,
                         isCount: true),
                     _buildStatCard(
-                        'Inspiration', inspiration, Defines.statInspiration,
+                        loc.inspiration, inspiration, Defines.statInspiration,
                         isCount: true),
-                    _buildStatCard('Übungsbonus', proficiencyBonus,
+                    _buildStatCard(loc.proficiencyBonus, proficiencyBonus,
                         Defines.statProficiencyBonus,
                         isCount: true, isClickable: false),
                   ],
@@ -1248,10 +1259,10 @@ class MainStatsPageState extends State<MainStatsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildStatCard(
-                        'Initiative', initiative, Defines.statInitiative,
+                        loc.initiative, initiative, Defines.statInitiative,
                         isCount: true, isClickable: false),
                     _buildStatCard(
-                        'Bewegungsrate', movement, Defines.statMovement),
+                        loc.movement, movement, Defines.statMovement),
                     _buildEditHitDiceCard(),
                   ],
                 ),
@@ -1263,9 +1274,9 @@ class MainStatsPageState extends State<MainStatsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Status Effekte',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Text(
+                  loc.statuseffects,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.add),
@@ -1336,9 +1347,9 @@ class MainStatsPageState extends State<MainStatsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Tracker',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Text(
+                  loc.tracker,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.add),
@@ -1419,9 +1430,9 @@ class MainStatsPageState extends State<MainStatsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Begleiter',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Text(
+                  loc.companion,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.add),
@@ -1604,13 +1615,14 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   Widget _buildEditHitDiceCard() {
+    final loc = AppLocalizations.of(context)!;
     return Expanded(
       child: GestureDetector(
         onTap: _showEditHitDiceDialog,
         child: Column(
           children: [
             Text(
-              'Hit Dice $healFactor',
+              '${loc.hitdice} $healFactor',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -1648,22 +1660,23 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   void _showDeleteConfirmationDialog(Tracker tracker) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Tracker löschen'),
+          title: Text(loc.deletetracker),
           content: Text(
-              'Bist du sicher, dass du "${tracker.tracker}" löschen willst?'),
+            loc.confirmItemDelete(tracker.tracker)),
           actions: [
             TextButton(
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Löschen'),
+              child: Text(loc.delete),
               onPressed: () {
                 _removeTracker(tracker.uuid);
                 Navigator.of(context).pop();
@@ -1676,22 +1689,23 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   void _showDeleteConfirmationDialogCondition(Condition condition) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Statuseffekt löschen'),
+          title: Text(loc.deletestatuseffect),
           content: Text(
-              'Bist du sicher, dass du "${condition.condition}" löschen willst?'),
+              loc.confirmItemDelete(condition.condition)),
           actions: [
             TextButton(
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Löschen'),
+              child: Text(loc.delete),
               onPressed: () {
                 _removeCondition(condition.uuid);
                 Navigator.of(context).pop();
@@ -1704,22 +1718,23 @@ class MainStatsPageState extends State<MainStatsPage> {
   }
 
   void _showDeleteConfirmationDialogC(Creature creature) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Begleiter löschen'),
+          title: Text(loc.deletecompanion),
           content: Text(
-              'Bist du sicher, dass du "${creature.name}" löschen willst?'),
+              loc.confirmItemDelete(creature.name)),
           actions: [
             TextButton(
-              child: const Text('Abbrechen'),
+              child: Text(loc.abort),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Löschen'),
+              child: Text(loc.delete),
               onPressed: () {
                 _removeCreature(creature.uuid);
                 Navigator.of(context).pop();

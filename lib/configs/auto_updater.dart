@@ -8,6 +8,7 @@ import 'package:app_installer/app_installer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dnd/configs/version.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dnd/l10n/app_localizations.dart';
 
 const String repoOwner = 'BonobosInc';
 const String repoName = 'dnd';
@@ -31,26 +32,28 @@ Future<void> checkForUpdate(BuildContext context) async {
         final apkUrl = apkAsset['browser_download_url'];
 
         if (context.mounted) {
+          final loc = AppLocalizations.of(context)!;
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (_) => AlertDialog(
-              title: Text('Aktualisierung verfügbar'),
+              title: Text(loc.updateAvailableTitle),
               content: Text(
-                  'Eine neue Version ($latestVersion) ist erhältlich. Du verwendest Version $appVersion.'),
+                loc.updateAvailableContent(latestVersion, appVersion),
+              ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Überspringen'),
+                  child: Text(loc.skip),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                     _downloadAndInstallApk(context, apkUrl);
                   },
-                  child: Text('Aktualisieren'),
+                  child: Text(loc.update),
                 ),
               ],
             ),
@@ -83,24 +86,25 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
   final file = File(filePath);
 
   if (context.mounted) {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => PopScope(
-      canPop: false,
-      child: AlertDialog(
-        title: Text('Herunterladen...'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Bitte warten, die neue Version wird heruntergeladen.'),
-          ],
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(loc.downloadingTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(loc.downloadingContent),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   try {
@@ -120,26 +124,26 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
       Navigator.of(context).pop();
     }
 
+    final loc = AppLocalizations.of(context)!;
+
     if (e.toString().contains("INSTALL_FAILED_PERMISSION_DENIED")) {
       if (context.mounted) {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text('Installation nicht erlaubt'),
-            content: Text(
-              'Bitte erlaube dieser App die Installation von unbekannten Quellen in den Systemeinstellungen.',
-            ),
+            title: Text(loc.installPermissionTitle),
+            content: Text(loc.installPermissionContent),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   openAppSettings();
                 },
-                child: Text('Einstellungen öffnen'),
+                child: Text(loc.openSettings),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('Abbrechen'),
+                child: Text(loc.cancel),
               ),
             ],
           ),
@@ -150,14 +154,12 @@ Future<void> _downloadAndInstallApk(BuildContext context, String url) async {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text('Aktualisierung fehlgeschlagen'),
-            content: Text(
-              'Die Aktualisierung konnte nicht heruntergeladen oder installiert werden. Bitte versuche es später erneut.',
-            ),
+            title: Text(loc.updateFailedTitle),
+            content: Text(loc.updateFailedContent),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK'),
+                child: Text(loc.ok),
               )
             ],
           ),
