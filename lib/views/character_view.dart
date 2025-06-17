@@ -791,19 +791,21 @@ class CharacterViewState extends State<CharacterView> {
                       ],
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: IconButton(
-                        icon: Icon(Icons.info_outline,
-                            color: AppColors.textColorLight),
-                        onPressed: () {
-                          showAppStatusDialog(context);
-                        },
-                        highlightColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        hoverColor: Colors.transparent,
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: IconButton(
+                          icon: Icon(Icons.info_outline,
+                              color: AppColors.textColorLight),
+                          onPressed: () {
+                            showAppStatusDialog(context);
+                          },
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                        ),
                       ),
                     ),
                   ),
