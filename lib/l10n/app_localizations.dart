@@ -1798,6 +1798,24 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'OK'**
   String get ok;
+
+  /// No description provided for @attunement.
+  ///
+  /// In de, this message translates to:
+  /// **'Einstimmung'**
+  String get attunement;
+
+  /// No description provided for @attunementLimit.
+  ///
+  /// In de, this message translates to:
+  /// **'Du kannst dich nur auf maximal 3 Gegenstände einstimmen.'**
+  String get attunementLimit;
+
+  /// No description provided for @attunementlimitReached.
+  ///
+  /// In de, this message translates to:
+  /// **'Einstimmungsgrenze erreicht.'**
+  String get attunementlimitReached;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

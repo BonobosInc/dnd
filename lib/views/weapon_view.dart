@@ -17,11 +17,28 @@ class WeaponPage extends StatefulWidget {
 
 class WeaponPageState extends State<WeaponPage> {
   final List<Weapon> weapons = [];
+  int attunementCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchWeapons();
+    _fetchAttunementCount();
+  }
+
+  _fetchAttunementCount() async {
+    List<Map<String, dynamic>> stats = await widget.profileManager.getStats();
+
+    setState(() {
+      attunementCount = stats.first[Defines.statAttunmentCount] ?? 0;
+    });
+  }
+
+  void _updateAttunementCount(int newCount) {
+    widget.profileManager.updateStats(
+        field: Defines.statAttunmentCount, value: newCount).then((_) {
+      _fetchAttunementCount();
+    });
   }
 
   Future<void> _fetchWeapons() async {
@@ -39,6 +56,7 @@ class WeaponPageState extends State<WeaponPage> {
           damage: weapon[Defines.weaponDamage],
           damageType: weapon[Defines.weaponDamageType],
           description: weapon[Defines.weaponDescription],
+          attunement: weapon[Defines.weaponAttunement],
           uuid: weapon['ID'],
         ));
       }
@@ -59,6 +77,7 @@ class WeaponPageState extends State<WeaponPage> {
       damage: weapon.damage,
       damagetype: weapon.damageType,
       description: finalDescription,
+      attunement: weapon.attunement,
     )
         .then((_) {
       _fetchWeapons();
@@ -79,6 +98,7 @@ class WeaponPageState extends State<WeaponPage> {
       damage: weapon.damage,
       damagetype: weapon.damageType,
       description: finalDescription,
+      attunement: weapon.attunement,
       uuid: weapon.uuid!,
     )
         .then((_) {
@@ -107,36 +127,38 @@ class WeaponPageState extends State<WeaponPage> {
         TextEditingController(text: weapon.damageType);
     final TextEditingController descriptionController =
         TextEditingController(text: weapon.description);
+    final TextEditingController attunementController =
+        TextEditingController(text: weapon.attunement?.toString());
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(isNewWeapon ? loc.addweapon : loc.editweapon),
-          content: SingleChildScrollView(
-            child: _buildWeaponDetailForm(
-              nameController,
-              attributeController,
-              reachController,
-              bonusController,
-              damageController,
-              damageTypeController,
-              descriptionController,
-              weapon,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(loc.abort),
-            ),
-            TextButton(
-              onPressed: () {
-                if (isNewWeapon) {
-                  _addWeapon(
-                    Weapon(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(isNewWeapon ? loc.addweapon : loc.editweapon),
+              content: SingleChildScrollView(
+                child: _buildWeaponDetailForm(
+                  nameController,
+                  attributeController,
+                  reachController,
+                  bonusController,
+                  damageController,
+                  damageTypeController,
+                  descriptionController,
+                  attunementController,
+                  weapon,
+                  setState,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(loc.abort),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final newWeapon = Weapon(
                       name: nameController.text,
                       attribute: attributeController.text,
                       reach: reachController.text,
@@ -144,29 +166,23 @@ class WeaponPageState extends State<WeaponPage> {
                       damage: damageController.text,
                       damageType: damageTypeController.text,
                       description: descriptionController.text,
-                    ),
-                    descriptionController.text,
-                  );
-                } else {
-                  _updateWeapon(
-                    Weapon(
-                      name: nameController.text,
-                      attribute: attributeController.text,
-                      reach: reachController.text,
-                      bonus: bonusController.text,
-                      damage: damageController.text,
-                      damageType: damageTypeController.text,
-                      description: descriptionController.text,
-                      uuid: weapon.uuid,
-                    ),
-                    descriptionController.text,
-                  );
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text(loc.save),
-            ),
-          ],
+                      attunement: int.tryParse(attunementController.text),
+                      uuid: isNewWeapon ? null : weapon.uuid,
+                    );
+
+                    if (isNewWeapon) {
+                      _addWeapon(newWeapon, descriptionController.text);
+                    } else {
+                      _updateWeapon(newWeapon, descriptionController.text);
+                    }
+
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(loc.save),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -180,9 +196,12 @@ class WeaponPageState extends State<WeaponPage> {
     TextEditingController damageController,
     TextEditingController damageTypeController,
     TextEditingController descriptionController,
+    TextEditingController attunementController,
     Weapon weapon,
+    void Function(void Function()) setState,
   ) {
     final loc = AppLocalizations.of(context)!;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -192,6 +211,44 @@ class WeaponPageState extends State<WeaponPage> {
         _buildTextField(loc.bonus, bonusController),
         _buildTextField(loc.damage, damageController),
         _buildTextField(loc.attribute, attributeController),
+        _buildCheckbox(
+          loc.attunement,
+          attunementController.text.isNotEmpty &&
+              attunementController.text != '0',
+          (value) {
+            setState(() {
+              final wasChecked = attunementController.text == '1';
+              final isNowChecked = value == true;
+
+              if (!wasChecked && isNowChecked && attunementCount >= 3) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(loc.attunementlimitReached),
+                    content: Text(loc.attunementLimit),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(loc.ok),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+
+              if (isNowChecked) {
+                attunementController.text = '1';
+                attunementCount++;
+                _updateAttunementCount(attunementCount);
+              } else {
+                attunementController.text = '';
+                attunementCount--;
+                _updateAttunementCount(attunementCount);
+              }
+            });
+          },
+        ),
         _buildDescriptionTextField(descriptionController),
       ],
     );
@@ -207,6 +264,7 @@ class WeaponPageState extends State<WeaponPage> {
         damage: '',
         damageType: '',
         description: '',
+        attunement: 0,
       ),
       true,
     );
@@ -274,7 +332,8 @@ class WeaponPageState extends State<WeaponPage> {
   Widget _buildWeaponTile(Weapon weapon, BoxConstraints constraints) {
     final loc = AppLocalizations.of(context)!;
     double scaledfontSize = min(constraints.maxWidth * 0.04, 600 * 0.04);
-    double scaledfontDamageType = min(constraints.maxWidth * 0.035, 600 * 0.035);
+    double scaledfontDamageType =
+        min(constraints.maxWidth * 0.035, 600 * 0.035);
     return Row(
       children: [
         Expanded(
@@ -393,24 +452,23 @@ class WeaponPageState extends State<WeaponPage> {
                       ],
                     ),
                     Divider(color: AppColors.dividerColor),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                weapon.description ??
-                                    loc.nodescription,
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                  color: AppColors.textColorLight,
-                                  fontSize: scaledfontSize,
-                                ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              weapon.description ?? loc.nodescription,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                color: AppColors.textColorLight,
+                                fontSize: scaledfontSize,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -441,6 +499,27 @@ class WeaponPageState extends State<WeaponPage> {
     );
   }
 
+  Widget _buildCheckbox(
+    String label,
+    bool value,
+    ValueChanged<bool?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Checkbox(
+            value: value,
+            onChanged: (newValue) {
+              onChanged(newValue);
+            },
+          ),
+          Expanded(child: Text(label)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDescriptionTextField(TextEditingController controller) {
     final loc = AppLocalizations.of(context)!;
     return TextField(
@@ -462,6 +541,7 @@ class Weapon {
   String? damage;
   String? damageType;
   String? description;
+  int? attunement;
   int? uuid;
 
   Weapon({
@@ -472,6 +552,7 @@ class Weapon {
     this.damage,
     this.damageType,
     this.description,
+    this.attunement,
     this.uuid,
   });
 }

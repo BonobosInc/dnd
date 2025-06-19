@@ -29,11 +29,30 @@ class BagPageState extends State<BagPage> {
 
   final List<Item> items = [];
 
+  int attunementCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadCharacterData();
     _fetchItems();
+    _fetchAttunementCount();
+  }
+
+  _fetchAttunementCount() async {
+    List<Map<String, dynamic>> stats = await widget.profileManager.getStats();
+
+    setState(() {
+      attunementCount = stats.first[Defines.statAttunmentCount] ?? 0;
+    });
+  }
+
+  void _updateAttunementCount(int newCount) {
+    widget.profileManager
+        .updateStats(field: Defines.statAttunmentCount, value: newCount)
+        .then((_) {
+      _fetchAttunementCount();
+    });
   }
 
   Future<void> _loadCharacterData() async {
@@ -86,6 +105,7 @@ class BagPageState extends State<BagPage> {
           uuid: item['ID'],
           type: item['type'] ?? 'Sonstige',
           amount: item['amount'] ?? 1,
+          attunement: item['attunement'] ?? 0,
         ));
       }
       items.sort((a, b) => a.uuid!.compareTo(b.uuid as num));
@@ -193,7 +213,7 @@ class BagPageState extends State<BagPage> {
   void _showAddItemDialog() {
     var newItem = true;
     _showItemDialog(
-        Item(name: '', description: '', type: 'Sonstige', amount: 1), newItem);
+        Item(name: '', description: '', type: 'Sonstige', amount: 1, attunement: 0), newItem);
   }
 
   void _showItemDetails(Item item) {
@@ -204,6 +224,8 @@ class BagPageState extends State<BagPage> {
   void _showItemDialog(Item item, bool newItem) {
     TextEditingController descriptionController =
         TextEditingController(text: item.description);
+    final TextEditingController attunementController =
+        TextEditingController(text: item.attunement?.toString());
     final loc = AppLocalizations.of(context)!;
 
     String? selectedType = item.type;
@@ -240,6 +262,48 @@ class BagPageState extends State<BagPage> {
                         setState(() {
                           selectedType = value;
                           item.type = selectedType;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildCheckbox(
+                      loc.attunement,
+                      attunementController.text.isNotEmpty &&
+                          attunementController.text != '0',
+                      (value) {
+                        setState(() {
+                          final wasChecked = attunementController.text == '1';
+                          final isNowChecked = value == true;
+
+                          if (!wasChecked &&
+                              isNowChecked &&
+                              attunementCount >= 3) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(loc.attunementlimitReached),
+                                content: Text(loc.attunementLimit),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: Text(loc.ok),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (isNowChecked) {
+                            attunementController.text = '1';
+                            attunementCount++;
+                            _updateAttunementCount(attunementCount);
+                          } else {
+                            attunementController.text = '';
+                            attunementCount--;
+                            _updateAttunementCount(attunementCount);
+                          }
                         });
                       },
                     ),
@@ -289,6 +353,11 @@ class BagPageState extends State<BagPage> {
                   child: TextButton(
                     onPressed: () {
                       item.amount = editedAmount;
+                      item.attunement =
+                          attunementController.text.isNotEmpty &&
+                                  attunementController.text != '0'
+                              ? int.parse(attunementController.text)
+                              : 0;
                       if (newItem) {
                         _addItem(item, descriptionController.text, loc);
                       } else {
@@ -318,6 +387,7 @@ class BagPageState extends State<BagPage> {
       type: item.type,
       uuid: item.uuid,
       amount: item.amount,
+      attunement: item.attunement,
     )
         .then((_) {
       _fetchItems();
@@ -333,7 +403,8 @@ class BagPageState extends State<BagPage> {
             itemname: item.name,
             description: finalDescription,
             type: item.type,
-            amount: item.amount)
+            amount: item.amount,
+            attunement: item.attunement)
         .then((_) {
       _fetchItems();
     });
@@ -344,8 +415,8 @@ class BagPageState extends State<BagPage> {
     _fetchItems();
   }
 
-  Widget _buildItemDetailForm(
-      Item item, TextEditingController descriptionController, AppLocalizations loc) {
+  Widget _buildItemDetailForm(Item item,
+      TextEditingController descriptionController, AppLocalizations loc) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -375,13 +446,35 @@ class BagPageState extends State<BagPage> {
     );
   }
 
-  Widget _buildDescriptionTextField(TextEditingController controller, AppLocalizations loc) {
+  Widget _buildDescriptionTextField(
+      TextEditingController controller, AppLocalizations loc) {
     return TextField(
       controller: controller,
       maxLines: 8,
       decoration: InputDecoration(
         labelText: loc.description,
         border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildCheckbox(
+    String label,
+    bool value,
+    ValueChanged<bool?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Checkbox(
+            value: value,
+            onChanged: (newValue) {
+              onChanged(newValue);
+            },
+          ),
+          Expanded(child: Text(label)),
+        ],
       ),
     );
   }
@@ -504,6 +597,7 @@ class Item {
   int? uuid;
   String? type;
   int? amount;
+  int? attunement;
 
   Item({
     required this.name,
@@ -511,5 +605,6 @@ class Item {
     this.uuid,
     required this.type,
     required this.amount,
+    this.attunement,
   });
 }

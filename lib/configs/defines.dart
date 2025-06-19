@@ -77,6 +77,7 @@ class Defines {
   static const String statCHA = "CHA";
   static const String statSpellSaveDC = "spell_save_dc";
   static const String statSpellAttackBonus = "spell_attack_bonus";
+  static const String statAttunmentCount = "attunment_count";
 
   // Proficiency Defines
   static const String profArmor = "armors";
@@ -133,5 +134,9 @@ class Defines {
   static const String weaponDamage = "damage";
   static const String weaponDamageType = "damagetype";
   static const String weaponDescription = "description";
+  static const String weaponAttunement = "attunement";
+
+  // Item Defines
+  static const String itemAttunement = "itemattunement";
 
 }
