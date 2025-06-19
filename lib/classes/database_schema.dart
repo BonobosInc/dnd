@@ -57,6 +57,7 @@ class DatabaseSchema {
       Defines.statCHA: 'INTEGER',
       Defines.statSpellSaveDC: 'INTEGER',
       Defines.statSpellAttackBonus: 'INTEGER',
+      Defines.statAttunmentCount: 'INTEGER',
     },
     'savingthrow': {
       'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -126,6 +127,7 @@ class DatabaseSchema {
       'damage': 'TEXT',
       'damagetype': 'TEXT',
       'description': 'TEXT',
+      'attunement': 'INTEGER',
     },
     'feats': {
       'ID': 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -141,6 +143,7 @@ class DatabaseSchema {
       'description': 'TEXT',
       'type': 'TEXT',
       'amount': 'INTEGER',
+      'attunement': 'INTEGER',
     },
     'tracker': {
       'ID': 'INTEGER PRIMARY KEY AUTOINCREMENT',
