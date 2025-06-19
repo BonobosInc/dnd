@@ -320,5 +320,8 @@
     "cancel": "Cancel",
     "updateFailedTitle": "Update Failed",
     "updateFailedContent": "The update could not be downloaded or installed. Please try again later.",
-    "ok": "OK"
+    "ok": "OK",
+    "attunement": "Attunement",
+    "attunementLimit": "You can only attune to a maximum of 3 items.",
+    "attunementlimitReached": "Attunement limit reached."
 }

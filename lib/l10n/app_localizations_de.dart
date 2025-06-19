@@ -871,4 +871,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get attunement => 'Einstimmung';
+
+  @override
+  String get attunementLimit => 'Du kannst dich nur auf maximal 3 Gegenstände einstimmen.';
+
+  @override
+  String get attunementlimitReached => 'Einstimmungsgrenze erreicht.';
 }

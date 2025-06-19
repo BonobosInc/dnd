@@ -320,5 +320,8 @@
     "cancel": "Abbrechen",
     "updateFailedTitle": "Aktualisierung fehlgeschlagen",
     "updateFailedContent": "Die Aktualisierung konnte nicht heruntergeladen oder installiert werden. Bitte versuche es später erneut.",
-    "ok": "OK"
+    "ok": "OK",
+    "attunement": "Einstimmung",
+    "attunementLimit": "Du kannst dich nur auf maximal 3 Gegenstände einstimmen.",
+    "attunementlimitReached": "Einstimmungsgrenze erreicht."
 }

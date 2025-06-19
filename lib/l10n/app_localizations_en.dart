@@ -871,4 +871,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get attunement => 'Attunement';
+
+  @override
+  String get attunementLimit => 'You can only attune to a maximum of 3 items.';
+
+  @override
+  String get attunementlimitReached => 'Attunement limit reached.';
 }
