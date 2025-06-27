@@ -524,6 +524,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get charisma => 'Charisma';
 
   @override
+  String get strengthShort => 'STR';
+
+  @override
+  String get dexterityShort => 'DEX';
+
+  @override
+  String get constitutionShort => 'CON';
+
+  @override
+  String get intelligenceShort => 'INT';
+
+  @override
+  String get wisdomShort => 'WIS';
+
+  @override
+  String get charismaShort => 'CHA';
+
+  @override
   String get initiative => 'Initiative';
 
   @override
@@ -880,4 +898,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attunementlimitReached => 'Attunement limit reached.';
+
+  @override
+  String get skillAcrobaticsDescription => 'Execute agile stunts and maneuvers while maintaining balance and coordination.';
+
+  @override
+  String get skillAnimalHandlingDescription => 'Calm, control, or intuitively understand animal behavior to guide or influence creatures.';
+
+  @override
+  String get skillArcanaDescription => 'Recall and apply knowledge about magic, mystical traditions, and ancient lore.';
+
+  @override
+  String get skillAthleticsDescription => 'Perform physical feats such as climbing, swimming, jumping, and other exertions of strength and endurance.';
+
+  @override
+  String get skillDeceptionDescription => 'Convincingly lie, mislead, or manipulate others through falsehoods or trickery.';
+
+  @override
+  String get skillHistoryDescription => 'Remember and interpret significant historical events, cultures, and legends.';
+
+  @override
+  String get skillInsightDescription => 'Discern others’ true intentions, emotions, or motives by reading their body language and speech.';
+
+  @override
+  String get skillIntimidationDescription => 'Use threats, force, or a commanding presence to influence or coerce others.';
+
+  @override
+  String get skillInvestigationDescription => 'Search for, analyze, and piece together clues to solve mysteries or puzzles.';
+
+  @override
+  String get skillMedicineDescription => 'Diagnose illnesses, treat wounds, and provide basic medical care to stabilize the injured.';
+
+  @override
+  String get skillNatureDescription => 'Understand flora, fauna, natural cycles, and survival tactics within the wilderness.';
+
+  @override
+  String get skillPerceptionDescription => 'Detect hidden details, subtle sounds, or movements others might miss.';
+
+  @override
+  String get skillPerformanceDescription => 'Entertain or captivate an audience through music, dance, acting, or other expressive arts.';
+
+  @override
+  String get skillPersuasionDescription => 'Convince or influence others through reason, charm, or heartfelt appeals.';
+
+  @override
+  String get skillReligionDescription => 'Possess knowledge of deities, sacred rites, religious customs, and spiritual lore.';
+
+  @override
+  String get skillSleightOfHandDescription => 'Perform quick, precise, or concealed manual tricks, such as picking pockets or performing magic.';
+
+  @override
+  String get skillStealthDescription => 'Move silently and remain unseen to avoid detection.';
+
+  @override
+  String get skillSurvivalDescription => 'Track creatures, hunt for food, find shelter, and navigate harsh natural environments.';
 }
