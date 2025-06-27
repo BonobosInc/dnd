@@ -524,6 +524,24 @@ class AppLocalizationsDe extends AppLocalizations {
   String get charisma => 'Charisma';
 
   @override
+  String get strengthShort => 'STÄ';
+
+  @override
+  String get dexterityShort => 'GES';
+
+  @override
+  String get constitutionShort => 'KON';
+
+  @override
+  String get intelligenceShort => 'INT';
+
+  @override
+  String get wisdomShort => 'WEI';
+
+  @override
+  String get charismaShort => 'CHA';
+
+  @override
   String get initiative => 'Initiative';
 
   @override
@@ -880,4 +898,58 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get attunementlimitReached => 'Einstimmungsgrenze erreicht.';
+
+  @override
+  String get skillAcrobaticsDescription => 'Führe agile Stunts und Manöver aus und behalte dabei Gleichgewicht und Koordination.';
+
+  @override
+  String get skillAnimalHandlingDescription => 'Beruhige, kontrolliere oder verstehe intuitiv das Verhalten von Tieren, um sie zu führen oder zu beeinflussen.';
+
+  @override
+  String get skillArcanaDescription => 'Erinnere dich an und wende Wissen über Magie, mystische Traditionen und alte Überlieferungen an.';
+
+  @override
+  String get skillAthleticsDescription => 'Führe körperliche Leistungen wie Klettern, Schwimmen, Springen und andere Kraft- und Ausdauerleistungen aus.';
+
+  @override
+  String get skillDeceptionDescription => 'Täusche andere überzeugend, indem du lügst, irreführst oder manipulativ handelst.';
+
+  @override
+  String get skillHistoryDescription => 'Erinnere dich an und interpretiere bedeutende historische Ereignisse, Kulturen und Legenden.';
+
+  @override
+  String get skillInsightDescription => 'Erkenne die wahren Absichten, Emotionen oder Motive anderer durch das Lesen ihrer Körpersprache und Sprache.';
+
+  @override
+  String get skillIntimidationDescription => 'Setze Drohungen, Gewalt oder eine einschüchternde Präsenz ein, um andere zu beeinflussen oder zu zwingen.';
+
+  @override
+  String get skillInvestigationDescription => 'Suche nach, analysiere und füge Hinweise zusammen, um Geheimnisse oder Rätsel zu lösen.';
+
+  @override
+  String get skillMedicineDescription => 'Diagnostiziere Krankheiten, behandle Wunden und leiste grundlegende medizinische Versorgung zur Stabilisierung Verletzter.';
+
+  @override
+  String get skillNatureDescription => 'Verstehe Pflanzen, Tiere, natürliche Zyklen und Überlebenstaktiken in der Wildnis.';
+
+  @override
+  String get skillPerceptionDescription => 'Erkenne versteckte Details, leise Geräusche oder Bewegungen, die anderen entgehen könnten.';
+
+  @override
+  String get skillPerformanceDescription => 'Unterhalte oder fessle ein Publikum durch Musik, Tanz, Schauspiel oder andere Ausdrucksformen.';
+
+  @override
+  String get skillPersuasionDescription => 'Überzeuge oder beeinflusse andere durch Vernunft, Charme oder ehrliche Appelle.';
+
+  @override
+  String get skillReligionDescription => 'Besitze Wissen über Götter, heilige Rituale, religiöse Bräuche und spirituelle Überlieferungen.';
+
+  @override
+  String get skillSleightOfHandDescription => 'Führe schnelle, präzise oder verdeckte manuelle Tricks aus, wie Taschendiebstahl oder Zauberkunststücke.';
+
+  @override
+  String get skillStealthDescription => 'Bewege dich lautlos und bleibe ungesehen, um einer Entdeckung zu entgehen.';
+
+  @override
+  String get skillSurvivalDescription => 'Spüre Kreaturen auf, jage nach Nahrung, finde Unterschlupf und navigiere in rauer Natur.';
 }

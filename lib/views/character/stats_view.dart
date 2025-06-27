@@ -46,6 +46,7 @@ class StatsPageState extends State<StatsPage> {
   int skillProfReli = 0;
   int skillProfSlei = 0;
   int skillProfStea = 0;
+  int skillProfSurv = 0;
   int skillJack = 0;
 
   int skillExAcro = 0;
@@ -65,6 +66,7 @@ class StatsPageState extends State<StatsPage> {
   int skillExReli = 0;
   int skillExSlei = 0;
   int skillExStea = 0;
+  int skillExSurv = 0;
 
   @override
   void initState() {
@@ -240,6 +242,11 @@ class StatsPageState extends State<StatsPage> {
               skillExStea = skill['expertise'] ?? 0;
             });
             break;
+          case Defines.skillSurvival:
+            setState(() {
+              skillProfSurv = skill['proficiency'] ?? 0;
+              skillExSurv = skill['expertise'] ?? 0;
+            });
           case Defines.skillJackofAllTrades:
             setState(() {
               skillJack = skill['proficiency'] ?? 0;
@@ -678,6 +685,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExAcro,
         'define': Defines.skillAcrobatics,
         'ability': dexterity,
+        'description': loc.skillAcrobaticsDescription,
+        'attribute': loc.dexterityShort,
       },
       {
         'name': loc.skillAnimalHandling,
@@ -685,6 +694,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExAnim,
         'define': Defines.skillAnimalHandling,
         'ability': wisdom,
+        'description': loc.skillAnimalHandlingDescription,
+        'attribute': loc.wisdomShort,
       },
       {
         'name': loc.skillArcana,
@@ -692,6 +703,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExArca,
         'define': Defines.skillArcana,
         'ability': intelligence,
+        'description': loc.skillArcanaDescription,
+        'attribute': loc.intelligenceShort,
       },
       {
         'name': loc.skillAthletics,
@@ -699,6 +712,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExAthl,
         'define': Defines.skillAthletics,
         'ability': strength,
+        'description': loc.skillAthleticsDescription,
+        'attribute': loc.strengthShort,
       },
       {
         'name': loc.skillDeception,
@@ -706,6 +721,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExDece,
         'define': Defines.skillDeception,
         'ability': charisma,
+        'description': loc.skillDeceptionDescription,
+        'attribute': loc.charismaShort,
       },
       {
         'name': loc.skillHistory,
@@ -713,6 +730,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExHist,
         'define': Defines.skillHistory,
         'ability': intelligence,
+        'description': loc.skillHistoryDescription,
+        'attribute': loc.intelligenceShort,
       },
       {
         'name': loc.skillInsight,
@@ -720,6 +739,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExInsi,
         'define': Defines.skillInsight,
         'ability': wisdom,
+        'description': loc.skillInsightDescription,
+        'attribute': loc.wisdomShort,
       },
       {
         'name': loc.skillIntimidation,
@@ -727,6 +748,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExInti,
         'define': Defines.skillIntimidation,
         'ability': charisma,
+        'description': loc.skillIntimidationDescription,
+        'attribute': loc.charismaShort,
       },
       {
         'name': loc.skillInvestigation,
@@ -734,6 +757,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExInve,
         'define': Defines.skillInvestigation,
         'ability': intelligence,
+        'description': loc.skillInvestigationDescription,
+        'attribute': loc.intelligenceShort,
       },
       {
         'name': loc.skillMedicine,
@@ -741,6 +766,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExMedi,
         'define': Defines.skillMedicine,
         'ability': wisdom,
+        'description': loc.skillMedicineDescription,
+        'attribute': loc.wisdomShort,
       },
       {
         'name': loc.skillNature,
@@ -748,6 +775,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExNatu,
         'define': Defines.skillNature,
         'ability': intelligence,
+        'description': loc.skillNatureDescription,
+        'attribute': loc.intelligenceShort,
       },
       {
         'name': loc.skillPerception,
@@ -755,6 +784,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExPerc,
         'define': Defines.skillPerception,
         'ability': wisdom,
+        'description': loc.skillPerceptionDescription,
+        'attribute': loc.wisdomShort,
       },
       {
         'name': loc.skillPerformance,
@@ -762,6 +793,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExPerf,
         'define': Defines.skillPerformance,
         'ability': charisma,
+        'description': loc.skillPerformanceDescription,
+        'attribute': loc.charismaShort,
       },
       {
         'name': loc.skillPersuasion,
@@ -769,6 +802,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExPers,
         'define': Defines.skillPersuasion,
         'ability': charisma,
+        'description': loc.skillPersuasionDescription,
+        'attribute': loc.charismaShort,
       },
       {
         'name': loc.skillReligion,
@@ -776,6 +811,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExReli,
         'define': Defines.skillReligion,
         'ability': intelligence,
+        'description': loc.skillReligionDescription,
+        'attribute': loc.intelligenceShort,
       },
       {
         'name': loc.skillSleightOfHand,
@@ -783,6 +820,8 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExSlei,
         'define': Defines.skillSleightOfHand,
         'ability': dexterity,
+        'description': loc.skillSleightOfHandDescription,
+        'attribute': loc.dexterityShort,
       },
       {
         'name': loc.skillStealth,
@@ -790,32 +829,57 @@ class StatsPageState extends State<StatsPage> {
         'ex': skillExStea,
         'define': Defines.skillStealth,
         'ability': dexterity,
+        'description': loc.skillStealthDescription,
+        'attribute': loc.dexterityShort,
       },
       {
         'name': loc.skillSurvival,
-        'prof':
-            skillProfStea,
-        'ex': skillExStea,
+        'prof': skillProfSurv,
+        'ex': skillExSurv,
         'define': Defines.skillSurvival,
         'ability': wisdom,
+        'description': loc.skillSurvivalDescription,
+        'attribute': loc.wisdomShort,
       },
     ];
 
     skillData.sort((a, b) => a['name'].compareTo(b['name']));
 
     return Column(
-      children: [
-        _buildSkillsLabelRow(),
-        ...skillData.map((skill) => _buildSkillRow(
-              skill['name'],
-              skill['prof'],
-              skill['ex'],
-              skill['define'],
-              skill['ability'],
-            )),
-      ],
-    );
-  }
+    children: [
+      _buildSkillsLabelRow(),
+      ...skillData.map((skill) => GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(skill['name'] + " (${skill['attribute']})"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(skill['description'] ?? ''),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(loc.ok),
+                ),
+              ],
+            ),
+          );
+        },
+        child: _buildSkillRow(
+          skill['name'],
+          skill['prof'],
+          skill['ex'],
+          skill['define'],
+          skill['ability'],
+        ),
+      )),
+    ],
+  );
+}
 
   Widget _buildStatsLabelRow() {
     final loc = AppLocalizations.of(context)!;
@@ -946,12 +1010,12 @@ class StatsPageState extends State<StatsPage> {
           _buildSavingThrowLabelRow(),
           _buildSavingThrowRow(
               loc.strength, saveStrProficiency, Defines.saveStr, strength),
-          _buildSavingThrowRow(loc.dexterity, saveDexProficiency,
-              Defines.saveDex, dexterity),
+          _buildSavingThrowRow(
+              loc.dexterity, saveDexProficiency, Defines.saveDex, dexterity),
           _buildSavingThrowRow(loc.constitution, saveConProficiency,
               Defines.saveCon, constitution),
-          _buildSavingThrowRow(
-              loc.intelligence, saveIntProficiency, Defines.saveInt, intelligence),
+          _buildSavingThrowRow(loc.intelligence, saveIntProficiency,
+              Defines.saveInt, intelligence),
           _buildSavingThrowRow(
               loc.wisdom, saveWisProficiency, Defines.saveWis, wisdom),
           _buildSavingThrowRow(

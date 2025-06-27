@@ -1109,6 +1109,42 @@ abstract class AppLocalizations {
   /// **'Charisma'**
   String get charisma;
 
+  /// No description provided for @strengthShort.
+  ///
+  /// In de, this message translates to:
+  /// **'STÄ'**
+  String get strengthShort;
+
+  /// No description provided for @dexterityShort.
+  ///
+  /// In de, this message translates to:
+  /// **'GES'**
+  String get dexterityShort;
+
+  /// No description provided for @constitutionShort.
+  ///
+  /// In de, this message translates to:
+  /// **'KON'**
+  String get constitutionShort;
+
+  /// No description provided for @intelligenceShort.
+  ///
+  /// In de, this message translates to:
+  /// **'INT'**
+  String get intelligenceShort;
+
+  /// No description provided for @wisdomShort.
+  ///
+  /// In de, this message translates to:
+  /// **'WEI'**
+  String get wisdomShort;
+
+  /// No description provided for @charismaShort.
+  ///
+  /// In de, this message translates to:
+  /// **'CHA'**
+  String get charismaShort;
+
   /// No description provided for @initiative.
   ///
   /// In de, this message translates to:
@@ -1816,6 +1852,114 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Einstimmungsgrenze erreicht.'**
   String get attunementlimitReached;
+
+  /// No description provided for @skillAcrobaticsDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Führe agile Stunts und Manöver aus und behalte dabei Gleichgewicht und Koordination.'**
+  String get skillAcrobaticsDescription;
+
+  /// No description provided for @skillAnimalHandlingDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Beruhige, kontrolliere oder verstehe intuitiv das Verhalten von Tieren, um sie zu führen oder zu beeinflussen.'**
+  String get skillAnimalHandlingDescription;
+
+  /// No description provided for @skillArcanaDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Erinnere dich an und wende Wissen über Magie, mystische Traditionen und alte Überlieferungen an.'**
+  String get skillArcanaDescription;
+
+  /// No description provided for @skillAthleticsDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Führe körperliche Leistungen wie Klettern, Schwimmen, Springen und andere Kraft- und Ausdauerleistungen aus.'**
+  String get skillAthleticsDescription;
+
+  /// No description provided for @skillDeceptionDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Täusche andere überzeugend, indem du lügst, irreführst oder manipulativ handelst.'**
+  String get skillDeceptionDescription;
+
+  /// No description provided for @skillHistoryDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Erinnere dich an und interpretiere bedeutende historische Ereignisse, Kulturen und Legenden.'**
+  String get skillHistoryDescription;
+
+  /// No description provided for @skillInsightDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Erkenne die wahren Absichten, Emotionen oder Motive anderer durch das Lesen ihrer Körpersprache und Sprache.'**
+  String get skillInsightDescription;
+
+  /// No description provided for @skillIntimidationDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Setze Drohungen, Gewalt oder eine einschüchternde Präsenz ein, um andere zu beeinflussen oder zu zwingen.'**
+  String get skillIntimidationDescription;
+
+  /// No description provided for @skillInvestigationDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Suche nach, analysiere und füge Hinweise zusammen, um Geheimnisse oder Rätsel zu lösen.'**
+  String get skillInvestigationDescription;
+
+  /// No description provided for @skillMedicineDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Diagnostiziere Krankheiten, behandle Wunden und leiste grundlegende medizinische Versorgung zur Stabilisierung Verletzter.'**
+  String get skillMedicineDescription;
+
+  /// No description provided for @skillNatureDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Verstehe Pflanzen, Tiere, natürliche Zyklen und Überlebenstaktiken in der Wildnis.'**
+  String get skillNatureDescription;
+
+  /// No description provided for @skillPerceptionDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Erkenne versteckte Details, leise Geräusche oder Bewegungen, die anderen entgehen könnten.'**
+  String get skillPerceptionDescription;
+
+  /// No description provided for @skillPerformanceDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Unterhalte oder fessle ein Publikum durch Musik, Tanz, Schauspiel oder andere Ausdrucksformen.'**
+  String get skillPerformanceDescription;
+
+  /// No description provided for @skillPersuasionDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Überzeuge oder beeinflusse andere durch Vernunft, Charme oder ehrliche Appelle.'**
+  String get skillPersuasionDescription;
+
+  /// No description provided for @skillReligionDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Besitze Wissen über Götter, heilige Rituale, religiöse Bräuche und spirituelle Überlieferungen.'**
+  String get skillReligionDescription;
+
+  /// No description provided for @skillSleightOfHandDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Führe schnelle, präzise oder verdeckte manuelle Tricks aus, wie Taschendiebstahl oder Zauberkunststücke.'**
+  String get skillSleightOfHandDescription;
+
+  /// No description provided for @skillStealthDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Bewege dich lautlos und bleibe ungesehen, um einer Entdeckung zu entgehen.'**
+  String get skillStealthDescription;
+
+  /// No description provided for @skillSurvivalDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Spüre Kreaturen auf, jage nach Nahrung, finde Unterschlupf und navigiere in rauer Natur.'**
+  String get skillSurvivalDescription;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
