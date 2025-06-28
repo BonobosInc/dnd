@@ -1,3 +1,4 @@
+import 'package:dnd/configs/colours.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/profile_manager.dart';
 import 'package:dnd/configs/defines.dart';
@@ -290,6 +291,7 @@ class StatsPageState extends State<StatsPage> {
                   SizedBox(
                     height: 45,
                     child: Card(
+                      color: AppColors.cardColor,
                       elevation: 3,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
@@ -315,6 +317,7 @@ class StatsPageState extends State<StatsPage> {
                 SizedBox(
                   height: 45,
                   child: Card(
+                    color: AppColors.cardColor,
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -339,6 +342,7 @@ class StatsPageState extends State<StatsPage> {
                 SizedBox(
                   height: 45,
                   child: Card(
+                    color: AppColors.cardColor,
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -492,6 +496,7 @@ class StatsPageState extends State<StatsPage> {
               child: SizedBox(
                 height: 45,
                 child: Card(
+                  color: AppColors.cardColor,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -513,6 +518,7 @@ class StatsPageState extends State<StatsPage> {
             child: SizedBox(
               height: 45,
               child: Card(
+                color: AppColors.cardColor,
                 elevation: 3,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
@@ -635,6 +641,7 @@ class StatsPageState extends State<StatsPage> {
               child: SizedBox(
                 height: 45,
                 child: Card(
+                  color: AppColors.cardColor,
                   elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -656,6 +663,7 @@ class StatsPageState extends State<StatsPage> {
             child: SizedBox(
               height: 45,
               child: Card(
+                color: AppColors.cardColor,
                 elevation: 3,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),

@@ -15,19 +15,19 @@ class AppColors {
   }
 
   static Color get primaryColor =>
-      isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF2F2F2);
+      isDarkMode ? const Color(0xFF242424) : const Color(0xFFF2F2F2);
   static Color get appBarColor =>
-      isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFE0E0E0);
+      isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0);
   static Color get cardColor =>
-      isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5);
+      isDarkMode ? const Color(0xFF323232) : const Color(0xFFF5F5F5);
   static Color get borderColor =>
-      isDarkMode ? const Color(0xFF2C2C2C) : const Color(0xFFBDBDBD);
+      isDarkMode ? const Color(0xFF474747) : const Color(0xFFBDBDBD);
   static Color get dividerColor =>
-      isDarkMode ? const Color(0xFF888888) : const Color(0xFFB0B0B0);
+      isDarkMode ? const Color(0xFFAAAAAA) : const Color(0xFFB0B0B0);
   static Color get textColorLight =>
-      isDarkMode ? Colors.white : const Color(0xFF212121);
+      isDarkMode ? const Color(0xFFECECEC) : const Color(0xFF212121);
   static Color get textColorDark =>
-      isDarkMode ? Colors.white70 : const Color(0xFF424242);
+      isDarkMode ? const Color(0xFFB0B0B0) : const Color(0xFF424242);
   static Color get warningColor => const Color(0xFFB71C1C);
   static Color get missingHealth => isDarkMode
       ? const Color(0xFF581B10)
