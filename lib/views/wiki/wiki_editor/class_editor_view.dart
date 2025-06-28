@@ -1,4 +1,5 @@
 import 'package:dnd/classes/wiki_classes.dart';
+import 'package:dnd/configs/colours.dart';
 import 'package:flutter/material.dart';
 
 class AddClassPage extends StatefulWidget {
@@ -70,6 +71,7 @@ class AddClassPageState extends State<AddClassPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Card(
+              color: AppColors.cardColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
               ),

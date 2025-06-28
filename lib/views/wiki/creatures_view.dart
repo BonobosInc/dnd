@@ -1,3 +1,4 @@
+import 'package:dnd/configs/colours.dart';
 import 'package:flutter/material.dart';
 import 'package:dnd/classes/wiki_classes.dart';
 import 'package:dnd/l10n/app_localizations.dart';
@@ -682,6 +683,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 _showEditDialog(context, trait, 'trait');
               },
               child: Card(
+                color: AppColors.cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -752,6 +754,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 _showEditDialog(context, action, 'action');
               },
               child: Card(
+                color: AppColors.cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -822,6 +825,7 @@ class CreateCreaturePageState extends State<CreateCreaturePage> {
                 _showEditDialog(context, legendary, 'legendary');
               },
               child: Card(
+                color: AppColors.cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
