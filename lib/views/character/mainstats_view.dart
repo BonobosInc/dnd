@@ -1582,6 +1582,7 @@ class MainStatsPageState extends State<MainStatsPage> {
         SizedBox(
           height: 50,
           child: Card(
+            color: AppColors.cardColor,
             elevation: 3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -1631,6 +1632,7 @@ class MainStatsPageState extends State<MainStatsPage> {
             SizedBox(
               height: 50,
               child: Card(
+                color: AppColors.cardColor,
                 elevation: 3,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
