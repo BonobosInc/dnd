@@ -1313,6 +1313,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                                     SizedBox(
                                       height: 50,
                                       child: Card(
+                                        color: AppColors.cardColor,
                                         elevation: 3,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
@@ -1392,6 +1393,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                                     SizedBox(
                                       width: itemWidth,
                                       child: Card(
+                                        color: AppColors.cardColor,
                                         elevation: 3,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
@@ -1454,6 +1456,7 @@ class MainStatsPageState extends State<MainStatsPage> {
                         _editCreature(creatures[i]);
                       },
                       child: Card(
+                        color: AppColors.cardColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
